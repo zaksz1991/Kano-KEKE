@@ -47,8 +47,17 @@ const composer = setupPostProcessing(renderer, scene, camera);
 
 // 3. Load Saved Profile Data via SaveSystem & Backend Services
 const savedData = SaveSystem.loadGame();
-const redisSync = new RedisSyncManager();
-redisSync.connect(() => {});
+
+// Safe Redis sync initialization with fallback protection against missing server endpoints
+let redisSync = null;
+try {
+  redisSync = new RedisSyncManager();
+  if (typeof redisSync.connect === 'function') {
+    redisSync.connect(() => {});
+  }
+} catch (e) {
+  console.log("ℹ️ Redis sync server optional fallback active.");
+}
 
 // 4. Input State Objects & Mobile Touch Controls
 const input = { throttle: 0, steering: 0 };
@@ -305,7 +314,10 @@ function animate() {
 
     trafficManager.update(delta, isHornActive);
     policeEngine.update((e) => showBanner(e.msg));
-    redisSync.sendPlayerState(kekeGroup.position, kekeController.currentSpeed, 1);
+    
+    if (redisSync && typeof redisSync.sendPlayerState === 'function') {
+      redisSync.sendPlayerState(kekeGroup.position, kekeController.currentSpeed, 1);
+    }
 
     updateAtmosphereByTime(scene, renderer, window.timeInMinutes);
     prayerManager.update(window.timeInMinutes, (e) => { if (e.msg) showBanner(e.msg); });
