@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+
 export class PoliceCheckpointEngine {
   constructor(scene, kekeController, passengerManager) {
     this.scene = scene;
