@@ -39,6 +39,7 @@ const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerH
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
 // 2. Setup Kano Atmosphere & Cinematic Post-Processing Composer Stack
@@ -48,7 +49,7 @@ const composer = setupPostProcessing(renderer, scene, camera);
 // 3. Load Saved Profile Data via SaveSystem & Backend Services
 const savedData = SaveSystem.loadGame();
 
-// Safe Redis sync initialization with fallback protection against missing server endpoints
+// Safe Redis/Supabase sync initialization with fallback protection
 let redisSync = null;
 try {
   redisSync = new RedisSyncManager();
@@ -56,7 +57,7 @@ try {
     redisSync.connect(() => {});
   }
 } catch (e) {
-  console.log("ℹ️ Redis sync server optional fallback active.");
+  console.log("ℹ️ Multiplayer sync fallback active.");
 }
 
 // 4. Input State Objects & Mobile Touch Controls
@@ -64,7 +65,14 @@ const input = { throttle: 0, steering: 0 };
 let isHornActive = false;
 setupMobileControls(input);
 
-// 5. Create Keke Root Group & Load GLTF Asset with Fallback Box Mesh
+// 5. Create Ground Plane for Shadows and Keke Root Group
+const groundGeo = new THREE.PlaneGeometry(1000, 1000);
+const groundMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8, metalness: 0.1 });
+const groundMesh = new THREE.Mesh(groundGeo, groundMat);
+groundMesh.rotation.x = -Math.PI / 2;
+groundMesh.receiveShadow = true;
+scene.add(groundMesh);
+
 const kekeGroup = new THREE.Group();
 const bodyMesh = new THREE.Mesh(
   new THREE.BoxGeometry(1.6, 1.4, 2.6),
@@ -75,13 +83,26 @@ bodyMesh.castShadow = true;
 kekeGroup.add(bodyMesh);
 scene.add(kekeGroup);
 
+// Load GLTF Model with Full PBR Mesh Traversal & Shadow Mapping
 const gltfLoader = new GLTFLoader();
 gltfLoader.load('/assets/models/keke.glb', (gltf) => {
   kekeGroup.remove(bodyMesh);
   const kekeModel = gltf.scene;
+
+  // Traverse model nodes to apply high-quality PBR lighting & shadows
+  kekeModel.traverse((node) => {
+    if (node.isMesh) {
+      node.castShadow = true;
+      node.receiveShadow = true;
+      if (node.material) {
+        node.material.envMapIntensity = 1.5;
+        node.material.needsUpdate = true;
+      }
+    }
+  });
+
   kekeModel.scale.set(1.2, 1.2, 1.2);
   kekeModel.position.y = 0;
-  kekeModel.castShadow = true;
   kekeGroup.add(kekeModel);
 }, undefined, () => {
   console.log("ℹ️ Using procedural fallback box mesh for Keke (GLB asset pending).");
@@ -265,7 +286,7 @@ function showBanner(msg) {
   }
 }
 
-// 11. Main Render & Simulation Loop
+// 11. Main Render Loop
 const clock = new THREE.Clock();
 let saveTimer = 0;
 
@@ -314,7 +335,7 @@ function animate() {
 
     trafficManager.update(delta, isHornActive);
     policeEngine.update((e) => showBanner(e.msg));
-    
+
     if (redisSync && typeof redisSync.sendPlayerState === 'function') {
       redisSync.sendPlayerState(kekeGroup.position, kekeController.currentSpeed, 1);
     }
@@ -364,6 +385,7 @@ function animate() {
     }
   }
 
+  // Render post-processing pipeline
   composer.render();
 }
 
