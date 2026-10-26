@@ -43,6 +43,7 @@ export class DailySettlementManager {
     const level = missionResult?.level ?? 1;
     const leveled = missionResult?.leveled ?? false;
     const highScore = missionResult?.highScore ?? score;
+    const rank = this.missions?.rankForScore?.(score) || '—';
 
     // Operating costs
     const fuelCost = Math.round((100 - fuelLeft) * 8);
@@ -60,7 +61,8 @@ export class DailySettlementManager {
       level,
       leveled,
       highScore,
-      missionsDone: missionResult?.done || []
+      missionsDone: missionResult?.done || [],
+      rank
     });
 
     return { net, score, highScore, level, xp };
@@ -84,6 +86,7 @@ export class DailySettlementManager {
         <div style="text-align:center;font-size:13px;color:#00ffff;letter-spacing:2px;">SHIFT COMPLETE</div>
         <h2 style="text-align:center;color:#ffcc00;margin:6px 0 14px;font-size:26px;">Daily Settlement</h2>
         ${data.leveled ? '<div style="text-align:center;background:#ff6f00;color:#000;font-weight:900;padding:6px;border-radius:8px;margin-bottom:10px;">LEVEL UP → Lv ' + data.level + '</div>' : ''}
+        <div style="text-align:center;color:#80deea;font-size:14px;margin-bottom:8px;">Rank: ${data.rank || '—'}</div>
         <div style="font-size:14px;line-height:1.7;">
           <div style="display:flex;justify-content:space-between;"><span>Fares collected</span><span style="color:#4caf50;">+₦${data.earnings}</span></div>
           <div style="display:flex;justify-content:space-between;"><span>Mission bonus</span><span style="color:#4caf50;">+₦${data.bonus}</span></div>

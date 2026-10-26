@@ -120,6 +120,21 @@ export class MissionManager {
     return true;
   }
 
+  /** Buy an extra continue mid-run for cash */
+  buyContinue(cash, cost = 1500) {
+    if (cash < cost) return { ok: false, cost };
+    this.continues += 1;
+    return { ok: true, cost };
+  }
+
+  rankForScore(score) {
+    if (score >= 15000) return 'S – Street Legend';
+    if (score >= 8000) return 'A – Kano Ace';
+    if (score >= 4000) return 'B – Solid Driver';
+    if (score >= 1500) return 'C – Learning';
+    return 'D – Rookie';
+  }
+
   getHudText() {
     return this.shiftGoals
       .map((g) => {

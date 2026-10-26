@@ -26,6 +26,7 @@ import { MissionManager } from './MissionManager.js';
 import { KekeCollisionSystem } from './KekeCollisionSystem.js';
 import { HausaVoiceBank } from './HausaVoiceBank.js';
 import { MissionBoardUI } from './MissionBoardUI.js';
+import { KekeSeatOccupancy } from './KekeSeatOccupancy.js';
 
 // ---------- Renderer ----------
 const canvas = document.getElementById('webgl-canvas');
@@ -217,6 +218,8 @@ async function bootstrap() {
   passengerManager.negotiationBonus = driver.negotiationBonus || 1;
   passengerManager.tipBonus = driver.tipBonus || 1;
   passengerManager.initModels().catch(() => {});
+  const seatOccupancy = new KekeSeatOccupancy(kekeGroup, assetManager);
+  seatOccupancy.init().catch(() => {});
   const missionManager = new MissionManager();
   missionManager.loadProgress(saved);
   const missionBoard = new MissionBoardUI(missionManager, charSelect);
@@ -244,6 +247,20 @@ async function bootstrap() {
   const settlementManager = new DailySettlementManager(passengerManager, fuelManager, kekeController, missionManager);
   settlementManager.loadDaily(saved);
   window.__kanoSettle = (result) => settlementManager.settle(result);
+  window.__kanoBuyContinue = () => {
+    const r = missionManager.buyContinue(passengerManager.dailyEarnings, 1500);
+    if (!r.ok) { showBanner('Need ₦1,500 for continue'); return false; }
+    passengerManager.dailyEarnings -= r.cost;
+    const earn = document.getElementById('earnings');
+    if (earn) earn.innerText = passengerManager.dailyEarnings;
+    collisionSystem.repair();
+    kekeController.velocity = 0;
+    kekeController.maxSpeed = Math.max(kekeController.maxSpeed, 20);
+    const modal = document.getElementById('continue-modal');
+    if (modal) modal.remove();
+    _updateMissionHud(missionManager);
+    return true;
+  };
 
   setupMobileControls(input, () => audioEngine.playHorn());
 
@@ -437,6 +454,7 @@ async function bootstrap() {
       if (canDrive) {
         passengerManager.update(delta, (ev) => {
           showBanner(ev);
+          seatOccupancy.sync(passengerManager.onBoard.length);
           const earn = document.getElementById('earnings');
           if (earn && ev.earnings != null) earn.innerText = ev.earnings;
           if (ev.type === 'BOARD') {

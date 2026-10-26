@@ -110,9 +110,13 @@ export class DynamicTrafficManager {
       } else {
         v.mesh.position.x = THREE.MathUtils.lerp(v.mesh.position.x, v.laneX, 0.03);
       }
+      // LOD – hide far traffic for performance
+      const dist = Math.abs(v.mesh.position.z - playerZ);
+      v.mesh.visible = dist < 200;
       if (v.mesh.position.z < playerZ - 50 || v.mesh.position.z > playerZ + 340) {
         v.mesh.position.z = playerZ + 170 + Math.random() * 90;
         v.mesh.position.x = v.laneX;
+        v.mesh.visible = true;
       }
     });
   }
