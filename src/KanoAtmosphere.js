@@ -38,6 +38,14 @@ export function setupKanoAtmosphere(scene, renderer) {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   if ('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+  // Night market glow points (dim by default)
+  for (let i = 0; i < 6; i++) {
+    const nl = new THREE.PointLight(0xffa726, 0, 28, 2);
+    nl.position.set((i % 2 === 0 ? -12 : 12), 3.5, 40 + i * 55);
+    nl.name = 'nightMarketLight';
+    scene.add(nl);
+  }
 }
 
 export function updateAtmosphereByTime(scene, renderer, timeInMinutes, roadSystem = null) {
@@ -81,4 +89,9 @@ export function updateAtmosphereByTime(scene, renderer, timeInMinutes, roadSyste
     renderer.toneMappingExposure = 1.5 + h * 0.25;
   }
   if (roadSystem?.setNightMode) roadSystem.setNightMode(night);
+  scene.traverse((o) => {
+    if (o.name === 'nightMarketLight' && o.isLight) {
+      o.intensity = night ? 1.6 : 0;
+    }
+  });
 }

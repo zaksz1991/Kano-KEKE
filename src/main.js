@@ -27,6 +27,7 @@ import { KekeCollisionSystem } from './KekeCollisionSystem.js';
 import { HausaVoiceBank } from './HausaVoiceBank.js';
 import { MissionBoardUI } from './MissionBoardUI.js';
 import { KekeSeatOccupancy } from './KekeSeatOccupancy.js';
+import { DashHUD } from './DashHUD.js';
 
 // ---------- Renderer ----------
 const canvas = document.getElementById('webgl-canvas');
@@ -220,6 +221,7 @@ async function bootstrap() {
   passengerManager.initModels().catch(() => {});
   const seatOccupancy = new KekeSeatOccupancy(kekeGroup, assetManager);
   seatOccupancy.init().catch(() => {});
+  const dashHud = new DashHUD();
   const missionManager = new MissionManager();
   missionManager.loadProgress(saved);
   const missionBoard = new MissionBoardUI(missionManager, charSelect);
@@ -366,6 +368,10 @@ async function bootstrap() {
     showBanner('Mission: ' + goals.map(g => g.label).join(' · '));
     _updateMissionHud(missionManager);
     try { missionBoard.hide(); } catch (e) {}
+    dashHud.show();
+    // hide old mission floating hud overlap
+    const oldM = document.getElementById('mission-hud');
+    if (oldM) oldM.style.display = 'none';
     flow.beginIntro();
     audioEngine.playOneShot(120, 0.3, 'sawtooth', 0.08);
   };
@@ -471,6 +477,16 @@ async function bootstrap() {
             const fare = fareMatch ? parseInt(fareMatch[1], 10) : 200;
             missionManager.onDropoff(fare);
             _updateMissionHud(missionManager);
+            dashHud.update({
+              speed: Math.abs(kekeController.velocity) * 3.6,
+              cash: passengerManager.dailyEarnings,
+              fuel: fuelManager.fuel ?? 100,
+              seatsUsed: passengerManager.onBoard.length,
+              seatsMax: passengerManager.capacity,
+              lives: missionManager.lives,
+              missionsText: missionManager.getHudText(),
+              notice: `+₦${fare}`
+            });
             SaveSystem.saveGame({
               cash: passengerManager.dailyEarnings,
               currentLevel: missionManager.level,
@@ -517,6 +533,16 @@ async function bootstrap() {
 
         const speedDisplay = document.getElementById('speed-display');
         if (speedDisplay) speedDisplay.innerText = Math.round(Math.abs(kekeController.velocity) * 3.6);
+        dashHud.update({
+          speed: Math.abs(kekeController.velocity) * 3.6,
+          cash: passengerManager.dailyEarnings,
+          fuel: fuelManager.fuel ?? 100,
+          seatsUsed: passengerManager.onBoard.length,
+          seatsMax: passengerManager.capacity,
+          lives: missionManager.lives,
+          route: document.getElementById('route-name-display')?.textContent || 'Kano',
+          missionsText: missionManager.getHudText()
+        });
       }
     } catch (err) {
       console.warn('frame', err);

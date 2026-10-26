@@ -25,6 +25,28 @@ export class InfiniteRoadSystem {
       this.scene.add(chunk);
     }
     this._loadTexture();
+    this._tryRoadTile();
+  }
+
+  async _tryRoadTile() {
+    try {
+      const model = await this.assets.loadGLB('/assets/models/environment/road_tile.glb', {
+        scale: 1,
+        castShadow: false,
+        receiveShadow: true
+      });
+      if (!model) return;
+      this.roadTileModel = model;
+      // Decorate nearest chunks with a detail strip (LOD)
+      this.chunks.slice(0, 4).forEach((chunk, i) => {
+        try {
+          const tile = model.clone(true);
+          tile.position.set(0, 0.01, 0);
+          tile.scale.set(1, 1, this.chunkLength / 20);
+          chunk.add(tile);
+        } catch (e) {}
+      });
+    } catch (e) {}
   }
 
   async _loadTexture() {
