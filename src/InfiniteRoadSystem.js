@@ -132,7 +132,7 @@ export class InfiniteRoadSystem {
 
     if (rand() > 0.35) {
       const light = this._makeStreetLight();
-      light.position.set((rand() - 0.5) * 3, 0, (rand() - 0.5) * this.chunkLength * 0.4);
+      light.position.set((rand() > 0.5 ? 1 : -1) * (7.5 + rand() * 1.5), 0, (rand() - 0.5) * this.chunkLength * 0.4);
       group.add(light);
     }
 

@@ -239,11 +239,18 @@ async function bootstrap() {
 
   let kekeModel = null;
   try {
-    kekeModel = await assetManager.loadGLB('/assets/models/keke.glb', { scale: 1.15 });
-    kekeGroup.remove(tempBody);
-    kekeGroup.add(kekeModel);
+    kekeModel = await Promise.race([
+      assetManager.loadGLB('/assets/models/keke.glb', { scale: 1.15 }),
+      new Promise((resolve) => setTimeout(() => resolve(null), 6000))
+    ]);
+    if (kekeModel) {
+      kekeGroup.remove(tempBody);
+      kekeGroup.add(kekeModel);
+    } else {
+      console.warn('Keke GLB slow/missing – using yellow box');
+    }
   } catch (e) {
-    console.warn('Keke GLB fallback to procedural box');
+    console.warn('Keke GLB fallback to procedural box', e);
   }
 
   // ---- Systems ----
@@ -339,8 +346,8 @@ async function bootstrap() {
   // Start button
   // Start shift handler – called from early-wired button
   window.__kanoStartShift = () => {
-    if (gameStarted) return;
     gameStarted = true;
+    if (kekeController && kekeController.maxSpeed < 1) kekeController.maxSpeed = 22;
     const menu = document.getElementById('main-menu-overlay');
     if (menu) menu.style.display = 'none';
     const mobile = document.getElementById('mobile-controls-overlay');
@@ -412,15 +419,18 @@ async function bootstrap() {
     const delta = clock.getDelta();
 
     if (gameStarted) {
+      try {
       // Keyboard input merge with mobile
-      let throttle = input.throttle;
-      let steer = input.steering;
+      let throttle = input.throttle || 0;
+      let steer = input.steering || 0;
       if (keys['KeyW'] || keys['ArrowUp']) throttle = 1;
       if (keys['KeyS'] || keys['ArrowDown']) throttle = -1;
       if (keys['KeyA'] || keys['ArrowLeft']) steer = 1;
       if (keys['KeyD'] || keys['ArrowRight']) steer = -1;
-      // Mobile horn state
       if (input.horn) isHornActive = true;
+
+      // Always drive – never stuck
+      if (kekeController.maxSpeed < 1) kekeController.maxSpeed = 22;
 
       kekeController.setInput(throttle, steer);
       kekeController.update(delta);
@@ -492,6 +502,9 @@ async function bootstrap() {
         // velocity is m/s → km/h
         speedDisplay.innerText = Math.round(Math.abs(kekeController.velocity) * 3.6);
       }
+    } catch (err) {
+        console.warn('Frame update error', err);
+      }
     } else {
       // Menu idle – gentle camera orbit
       camera.position.set(
@@ -502,7 +515,7 @@ async function bootstrap() {
       camera.lookAt(0, 1, 0);
     }
 
-    composer.render();
+    try { composer.render(); } catch (e) { renderer.render(scene, camera); }
   }
 
   _worldReady = true;
