@@ -24,6 +24,8 @@ import { PrayerTimeManager } from './PrayerTimeManager.js';
 import { DailySettlementManager } from './DailySettlementManager.js';
 import { MissionManager } from './MissionManager.js';
 import { KekeCollisionSystem } from './KekeCollisionSystem.js';
+import { HausaVoiceBank } from './HausaVoiceBank.js';
+import { MissionBoardUI } from './MissionBoardUI.js';
 
 // ---------- Renderer ----------
 const canvas = document.getElementById('webgl-canvas');
@@ -217,6 +219,9 @@ async function bootstrap() {
   passengerManager.initModels().catch(() => {});
   const missionManager = new MissionManager();
   missionManager.loadProgress(saved);
+  const missionBoard = new MissionBoardUI(missionManager, charSelect);
+  try { missionBoard.showPreview(); } catch (e) {}
+
   const collisionSystem = new KekeCollisionSystem(kekeGroup, kekeController, trafficManager, missionManager);
 
 
@@ -226,6 +231,10 @@ async function bootstrap() {
   const audioEngine = new KanoAudioEngine();
   audioEngine.setup(camera, kekeGroup);
   audioEngine.enableOnInteraction();
+  const voiceBank = new HausaVoiceBank(audioEngine);
+  // Preload speech voices
+  if (window.speechSynthesis) speechSynthesis.getVoices();
+
   const pedestrianManager = new PedestrianManager(scene, kekeController, assetManager);
   pedestrianManager.init().catch(() => {});
   const particleSystem = new KanoParticleSystem(scene, kekeGroup);
@@ -339,6 +348,7 @@ async function bootstrap() {
     const goals = missionManager.startShift('Kano');
     showBanner('Mission: ' + goals.map(g => g.label).join(' · '));
     _updateMissionHud(missionManager);
+    try { missionBoard.hide(); } catch (e) {}
     flow.beginIntro();
     audioEngine.playOneShot(120, 0.3, 'sawtooth', 0.08);
   };
@@ -429,8 +439,15 @@ async function bootstrap() {
           showBanner(ev);
           const earn = document.getElementById('earnings');
           if (earn && ev.earnings != null) earn.innerText = ev.earnings;
-          if (ev.type === 'BOARD') audioEngine.playOneShot(520, 0.12, 'sine', 0.1);
+          if (ev.type === 'BOARD') {
+            audioEngine.playOneShot(520, 0.12, 'sine', 0.1);
+            voiceBank.speak('board');
+          }
+          if (ev.type === 'NEGOTIATE') voiceBank.speak('negotiate');
+          if (ev.type === 'DROP_REQUEST') voiceBank.speak('drop');
+          if (ev.type === 'TIP') voiceBank.speak('tip');
           if (ev.type === 'DROPOFF') {
+            voiceBank.speak('drop');
             audioEngine.playOneShot(660, 0.15, 'triangle', 0.12);
             const fareMatch = String(ev.msg || '').match(/₦(\d+)/);
             const fare = fareMatch ? parseInt(fareMatch[1], 10) : 200;
@@ -447,11 +464,13 @@ async function bootstrap() {
         });
         policeEngine.update((ev) => {
           showBanner(ev);
+          voiceBank.speak('karota');
           if (ev.msg && ev.msg.includes('To haka')) missionManager.onCheckpointClear(true);
           _updateMissionHud(missionManager);
         });
         collisionSystem.update(delta, (ev) => {
           showBanner(ev);
+          if (ev.type === 'CRASH' || ev.type === 'WRECKED') voiceBank.speak('crash');
           _updateMissionHud(missionManager);
           if (ev.type === 'WRECKED') _showContinueModal(missionManager, collisionSystem, kekeController);
         });
