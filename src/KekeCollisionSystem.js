@@ -1,31 +1,56 @@
 import * as THREE from 'three';
 
+/**
+ * Collision with traffic / obstacles – lives, continue, knockback
+ */
 export class KekeCollisionSystem {
-  constructor(kekeMesh, kekeController) {
-    this.kekeMesh = kekeMesh;
-    this.keke = kekeController;
-    this.obstacles = [];
+  constructor(kekeGroup, kekeController, trafficManager, missionManager) {
+    this.keke = kekeGroup;
+    this.controller = kekeController;
+    this.traffic = trafficManager;
+    this.missions = missionManager;
+    this.cooldown = 0;
+    this.engineHealth = 100;
   }
 
-  registerObstacle(mesh) {
-    this.obstacles.push(mesh);
-  }
+  update(delta, hudCallback) {
+    this.cooldown = Math.max(0, this.cooldown - delta);
+    if (this.cooldown > 0 || !this.traffic?.vehicles) return;
 
-  checkCollisions(hudCallback) {
-    const kekeBox = new THREE.Box3().setFromObject(this.kekeMesh);
+    const kekeBox = new THREE.Box3().setFromObject(this.keke);
+    // Expand slightly less than full mesh for fairness
+    kekeBox.expandByScalar(-0.15);
 
-    this.obstacles.forEach((obstacle) => {
-      const obstacleBox = new THREE.Box3().setFromObject(obstacle);
+    for (const v of this.traffic.vehicles) {
+      if (!v.mesh) continue;
+      const other = new THREE.Box3().setFromObject(v.mesh);
+      if (!kekeBox.intersectsBox(other)) continue;
 
-      if (kekeBox.intersectsBox(obstacleBox)) {
-        // Apply engine damage & recoil speed impact
-        this.keke.currentSpeed = -this.keke.currentSpeed * 0.5;
-        this.keke.engineHealth = Math.max(0, this.keke.engineHealth - 15);
+      this.cooldown = 1.4;
+      // Knockback
+      this.controller.velocity *= -0.35;
+      this.engineHealth = Math.max(0, this.engineHealth - 12 - Math.random() * 10);
+      this.missions?.onCrash();
 
-        if (hudCallback) {
-          hudCallback(`💥 CRASH! Hit roadblock or vehicle! Engine Health: ${Math.round(this.keke.engineHealth)}%`);
-        }
+      const lives = this.missions?.loseLife?.() ?? 0;
+      if (hudCallback) {
+        hudCallback({
+          type: 'CRASH',
+          msg: `💥 Crash! Engine ${Math.round(this.engineHealth)}% · Lives ${lives}`
+        });
       }
-    });
+
+      // Push traffic aside
+      v.mesh.position.x += Math.sign(v.mesh.position.x || 1) * 1.2;
+
+      if (this.engineHealth <= 0 || lives <= 0) {
+        if (hudCallback) hudCallback({ type: 'WRECKED', msg: '🛠 Keke wrecked! Continue?' });
+      }
+      break;
+    }
+  }
+
+  repair() {
+    this.engineHealth = 100;
   }
 }

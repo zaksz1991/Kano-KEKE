@@ -22,6 +22,8 @@ import { KANO_ROUTES } from './KanoRoutesData.js';
 import { KekeCustomizer } from './KekeCustomizer.js';
 import { PrayerTimeManager } from './PrayerTimeManager.js';
 import { DailySettlementManager } from './DailySettlementManager.js';
+import { MissionManager } from './MissionManager.js';
+import { KekeCollisionSystem } from './KekeCollisionSystem.js';
 
 // ---------- Renderer ----------
 const canvas = document.getElementById('webgl-canvas');
@@ -199,6 +201,10 @@ async function bootstrap() {
   passengerManager.negotiationBonus = driver.negotiationBonus || 1;
   passengerManager.tipBonus = driver.tipBonus || 1;
   passengerManager.initModels().catch(() => {});
+  const missionManager = new MissionManager();
+  missionManager.loadProgress(saved);
+  const collisionSystem = new KekeCollisionSystem(kekeGroup, kekeController, trafficManager, missionManager);
+
 
   const fuelManager = new FuelManager(kekeController);
   const policeEngine = new PoliceCheckpointEngine(scene, kekeController, passengerManager);
@@ -276,6 +282,9 @@ async function bootstrap() {
     if (earn) earn.innerText = passengerManager.dailyEarnings;
 
     showBanner(`${d.name} · ${k.name}`);
+    const goals = missionManager.startShift('Kano');
+    showBanner('Mission: ' + goals.map(g => g.label).join(' · '));
+    _updateMissionHud(missionManager);
     flow.beginIntro();
     audioEngine.playOneShot(120, 0.3, 'sawtooth', 0.08);
   };
@@ -367,9 +376,31 @@ async function bootstrap() {
           const earn = document.getElementById('earnings');
           if (earn && ev.earnings != null) earn.innerText = ev.earnings;
           if (ev.type === 'BOARD') audioEngine.playOneShot(520, 0.12, 'sine', 0.1);
-          if (ev.type === 'DROPOFF') audioEngine.playOneShot(660, 0.15, 'triangle', 0.12);
+          if (ev.type === 'DROPOFF') {
+            audioEngine.playOneShot(660, 0.15, 'triangle', 0.12);
+            const fareMatch = String(ev.msg || '').match(/₦(\d+)/);
+            const fare = fareMatch ? parseInt(fareMatch[1], 10) : 200;
+            missionManager.onDropoff(fare);
+            _updateMissionHud(missionManager);
+            SaveSystem.saveGame({
+              cash: passengerManager.dailyEarnings,
+              currentLevel: missionManager.level,
+              xp: missionManager.xp,
+              highScore: missionManager.highScore
+            });
+          }
+          if (ev.type === 'BOARD') _updateMissionHud(missionManager);
         });
-        policeEngine.update((ev) => showBanner(ev));
+        policeEngine.update((ev) => {
+          showBanner(ev);
+          if (ev.msg && ev.msg.includes('To haka')) missionManager.onCheckpointClear(true);
+          _updateMissionHud(missionManager);
+        });
+        collisionSystem.update(delta, (ev) => {
+          showBanner(ev);
+          _updateMissionHud(missionManager);
+          if (ev.type === 'WRECKED') _showContinueModal(missionManager, collisionSystem, kekeController);
+        });
         fuelManager.update(delta, (e) => {
           if (e.type === 'FUEL_UPDATE') {
             const bar = document.getElementById('fuel-bar');
