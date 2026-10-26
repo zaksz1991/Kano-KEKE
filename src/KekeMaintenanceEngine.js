@@ -2,32 +2,25 @@ export class KekeMaintenanceEngine {
   constructor(kekeController, fuelManager) {
     this.keke = kekeController;
     this.fuel = fuelManager;
-
-    // Component Durability Percentages (0% - 100%)
     this.tyreHealth = 100;
     this.oilLevel = 100;
-    this.suspensionHealth = 100;
     this.distanceTraveled = 0;
+    this.baseMax = kekeController.maxSpeed || 28;
   }
 
   update(delta, currentSpeed, hudCallback) {
-    if (Math.abs(currentSpeed) > 0.05) {
-      this.distanceTraveled += delta * Math.abs(currentSpeed);
+    if (Math.abs(currentSpeed) < 0.05) return;
+    this.distanceTraveled += delta * Math.abs(currentSpeed);
+    this.tyreHealth = Math.max(0, this.tyreHealth - delta * 0.02);
+    this.oilLevel = Math.max(0, this.oilLevel - delta * 0.015);
 
-      // Gradual wear based on distance & speed
-      this.tyreHealth = Math.max(0, this.tyreHealth - delta * 0.05);
-      this.oilLevel = Math.max(0, this.oilLevel - delta * 0.03);
-
-      // If tyres or oil drop critically low, trigger penalties
-      if (this.tyreHealth <= 5 && Math.random() < 0.005) {
-        this.keke.maxSpeed = 0.2; // Flat tyre slowdown
-        if (hudCallback) hudCallback('🛑 FLAT TYRE! Your back tyre burst from road wear! Find a roadside Vulcanizer.');
-      }
-
-      if (this.oilLevel <= 5 && Math.random() < 0.005) {
-        this.keke.maxSpeed = 0; // Engine seizure
-        if (hudCallback) hudCallback('🔥 ENGINE SEIZED! You ran out of 2-stroke oil! Engine overheated.');
-      }
+    if (this.tyreHealth <= 5 && Math.random() < 0.002) {
+      this.keke.maxSpeed = Math.max(8, this.baseMax * 0.35);
+      if (hudCallback) hudCallback('🛑 Flat tyre – speed reduced. Find a vulcanizer.');
+    }
+    if (this.oilLevel <= 5 && Math.random() < 0.002) {
+      this.keke.maxSpeed = Math.max(6, this.baseMax * 0.25);
+      if (hudCallback) hudCallback('🔥 Low oil – engine struggling!');
     }
   }
 
@@ -36,14 +29,10 @@ export class KekeMaintenanceEngine {
       passengerManager.dailyEarnings -= cost;
       this.tyreHealth = 100;
       this.oilLevel = 100;
-      this.suspensionHealth = 100;
-      this.keke.maxSpeed = 0.8; // Restore normal speed
-
-      if (hudCallback) hudCallback(`🔧 Full Service Completed! Tyres changed, oil refilled. Paid ₦${cost}.`);
+      this.keke.maxSpeed = this.baseMax;
+      if (hudCallback) hudCallback('🔧 Servicing complete!');
       return true;
-    } else {
-      if (hudCallback) hudCallback(`❌ Not enough money for full service! Need ₦${cost}.`);
-      return false;
     }
+    return false;
   }
 }

@@ -107,9 +107,21 @@ const composer = setupPostProcessing(renderer, scene, camera);
 
 // Early render loop so screen is never frozen while assets load
 let _worldReady = false;
+let _drive = null; // set when controllers ready: { setInput, update, cameraRig, group }
+
 (function earlyRenderLoop() {
   requestAnimationFrame(earlyRenderLoop);
   if (!_worldReady) {
+    // Even before full bootstrap, if player started and drive is ready – move
+    if (gameStarted && _drive) {
+      try {
+        const t = input.throttle || 0;
+        const s = input.steering || 0;
+        _drive.setInput(t, s);
+        _drive.update(0.016);
+        if (_drive.cameraRig) _drive.cameraRig.update(0.016, _drive.controller.currentSpeed);
+      } catch (e) {}
+    }
     try { composer.render(); } catch (e) {}
   }
 })();
@@ -256,8 +268,17 @@ async function bootstrap() {
   // ---- Systems ----
   const kekeController = new KekePhysicsController(kekeGroup);
   if (kekeModel) kekeController.bindWheels(kekeModel);
-
   const cameraRig = new KekeCameraRig(camera, kekeGroup);
+  _drive = {
+    controller: kekeController,
+    setInput: (t, s) => kekeController.setInput(t, s),
+    update: (dt) => kekeController.update(dt),
+    cameraRig,
+    group: kekeGroup
+  };
+
+  // cameraRig already created
+
   const roadSystem = new InfiniteRoadSystem(scene, assetManager);
   roadSystem.init().catch(e => console.warn('Road init failed', e));
 
@@ -404,6 +425,16 @@ async function bootstrap() {
   // Earnings display
   const earningsEl = document.getElementById('earnings');
   if (earningsEl) earningsEl.innerText = passengerManager.dailyEarnings;
+
+  
+  // Debug strip so we can verify input on device
+  let debugEl = document.getElementById('drive-debug');
+  if (!debugEl) {
+    debugEl = document.createElement('div');
+    debugEl.id = 'drive-debug';
+    debugEl.style.cssText = 'position:fixed;bottom:220px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#0f0;font:12px monospace;padding:6px 12px;border-radius:8px;z-index:999;pointer-events:none;';
+    document.body.appendChild(debugEl);
+  }
 
   clearTimeout(safetyHide);
   hideLoading();

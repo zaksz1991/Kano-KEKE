@@ -1,50 +1,54 @@
 /**
- * Mobile Touch Controls – touch + pointer events for all devices
+ * Mobile controls with pointer capture – reliable hold on Android
  */
 export function setupMobileControls(inputState, onHorn) {
-  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-  // Always create on mobile-sized screens too
-  const isSmall = window.innerWidth < 900;
-  if (!isTouchDevice && !isSmall) return;
-
+  const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  const isSmall = typeof window !== 'undefined' && window.innerWidth < 1024;
+  if (!isTouch && !isSmall) return;
   if (document.getElementById('mobile-controls-overlay')) return;
 
   const touchUI = document.createElement('div');
   touchUI.id = 'mobile-controls-overlay';
-  touchUI.style.cssText = `
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    pointer-events: none; z-index: 40; display: none;
-  `;
+  touchUI.style.cssText =
+    'position:fixed;inset:0;pointer-events:none;z-index:80;display:none;';
   touchUI.innerHTML = `
-    <div id="touch-throttle" style="position:absolute;bottom:40px;right:30px;width:88px;height:88px;background:rgba(255,204,0,0.55);border:2px solid #ffcc00;border-radius:50%;pointer-events:auto;display:flex;align-items:center;justify-content:center;font-weight:bold;color:#000;font-size:13px;user-select:none;-webkit-user-select:none;touch-action:none;">ACCEL</div>
-    <div id="touch-brake" style="position:absolute;bottom:40px;left:30px;width:88px;height:88px;background:rgba(255,50,50,0.55);border:2px solid #ff5252;border-radius:50%;pointer-events:auto;display:flex;align-items:center;justify-content:center;font-weight:bold;color:#fff;font-size:13px;user-select:none;-webkit-user-select:none;touch-action:none;">BRAKE</div>
-    <div id="touch-left" style="position:absolute;bottom:145px;left:25px;width:68px;height:68px;background:rgba(255,255,255,0.28);border:1px solid #fff;border-radius:50%;pointer-events:auto;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:18px;user-select:none;-webkit-user-select:none;touch-action:none;">◀</div>
-    <div id="touch-right" style="position:absolute;bottom:145px;left:105px;width:68px;height:68px;background:rgba(255,255,255,0.28);border:1px solid #fff;border-radius:50%;pointer-events:auto;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:18px;user-select:none;-webkit-user-select:none;touch-action:none;">▶</div>
-    <div id="touch-horn" style="position:absolute;bottom:145px;right:30px;width:68px;height:68px;background:rgba(0,200,255,0.45);border:2px solid #00e5ff;border-radius:50%;pointer-events:auto;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:12px;user-select:none;-webkit-user-select:none;touch-action:none;">HORN</div>
+    <button type="button" id="touch-throttle" style="position:absolute;bottom:36px;right:24px;width:96px;height:96px;border-radius:50%;border:3px solid #ffcc00;background:rgba(255,200,0,0.7);color:#000;font-weight:900;font-size:14px;pointer-events:auto;touch-action:none;-webkit-user-select:none;user-select:none;">ACCEL</button>
+    <button type="button" id="touch-brake" style="position:absolute;bottom:36px;left:24px;width:96px;height:96px;border-radius:50%;border:3px solid #ff5252;background:rgba(220,40,40,0.7);color:#fff;font-weight:900;font-size:14px;pointer-events:auto;touch-action:none;-webkit-user-select:none;user-select:none;">BRAKE</button>
+    <button type="button" id="touch-left" style="position:absolute;bottom:150px;left:24px;width:72px;height:72px;border-radius:50%;border:2px solid #fff;background:rgba(255,255,255,0.3);color:#fff;font-weight:900;font-size:22px;pointer-events:auto;touch-action:none;-webkit-user-select:none;user-select:none;">◀</button>
+    <button type="button" id="touch-right" style="position:absolute;bottom:150px;left:108px;width:72px;height:72px;border-radius:50%;border:2px solid #fff;background:rgba(255,255,255,0.3);color:#fff;font-weight:900;font-size:22px;pointer-events:auto;touch-action:none;-webkit-user-select:none;user-select:none;">▶</button>
+    <button type="button" id="touch-horn" style="position:absolute;bottom:150px;right:24px;width:72px;height:72px;border-radius:50%;border:2px solid #00e5ff;background:rgba(0,180,220,0.55);color:#fff;font-weight:900;font-size:12px;pointer-events:auto;touch-action:none;-webkit-user-select:none;user-select:none;">HORN</button>
   `;
   document.body.appendChild(touchUI);
 
-  const bind = (id, startFn, endFn) => {
+  function bindHold(id, onDown, onUp) {
     const el = document.getElementById(id);
     if (!el) return;
-    const down = (e) => { e.preventDefault(); e.stopPropagation(); startFn(); };
-    const up = (e) => { e.preventDefault(); e.stopPropagation(); endFn(); };
-    el.addEventListener('touchstart', down, { passive: false });
-    el.addEventListener('touchend', up, { passive: false });
-    el.addEventListener('touchcancel', up, { passive: false });
+    const down = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      try { el.setPointerCapture(e.pointerId); } catch (_) {}
+      onDown();
+    };
+    const up = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      try { el.releasePointerCapture(e.pointerId); } catch (_) {}
+      onUp();
+    };
     el.addEventListener('pointerdown', down);
     el.addEventListener('pointerup', up);
     el.addEventListener('pointercancel', up);
-    el.addEventListener('mousedown', down);
-    el.addEventListener('mouseup', up);
-    el.addEventListener('mouseleave', up);
-  };
+    el.addEventListener('pointerleave', up);
+    el.addEventListener('touchstart', down, { passive: false });
+    el.addEventListener('touchend', up, { passive: false });
+    el.addEventListener('touchcancel', up, { passive: false });
+  }
 
-  bind('touch-throttle', () => { inputState.throttle = 1; }, () => { inputState.throttle = 0; });
-  bind('touch-brake', () => { inputState.throttle = -1; }, () => { inputState.throttle = 0; });
-  bind('touch-left', () => { inputState.steering = 1; }, () => { inputState.steering = 0; });
-  bind('touch-right', () => { inputState.steering = -1; }, () => { inputState.steering = 0; });
-  bind('touch-horn', () => {
+  bindHold('touch-throttle', () => { inputState.throttle = 1; }, () => { inputState.throttle = 0; });
+  bindHold('touch-brake', () => { inputState.throttle = -1; }, () => { inputState.throttle = 0; });
+  bindHold('touch-left', () => { inputState.steering = 1; }, () => { inputState.steering = 0; });
+  bindHold('touch-right', () => { inputState.steering = -1; }, () => { inputState.steering = 0; });
+  bindHold('touch-horn', () => {
     inputState.horn = true;
     if (typeof onHorn === 'function') onHorn();
   }, () => { inputState.horn = false; });
