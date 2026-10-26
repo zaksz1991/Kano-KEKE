@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Kano Run - Keke Driver 3D Simulation</title>
+  <title>Kano Run v2.0 – Professional Keke Life Sim</title>
   <style>
     body, html { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
     #webgl-canvas { width: 100vw; height: 100vh; display: block; }
@@ -46,7 +46,7 @@
     .bar-bg { width: 160px; height: 12px; background: rgba(0,0,0,0.6); border: 1px solid #fff; border-radius: 4px; overflow: hidden; margin-top: 4px; }
     .bar-fill { height: 100%; transition: width 0.3s; }
 
-    #notification-banner { position: absolute; top: 100px; width: 100%; text-align: center; display: none; z-index: 20; }
+    #notification-banner { transition: opacity 0.35s, transform 0.35s; opacity:0; transform:translateY(-20px); position: absolute; top: 100px; width: 100%; text-align: center; display: none; z-index: 20; }
     #banner-text { background: rgba(0,0,0,0.85); color: #ffcc00; padding: 12px 24px; border-radius: 8px; border: 2px solid #ffcc00; font-weight: bold; font-size: 16px; display: inline-block; }
 
     #shop-modal { position: absolute; top: 15%; left: 50%; transform: translateX(-50%); width: 360px; background: rgba(15,15,20,0.95); color: #fff; padding: 20px; border-radius: 12px; border: 2px solid #ffcc00; display: none; z-index: 30; }
@@ -88,7 +88,7 @@
       <div style="font-size: 12px; color: #00ffff; background: rgba(0,0,0,0.6); padding: 5px 14px; border-radius: 15px; border: 1px solid rgba(0,255,255,0.3);">
         🌍 TOTAL SHIFTS: <strong id="global-play-count" style="color:#ffcc00;">14,280</strong>
       </div>
-      <div style="font-size: 10px; color: #888;">VERCEL PRODUCTION v1.0.0</div>
+      <div style="font-size: 10px; color: #888;">VERCEL PRODUCTION v2.0.0 – PRO UPGRADE</div>
     </div>
   </div>
 
