@@ -1,107 +1,112 @@
+/**
+ * End-of-shift settlement + daily rewards
+ */
 export class DailySettlementManager {
-  constructor(passengerManager, fuelManager, kekeController) {
-    this.passengerManager = passengerManager;
-    this.fuelManager = fuelManager;
+  constructor(passengerManager, fuelManager, kekeController, missionManager = null) {
+    this.passengers = passengerManager;
+    this.fuel = fuelManager;
     this.keke = kekeController;
-
-    this.dailyLeaseFee = 7000;
-    this.bankSavings = 0;
-    this.dayCount = 1;
-    this.isSettlementActive = false;
+    this.missions = missionManager;
+    this.lastDailyClaim = null;
   }
 
-  checkEndOfDay(timeInMinutes, hudCallback) {
-    // 10:00 PM Trigger (22:00 = 1320 minutes)
-    if (timeInMinutes >= 1320 && !this.isSettlementActive) {
-      this.isSettlementActive = true;
-      this.keke.maxSpeed = 0; // Freeze driver during accounting settlement
-
-      const grossEarnings = this.passengerManager.dailyEarnings;
-      const netProfit = grossEarnings - this.dailyLeaseFee;
-      
-      let statusMessage = '';
-      if (netProfit >= 0) {
-        this.bankSavings += netProfit;
-        statusMessage = `✅ Lease Paid! Net Profit of ₦${netProfit} added to personal savings.`;
-      } else {
-        const debt = Math.abs(netProfit);
-        statusMessage = `⚠️ Shortfall! You owe the owner ₦${debt} in lease debt. Work harder tomorrow!`;
-      }
-
-      this.renderSettlementUI({
-        day: this.dayCount,
-        gross: grossEarnings,
-        lease: this.dailyLeaseFee,
-        net: netProfit,
-        savings: this.bankSavings,
-        status: statusMessage
-      });
-
-      if (hudCallback) {
-        hudCallback({ type: 'SETTLEMENT_STARTED', msg: `🌙 Shift Ended for Day ${this.dayCount}. Tallying finances...` });
-      }
-    }
+  loadDaily(saved) {
+    this.lastDailyClaim = saved?.lastDailyClaim || null;
   }
 
-  renderSettlementUI(data) {
-    let modal = document.getElementById('settlement-modal');
-    if (!modal) {
-      modal = document.createElement('div');
-      modal.id = 'settlement-modal';
-      modal.style.cssText = `
-        position: absolute; top: 15%; left: 50%; transform: translateX(-50%);
-        width: 380px; background: rgba(10, 10, 15, 0.95); color: #fff;
-        padding: 25px; border-radius: 12px; border: 2px solid #4CAF50;
-        font-family: monospace; z-index: 100; box-shadow: 0 0 30px rgba(0,255,0,0.3);
-      `;
-      document.body.appendChild(modal);
-    }
+  canClaimDaily() {
+    if (!this.lastDailyClaim) return true;
+    const last = new Date(this.lastDailyClaim);
+    const now = new Date();
+    return last.toDateString() !== now.toDateString();
+  }
 
-    modal.innerHTML = `
-      <h2 style="margin-top:0; color:#4CAF50; text-align:center; border-bottom:1px solid #333; padding-bottom:10px;">
-        📋 DAY ${data.day} SHIFT SUMMARY
-      </h2>
-      <div style="line-height: 1.8; font-size: 14px;">
-        <div style="display:flex; justify-space-between;"><span>Gross Fares Earned:</span> <strong>₦${data.gross}</strong></div>
-        <div style="display:flex; justify-space-between; color:#ff5252;"><span>Kudin Haya (Daily Lease):</span> <strong>-₦${data.lease}</strong></div>
-        <hr style="border:0; border-top:1px dashed #444; margin:10px 0;" />
-        <div style="display:flex; justify-space-between; font-size:16px; color:#ffcc00;">
-          <span>Net Take-Home:</span> <strong>₦${data.net}</strong>
-        </div>
-        <div style="display:flex; justify-space-between; font-size:14px; color:#00ffff; margin-top:6px;">
-          <span>Banked Savings:</span> <strong>₦${data.savings}</strong>
-        </div>
-      </div>
-      <p style="font-size:12px; color:#aaa; margin-top:15px; text-align:center;">${data.status}</p>
-      <button id="next-day-btn" style="
-        width:100%; margin-top:15px; padding:12px; background:#4CAF50; color:#000;
-        font-weight:bold; border:none; border-radius:6px; cursor:pointer; font-size:14px;
-      ">
-        START DAY ${data.day + 1} SHIFT (6:00 AM)
-      </button>
-    `;
+  claimDaily() {
+    if (!this.canClaimDaily()) return { ok: false, amount: 0 };
+    const streakBonus = 0;
+    const amount = 800 + Math.floor(Math.random() * 700) + streakBonus;
+    this.lastDailyClaim = Date.now();
+    this.passengers.dailyEarnings += amount;
+    return { ok: true, amount };
+  }
 
-    modal.style.display = 'block';
+  /**
+   * Build full settlement summary and show modal
+   */
+  settle(missionResult = null) {
+    const earnings = this.passengers.dailyEarnings || 0;
+    const fuelLeft = Math.round(this.fuel?.fuel ?? 50);
+    const drops = missionResult?.done?.length || 0;
+    const score = missionResult?.score ?? 0;
+    const bonus = missionResult?.bonus ?? 0;
+    const xp = missionResult?.xpGain ?? 0;
+    const level = missionResult?.level ?? 1;
+    const leveled = missionResult?.leveled ?? false;
+    const highScore = missionResult?.highScore ?? score;
 
-    document.getElementById('next-day-btn').addEventListener('click', () => {
-      this.advanceToNextDay(modal);
+    // Operating costs
+    const fuelCost = Math.round((100 - fuelLeft) * 8);
+    const wearCost = 100 + Math.floor(Math.random() * 200);
+    const net = Math.max(0, earnings + bonus - fuelCost - wearCost);
+
+    this._showModal({
+      earnings,
+      bonus,
+      fuelCost,
+      wearCost,
+      net,
+      score,
+      xp,
+      level,
+      leveled,
+      highScore,
+      missionsDone: missionResult?.done || []
     });
+
+    return { net, score, highScore, level, xp };
   }
 
-  advanceToNextDay(modal) {
-    modal.style.display = 'none';
-    this.dayCount += 1;
-    this.isSettlementActive = false;
+  _showModal(data) {
+    const old = document.getElementById('settlement-modal');
+    if (old) old.remove();
 
-    // Reset daily counters for next shift
-    this.passengerManager.dailyEarnings = 0;
-    this.fuelManager.fuel = 100;
-    this.keke.maxSpeed = 0.8;
+    const m = document.createElement('div');
+    m.id = 'settlement-modal';
+    m.style.cssText =
+      'position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:130;display:flex;align-items:center;justify-content:center;padding:16px;';
 
-    // Reset clock UI to 6:00 AM (360 minutes)
-    window.timeInMinutes = 360;
+    const missionsHtml = (data.missionsDone || [])
+      .map((x) => `<div style="color:#81c784;">✓ ${x}</div>`)
+      .join('') || '<div style="color:#888;">No missions completed</div>';
 
-    const earningsEl = document.getElementById('earnings');
-    if (earningsEl) earningsEl.innerText = 0;
+    m.innerHTML = `
+      <div style="background:linear-gradient(160deg,#1a1a24,#12121a);border:2px solid #ffcc00;border-radius:18px;padding:22px 20px;max-width:340px;width:100%;color:#fff;font-family:system-ui,sans-serif;box-shadow:0 0 40px rgba(255,200,0,0.15);">
+        <div style="text-align:center;font-size:13px;color:#00ffff;letter-spacing:2px;">SHIFT COMPLETE</div>
+        <h2 style="text-align:center;color:#ffcc00;margin:6px 0 14px;font-size:26px;">Daily Settlement</h2>
+        ${data.leveled ? '<div style="text-align:center;background:#ff6f00;color:#000;font-weight:900;padding:6px;border-radius:8px;margin-bottom:10px;">LEVEL UP → Lv ' + data.level + '</div>' : ''}
+        <div style="font-size:14px;line-height:1.7;">
+          <div style="display:flex;justify-content:space-between;"><span>Fares collected</span><span style="color:#4caf50;">+₦${data.earnings}</span></div>
+          <div style="display:flex;justify-content:space-between;"><span>Mission bonus</span><span style="color:#4caf50;">+₦${data.bonus}</span></div>
+          <div style="display:flex;justify-content:space-between;"><span>Fuel top-up</span><span style="color:#ef5350;">-₦${data.fuelCost}</span></div>
+          <div style="display:flex;justify-content:space-between;"><span>Wear & tear</span><span style="color:#ef5350;">-₦${data.wearCost}</span></div>
+          <hr style="border-color:#333;margin:10px 0;">
+          <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:900;"><span>NET</span><span style="color:#ffcc00;">₦${data.net}</span></div>
+          <div style="display:flex;justify-content:space-between;margin-top:6px;color:#aaa;"><span>Score</span><span>${data.score}</span></div>
+          <div style="display:flex;justify-content:space-between;color:#aaa;"><span>High score</span><span>${data.highScore}</span></div>
+          <div style="display:flex;justify-content:space-between;color:#aaa;"><span>XP gained</span><span>+${data.xp}</span></div>
+        </div>
+        <div style="margin-top:12px;font-size:12px;color:#ffe082;">
+          <div style="margin-bottom:4px;color:#00ffff;">Missions</div>
+          ${missionsHtml}
+        </div>
+        <button id="settlement-ok" style="width:100%;margin-top:16px;padding:14px;background:linear-gradient(135deg,#ffcc00,#ff9800);border:none;border-radius:12px;font-weight:900;font-size:16px;cursor:pointer;color:#000;">COLLECT & CONTINUE</button>
+      </div>`;
+    document.body.appendChild(m);
+    document.getElementById('settlement-ok').onclick = () => {
+      this.passengers.dailyEarnings = data.net;
+      const earn = document.getElementById('earnings');
+      if (earn) earn.innerText = data.net;
+      m.remove();
+    };
   }
 }

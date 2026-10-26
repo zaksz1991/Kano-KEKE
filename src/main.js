@@ -48,6 +48,20 @@ let paused = false;
 window.timeInMinutes = 7 * 60;
 
 // ---------- Early menu UI ----------
+
+  // Daily reward button
+  (function() {
+    const menuBtns = document.querySelector('.menu-buttons');
+    if (menuBtns && !document.getElementById('daily-claim-btn')) {
+      const b = document.createElement('button');
+      b.id = 'daily-claim-btn';
+      b.className = 'btn-menu';
+      b.style.cssText = 'background:linear-gradient(135deg,#00bcd4,#006064);color:#fff;margin-top:6px;font-size:13px;';
+      b.textContent = 'DAILY REWARD';
+      menuBtns.insertBefore(b, menuBtns.firstChild?.nextSibling || null);
+    }
+  })();
+
 (function wireMenu() {
   const routeSelect = document.getElementById('route-select');
   if (routeSelect && routeSelect.options.length === 0) {
@@ -218,9 +232,24 @@ async function bootstrap() {
   const weatherManager = new KanoWeatherManager(scene, kekeController, passengerManager);
   const customizer = new KekeCustomizer(scene, kekeGroup);
   const prayerManager = new PrayerTimeManager({ stamina: 100, stressLevel: 0 });
-  const settlementManager = new DailySettlementManager(passengerManager, fuelManager, kekeController);
+  const settlementManager = new DailySettlementManager(passengerManager, fuelManager, kekeController, missionManager);
+  settlementManager.loadDaily(saved);
+  window.__kanoSettle = (result) => settlementManager.settle(result);
 
   setupMobileControls(input, () => audioEngine.playHorn());
+
+  document.getElementById('daily-claim-btn')?.addEventListener('click', () => {
+    const r = settlementManager.claimDaily();
+    if (r.ok) {
+      showBanner(`🎁 Daily reward +₦${r.amount}`);
+      const earn = document.getElementById('earnings');
+      if (earn) earn.innerText = passengerManager.dailyEarnings;
+      SaveSystem.saveGame({ cash: passengerManager.dailyEarnings, lastDailyClaim: settlementManager.lastDailyClaim, currentLevel: missionManager.level, highScore: missionManager.highScore });
+    } else {
+      showBanner('Daily reward already claimed today');
+    }
+  });
+
   const mobileEl = document.getElementById('mobile-controls-overlay');
   if (mobileEl) mobileEl.style.display = 'none';
 
@@ -243,6 +272,31 @@ async function bootstrap() {
     }
     if (e.code === 'KeyE') {
       passengerManager.acceptDeal((ev) => showBanner(ev));
+    }
+    if (e.code === 'KeyN') {
+      // End shift / settle
+      const result = missionManager.settleShift(passengerManager.dailyEarnings, fuelManager.fuel ?? 50);
+      settlementManager.settle(result);
+      SaveSystem.saveGame({
+        cash: passengerManager.dailyEarnings,
+        currentLevel: result.level,
+        xp: missionManager.xp,
+        highScore: result.highScore,
+        lastDailyClaim: settlementManager.lastDailyClaim
+      });
+    }
+    if (e.code === 'KeyC') {
+      customizer.openShop(passengerManager.dailyEarnings, (cost) => {
+        if (passengerManager.dailyEarnings >= cost) {
+          passengerManager.dailyEarnings -= cost;
+          const earn = document.getElementById('earnings');
+          if (earn) earn.innerText = passengerManager.dailyEarnings;
+          showBanner(`Purchased (−₦${cost})`);
+          return true;
+        }
+        showBanner('Not enough cash');
+        return false;
+      });
     }
   });
   window.addEventListener('keyup', (e) => {
