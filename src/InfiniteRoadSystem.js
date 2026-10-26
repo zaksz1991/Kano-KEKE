@@ -1,244 +1,385 @@
 import * as THREE from 'three';
 
 /**
- * Infinite Road + Kano side-world
- * Procedural first (instant), optional GLB/texture enhancement in background
+ * Dense Kano street world – textured road, varied compounds, market life
  */
 export class InfiniteRoadSystem {
   constructor(scene, assetManager) {
     this.scene = scene;
     this.assets = assetManager;
-    this.chunkLength = 48;
-    this.visibleChunks = 10;
+    this.chunkLength = 56;
+    this.visibleChunks = 12;
     this.chunks = [];
     this.roadTexture = null;
-    this.roadTileModel = null;
 
     this.rng = (seed) => {
-      let s = (seed % 2147483646) + 1;
-      return () => {
-        s = (s * 16807) % 2147483647;
-        return (s - 1) / 2147483646;
-      };
+      let s = (Math.abs(seed | 0) % 2147483646) + 1;
+      return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
     };
   }
 
   async init() {
-    // 1) Build procedural world IMMEDIATELY (no network wait)
     for (let i = 0; i < this.visibleChunks; i++) {
       const chunk = this._createChunk(i * this.chunkLength);
       this.chunks.push(chunk);
       this.scene.add(chunk);
     }
-
-    // 2) Optional assets in background – never block gameplay
-    this._enhanceInBackground();
+    this._loadTexture();
   }
 
-  async _enhanceInBackground() {
+  async _loadTexture() {
     try {
-      const tex = await this.assets.loadTexture(
-        '/assets/models/textures/road_diffuse.jpg',
-        {
-          wrapS: THREE.RepeatWrapping,
-          wrapT: THREE.RepeatWrapping,
-          repeat: { x: 1, y: 4 },
-          anisotropy: 4
+      const tex = await this.assets.loadTexture('/assets/models/textures/road_diffuse.jpg', {
+        wrapS: THREE.RepeatWrapping,
+        wrapT: THREE.RepeatWrapping,
+        anisotropy: 8
+      });
+      if (!tex) return;
+      this.roadTexture = tex;
+      this.chunks.forEach((chunk) => {
+        const road = chunk.userData.roadMesh;
+        if (road?.material) {
+          road.material.map = tex;
+          road.material.map.repeat.set(2, this.chunkLength / 8);
+          road.material.needsUpdate = true;
         }
-      );
-      if (tex) {
-        this.roadTexture = tex;
-        // apply to existing procedural roads
-        this.chunks.forEach((chunk) => {
-          chunk.traverse((obj) => {
-            if (obj.isMesh && obj.material && obj.material.map === null && obj.geometry?.type === 'PlaneGeometry') {
-              obj.material.map = tex;
-              obj.material.map.repeat.set(1, this.chunkLength / 12);
-              obj.material.needsUpdate = true;
-            }
-          });
-        });
-      }
+      });
     } catch (e) {}
-
-    // Skip huge road_tile.glb on mobile – too slow. Procedural is enough.
   }
 
   _createChunk(zBase) {
     const group = new THREE.Group();
     group.position.z = zBase;
-    const rand = this.rng(Math.floor(zBase * 13.37 + 42));
+    const rand = this.rng(Math.floor(zBase * 17.13 + 91));
 
-    // Asphalt
-    const roadGeo = new THREE.PlaneGeometry(14, this.chunkLength, 1, 2);
+    // --- Road ---
     const roadMat = new THREE.MeshStandardMaterial({
-      color: 0x333333,
-      roughness: 0.92,
-      metalness: 0.05,
-      map: this.roadTexture || null
+      color: 0x3a3a3a,
+      roughness: 0.88,
+      metalness: 0.08,
+      map: this.roadTexture
     });
-    const road = new THREE.Mesh(roadGeo, roadMat);
+    if (this.roadTexture) {
+      roadMat.map = this.roadTexture;
+      roadMat.map.repeat.set(2, this.chunkLength / 8);
+    }
+    const road = new THREE.Mesh(new THREE.PlaneGeometry(16, this.chunkLength, 1, 4), roadMat);
     road.rotation.x = -Math.PI / 2;
     road.receiveShadow = true;
     group.add(road);
+    group.userData.roadMesh = road;
 
-    // Center dashes
-    const markMat = new THREE.MeshBasicMaterial({ color: 0xffcc00 });
-    for (let z = -this.chunkLength / 2 + 3; z < this.chunkLength / 2; z += 8) {
-      const mark = new THREE.Mesh(new THREE.PlaneGeometry(0.28, 3.5), markMat);
-      mark.rotation.x = -Math.PI / 2;
-      mark.position.set(0, 0.02, z);
-      group.add(mark);
+    // Sidewalks
+    const walkMat = new THREE.MeshStandardMaterial({ color: 0x9e9e9e, roughness: 0.95 });
+    for (const x of [-9.5, 9.5]) {
+      const walk = new THREE.Mesh(new THREE.PlaneGeometry(3.2, this.chunkLength), walkMat);
+      walk.rotation.x = -Math.PI / 2;
+      walk.position.set(x, 0.04, 0);
+      walk.receiveShadow = true;
+      group.add(walk);
     }
 
-    // Side lines
-    const sideMat = new THREE.MeshBasicMaterial({ color: 0xdddddd });
-    for (const x of [-6.3, 6.3]) {
-      const line = new THREE.Mesh(new THREE.PlaneGeometry(0.16, this.chunkLength), sideMat);
-      line.rotation.x = -Math.PI / 2;
-      line.position.set(x, 0.015, 0);
-      group.add(line);
+    // Lane markings
+    const yellow = new THREE.MeshBasicMaterial({ color: 0xffc107 });
+    const white = new THREE.MeshBasicMaterial({ color: 0xf5f5f5 });
+    for (let z = -this.chunkLength / 2 + 2; z < this.chunkLength / 2; z += 7) {
+      const dash = new THREE.Mesh(new THREE.PlaneGeometry(0.32, 3.2), yellow);
+      dash.rotation.x = -Math.PI / 2;
+      dash.position.set(0, 0.03, z);
+      group.add(dash);
+    }
+    for (const x of [-7.2, 7.2]) {
+      const edge = new THREE.Mesh(new THREE.PlaneGeometry(0.18, this.chunkLength), white);
+      edge.rotation.x = -Math.PI / 2;
+      edge.position.set(x, 0.025, 0);
+      group.add(edge);
     }
 
-    // Side world
+    // Gutters / drainage
+    const gutterMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 1 });
+    for (const x of [-8.1, 8.1]) {
+      const g = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.15, this.chunkLength), gutterMat);
+      g.position.set(x, 0.05, 0);
+      group.add(g);
+    }
+
+    // Side world – denser
     for (const side of [-1, 1]) {
-      const baseX = side * 11.5;
-      for (let i = 0; i < 3; i++) {
-        if (rand() > 0.3) {
-          const b = this._makeBuilding(rand);
-          b.position.set(baseX + side * (2 + rand() * 4), 0, -this.chunkLength / 2 + 8 + i * 14 + rand() * 4);
-          b.rotation.y = side > 0 ? rand() * 0.15 : Math.PI + rand() * 0.15;
+      const baseX = side * 12.5;
+      // Compounds / shops
+      for (let i = 0; i < 5; i++) {
+        if (rand() > 0.18) {
+          const b = this._makeBuilding(rand, side);
+          b.position.set(
+            baseX + side * (1.5 + rand() * 5),
+            0,
+            -this.chunkLength / 2 + 5 + i * 10 + rand() * 3
+          );
           group.add(b);
         }
       }
-      for (let i = 0; i < 3; i++) {
-        if (rand() > 0.4) {
+      // Trees
+      for (let i = 0; i < 5; i++) {
+        if (rand() > 0.35) {
           const t = this._makeTree(rand);
-          t.position.set(baseX + side * (1.5 + rand() * 5), 0, -this.chunkLength / 2 + 5 + i * 12 + rand() * 4);
+          t.position.set(
+            baseX + side * (0.8 + rand() * 6),
+            0,
+            -this.chunkLength / 2 + 3 + i * 10 + rand() * 4
+          );
           group.add(t);
         }
       }
-      if (rand() > 0.3) {
+      // Poles
+      if (rand() > 0.25) {
         const pole = this._makePole();
-        pole.position.set(baseX + side * 0.9, 0, (rand() - 0.5) * this.chunkLength * 0.6);
+        pole.position.set(baseX + side * 0.6, 0, (rand() - 0.5) * this.chunkLength * 0.7);
         group.add(pole);
       }
-      if (rand() > 0.55) {
+      // Market stalls
+      if (rand() > 0.4) {
         const stall = this._makeStall(rand);
-        stall.position.set(baseX + side * (1.2 + rand() * 2), 0, (rand() - 0.5) * this.chunkLength * 0.5);
+        stall.position.set(baseX + side * (0.5 + rand()), 0, (rand() - 0.5) * this.chunkLength * 0.55);
         group.add(stall);
+      }
+      // Billboards / signs
+      if (rand() > 0.6) {
+        const sign = this._makeSign(rand);
+        sign.position.set(baseX + side * 2, 0, (rand() - 0.5) * 20);
+        group.add(sign);
       }
     }
 
-    if (rand() > 0.35) {
-      const light = this._makeStreetLight();
-      light.position.set((rand() > 0.5 ? 1 : -1) * (7.5 + rand() * 1.5), 0, (rand() - 0.5) * this.chunkLength * 0.4);
-      group.add(light);
+    // Street lights – off road
+    for (let i = 0; i < 2; i++) {
+      if (rand() > 0.3) {
+        const light = this._makeStreetLight();
+        const side = rand() > 0.5 ? 1 : -1;
+        light.position.set(side * (8.2 + rand()), 0, -this.chunkLength / 2 + 12 + i * 22);
+        group.add(light);
+      }
+    }
+
+    // Occasional speed bump
+    if (rand() > 0.7) {
+      const bump = new THREE.Mesh(
+        new THREE.BoxGeometry(14, 0.12, 0.8),
+        new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.7 })
+      );
+      bump.position.set(0, 0.06, (rand() - 0.5) * 20);
+      bump.castShadow = true;
+      group.add(bump);
     }
 
     return group;
   }
 
-  _makeBuilding(rand) {
+  _makeBuilding(rand, side) {
     const g = new THREE.Group();
-    const w = 4 + rand() * 5;
-    const d = 3.5 + rand() * 4;
-    const h = 2.8 + rand() * 4.5;
-    const colors = [0xc4a484, 0xb08968, 0xd4b483, 0x8d6e63, 0xa1887f, 0xe8d5b7];
-    const body = new THREE.Mesh(
+    const w = 3.5 + rand() * 6;
+    const d = 3 + rand() * 5;
+    const floors = 1 + Math.floor(rand() * 3);
+    const h = floors * (2.6 + rand() * 0.4);
+    const palette = [0xd4b896, 0xc9a66b, 0xe8d5b5, 0xa1887f, 0xbcaaa4, 0xffcc80, 0x90caf9, 0xce93d8, 0x80cbc4];
+    const wall = new THREE.Mesh(
       new THREE.BoxGeometry(w, h, d),
-      new THREE.MeshStandardMaterial({ color: colors[Math.floor(rand() * colors.length)], roughness: 0.95 })
+      new THREE.MeshStandardMaterial({ color: palette[Math.floor(rand() * palette.length)], roughness: 0.9 })
     );
-    body.position.y = h / 2;
-    body.castShadow = true;
-    body.receiveShadow = true;
-    g.add(body);
+    wall.position.y = h / 2;
+    wall.castShadow = true;
+    wall.receiveShadow = true;
+    g.add(wall);
+
+    // Roof
     const roof = new THREE.Mesh(
-      new THREE.BoxGeometry(w + 0.4, 0.25, d + 0.4),
-      new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.9 })
+      new THREE.BoxGeometry(w + 0.5, 0.28, d + 0.5),
+      new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.85 })
     );
-    roof.position.y = h + 0.1;
+    roof.position.y = h + 0.12;
+    roof.castShadow = true;
     g.add(roof);
+
+    // Windows
+    const winMat = new THREE.MeshStandardMaterial({
+      color: 0x1a237e,
+      emissive: 0x0d47a1,
+      emissiveIntensity: 0.15,
+      roughness: 0.3
+    });
+    for (let f = 0; f < floors; f++) {
+      for (let wi = 0; wi < Math.min(3, Math.floor(w / 1.8)); wi++) {
+        const win = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.9), winMat);
+        win.position.set(-w / 2 + 1.2 + wi * 1.6, 1.2 + f * 2.5, d / 2 + 0.02);
+        g.add(win);
+      }
+    }
+
+    // Door
+    const door = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.0, 1.8),
+      new THREE.MeshStandardMaterial({ color: 0x4e342e, roughness: 0.8 })
+    );
+    door.position.set(0, 0.9, d / 2 + 0.03);
+    g.add(door);
+
+    // Awning for shops
+    if (rand() > 0.45) {
+      const awning = new THREE.Mesh(
+        new THREE.BoxGeometry(w * 0.9, 0.08, 1.2),
+        new THREE.MeshStandardMaterial({
+          color: [0xc62828, 0x1565c0, 0x2e7d32, 0xf9a825][Math.floor(rand() * 4)],
+          roughness: 0.7
+        })
+      );
+      awning.position.set(0, 2.3, d / 2 + 0.5);
+      g.add(awning);
+    }
+
+    g.rotation.y = side > 0 ? (rand() - 0.5) * 0.15 : Math.PI + (rand() - 0.5) * 0.15;
     return g;
   }
 
   _makeTree(rand) {
     const g = new THREE.Group();
     const trunk = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.18, 0.28, 2.2, 6),
-      new THREE.MeshStandardMaterial({ color: 0x4e342e, roughness: 0.9 })
+      new THREE.CylinderGeometry(0.15 + rand() * 0.1, 0.25 + rand() * 0.1, 2.4 + rand(), 7),
+      new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.9 })
     );
-    trunk.position.y = 1.1;
+    trunk.position.y = 1.2;
     trunk.castShadow = true;
     g.add(trunk);
-    const foliage = new THREE.Mesh(
-      new THREE.SphereGeometry(1.5 + rand() * 0.7, 7, 6),
-      new THREE.MeshStandardMaterial({ color: 0x2e7d32, roughness: 0.85 })
-    );
-    foliage.position.y = 2.9 + rand() * 0.4;
-    foliage.castShadow = true;
-    g.add(foliage);
+    const layers = 2 + Math.floor(rand() * 2);
+    for (let i = 0; i < layers; i++) {
+      const foliage = new THREE.Mesh(
+        new THREE.SphereGeometry(1.3 + rand() * 0.7 - i * 0.15, 8, 6),
+        new THREE.MeshStandardMaterial({
+          color: [0x2e7d32, 0x388e3c, 0x1b5e20, 0x558b2f][Math.floor(rand() * 4)],
+          roughness: 0.85
+        })
+      );
+      foliage.position.y = 2.6 + i * 0.7 + rand() * 0.3;
+      foliage.castShadow = true;
+      g.add(foliage);
+    }
     return g;
   }
 
   _makePole() {
     const g = new THREE.Group();
     const pole = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.09, 0.11, 7.5, 6),
-      new THREE.MeshStandardMaterial({ color: 0x37474f, roughness: 0.7, metalness: 0.4 })
+      new THREE.CylinderGeometry(0.08, 0.1, 8, 6),
+      new THREE.MeshStandardMaterial({ color: 0x455a64, metalness: 0.5, roughness: 0.5 })
     );
-    pole.position.y = 3.75;
+    pole.position.y = 4;
+    pole.castShadow = true;
     g.add(pole);
     const arm = new THREE.Mesh(
-      new THREE.BoxGeometry(2.2, 0.08, 0.08),
-      new THREE.MeshStandardMaterial({ color: 0x455a64 })
+      new THREE.BoxGeometry(2.4, 0.07, 0.07),
+      new THREE.MeshStandardMaterial({ color: 0x546e7a, metalness: 0.6 })
     );
-    arm.position.y = 7.1;
+    arm.position.y = 7.6;
     g.add(arm);
+    // wires suggestion
+    const wire = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.015, 0.015, 3, 4),
+      new THREE.MeshBasicMaterial({ color: 0x212121 })
+    );
+    wire.rotation.z = Math.PI / 2;
+    wire.position.set(1.2, 7.55, 0);
+    g.add(wire);
     return g;
   }
 
   _makeStall(rand) {
     const g = new THREE.Group();
     const table = new THREE.Mesh(
-      new THREE.BoxGeometry(2.4, 0.15, 1.4),
+      new THREE.BoxGeometry(2.6, 0.12, 1.5),
       new THREE.MeshStandardMaterial({ color: 0x6d4c41, roughness: 0.85 })
     );
-    table.position.y = 0.9;
+    table.position.y = 0.95;
+    table.castShadow = true;
     g.add(table);
-    for (const x of [-1.0, 1.0]) {
-      const p = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.05, 0.05, 2.2, 4),
+    // Legs
+    for (const [x, z] of [[-1.1, -0.5], [1.1, -0.5], [-1.1, 0.5], [1.1, 0.5]]) {
+      const leg = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.05, 0.05, 0.95, 5),
         new THREE.MeshStandardMaterial({ color: 0x5d4037 })
       );
-      p.position.set(x, 1.1, 0);
+      leg.position.set(x, 0.47, z);
+      g.add(leg);
+    }
+    for (const x of [-1.1, 1.1]) {
+      const p = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.05, 0.05, 2.4, 5),
+        new THREE.MeshStandardMaterial({ color: 0x5d4037 })
+      );
+      p.position.set(x, 1.2, 0);
       g.add(p);
     }
+    const colors = [0xc62828, 0x1565c0, 0xf9a825, 0x6a1b9a, 0x00838f];
     const canopy = new THREE.Mesh(
-      new THREE.BoxGeometry(2.6, 0.08, 1.6),
-      new THREE.MeshStandardMaterial({ color: 0xd32f2f, roughness: 0.7 })
+      new THREE.BoxGeometry(2.8, 0.06, 1.7),
+      new THREE.MeshStandardMaterial({ color: colors[Math.floor(rand() * colors.length)], roughness: 0.65 })
     );
-    canopy.position.y = 2.2;
+    canopy.position.y = 2.35;
+    canopy.castShadow = true;
     g.add(canopy);
+    // Goods on table
+    for (let i = 0; i < 3; i++) {
+      const box = new THREE.Mesh(
+        new THREE.BoxGeometry(0.35, 0.25, 0.35),
+        new THREE.MeshStandardMaterial({ color: colors[Math.floor(rand() * colors.length)] })
+      );
+      box.position.set(-0.7 + i * 0.7, 1.15, 0);
+      g.add(box);
+    }
+    return g;
+  }
+
+  _makeSign(rand) {
+    const g = new THREE.Group();
+    const post = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.06, 0.08, 3.5, 5),
+      new THREE.MeshStandardMaterial({ color: 0x37474f })
+    );
+    post.position.y = 1.75;
+    g.add(post);
+    const board = new THREE.Mesh(
+      new THREE.BoxGeometry(2.2, 1.2, 0.1),
+      new THREE.MeshStandardMaterial({
+        color: [0xc62828, 0x1565c0, 0x2e7d32, 0xf57f17][Math.floor(rand() * 4)],
+        roughness: 0.6
+      })
+    );
+    board.position.y = 3.2;
+    board.castShadow = true;
+    g.add(board);
     return g;
   }
 
   _makeStreetLight() {
     const g = new THREE.Group();
     const pole = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.07, 0.09, 6.5, 6),
-      new THREE.MeshStandardMaterial({ color: 0x263238, metalness: 0.5 })
+      new THREE.CylinderGeometry(0.07, 0.09, 7, 6),
+      new THREE.MeshStandardMaterial({ color: 0x263238, metalness: 0.55, roughness: 0.4 })
     );
-    pole.position.y = 3.25;
+    pole.position.y = 3.5;
+    pole.castShadow = true;
     g.add(pole);
-    const head = new THREE.Mesh(
-      new THREE.BoxGeometry(0.6, 0.15, 0.35),
-      new THREE.MeshStandardMaterial({ color: 0x37474f })
+    const arm = new THREE.Mesh(
+      new THREE.BoxGeometry(1.4, 0.08, 0.08),
+      new THREE.MeshStandardMaterial({ color: 0x37474f, metalness: 0.5 })
     );
-    head.position.set(0.4, 6.4, 0);
+    arm.position.set(0.6, 6.8, 0);
+    g.add(arm);
+    const head = new THREE.Mesh(
+      new THREE.BoxGeometry(0.55, 0.18, 0.35),
+      new THREE.MeshStandardMaterial({ color: 0x546e7a, emissive: 0xffe0b2, emissiveIntensity: 0.2 })
+    );
+    head.position.set(1.1, 6.7, 0);
     g.add(head);
-    const light = new THREE.PointLight(0xffe0b2, 0, 18, 2);
-    light.position.set(0.4, 6.2, 0);
+    const light = new THREE.PointLight(0xffe0b2, 0, 22, 2);
+    light.position.set(1.1, 6.5, 0);
     light.name = 'streetLight';
     g.add(light);
     return g;
@@ -246,24 +387,16 @@ export class InfiniteRoadSystem {
 
   update(playerZ) {
     this.chunks.forEach((chunk) => {
-      if (chunk.position.z + this.chunkLength < playerZ - this.chunkLength * 1.5) {
+      if (chunk.position.z + this.chunkLength < playerZ - this.chunkLength * 1.8) {
         const maxZ = Math.max(...this.chunks.map((c) => c.position.z));
         chunk.position.z = maxZ + this.chunkLength;
       }
-      const dist = Math.abs(chunk.position.z - playerZ);
-      const detailVisible = dist < this.chunkLength * 3.5;
-      chunk.children.forEach((child, idx) => {
-        if (idx === 0) return; // keep road
-        child.visible = detailVisible;
-      });
     });
   }
 
   setNightMode(isNight) {
     this.scene.traverse((obj) => {
-      if (obj.name === 'streetLight' && obj.isLight) {
-        obj.intensity = isNight ? 1.8 : 0;
-      }
+      if (obj.name === 'streetLight' && obj.isLight) obj.intensity = isNight ? 2.2 : 0;
     });
   }
 }

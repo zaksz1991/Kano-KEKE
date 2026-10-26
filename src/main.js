@@ -98,6 +98,7 @@ const renderer = new THREE.WebGLRenderer({
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.toneMappingExposure = 1.65;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -227,8 +228,8 @@ async function bootstrap() {
 
   // Instant ground so screen is never empty orange
   const instantGround = new THREE.Mesh(
-    new THREE.PlaneGeometry(200, 800),
-    new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.95 })
+    new THREE.PlaneGeometry(220, 900),
+    new THREE.MeshStandardMaterial({ color: 0x5a5045, roughness: 1.0 })
   );
   instantGround.rotation.x = -Math.PI / 2;
   instantGround.position.z = 200;
@@ -257,6 +258,19 @@ async function bootstrap() {
     ]);
     if (kekeModel) {
       kekeGroup.remove(tempBody);
+      kekeModel.traverse((n) => {
+        if (n.isMesh && n.material) {
+          const mats = Array.isArray(n.material) ? n.material : [n.material];
+          mats.forEach(m => {
+            if (!m) return;
+            m.envMapIntensity = 1.8;
+            if (m.color) m.color.offsetHSL(0, 0.05, 0.06);
+            m.needsUpdate = true;
+          });
+          n.castShadow = true;
+          n.receiveShadow = true;
+        }
+      });
       kekeGroup.add(kekeModel);
     } else {
       console.warn('Keke GLB slow/missing – using yellow box');
@@ -427,14 +441,6 @@ async function bootstrap() {
   if (earningsEl) earningsEl.innerText = passengerManager.dailyEarnings;
 
   
-  // Debug strip so we can verify input on device
-  let debugEl = document.getElementById('drive-debug');
-  if (!debugEl) {
-    debugEl = document.createElement('div');
-    debugEl.id = 'drive-debug';
-    debugEl.style.cssText = 'position:fixed;bottom:220px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#0f0;font:12px monospace;padding:6px 12px;border-radius:8px;z-index:999;pointer-events:none;';
-    document.body.appendChild(debugEl);
-  }
 
   clearTimeout(safetyHide);
   hideLoading();
