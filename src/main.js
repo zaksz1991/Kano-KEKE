@@ -29,8 +29,18 @@ import { MissionBoardUI } from './MissionBoardUI.js';
 import { KekeSeatOccupancy } from './KekeSeatOccupancy.js';
 import { DashHUD } from './DashHUD.js';
 
+// CapsuleGeometry polyfill for older three builds
+if (!THREE.CapsuleGeometry) {
+  THREE.CapsuleGeometry = class extends THREE.CylinderGeometry {
+    constructor(r = 0.25, len = 0.8) {
+      super(r, r, len + r * 2, 8);
+    }
+  };
+}
+
 // ---------- Renderer ----------
-const canvas = document.getElementById('webgl-canvas');
+const canvas = document.getElementById('webgl-canvas') || document.createElement('canvas');
+if (!canvas.id) { canvas.id = 'webgl-canvas'; document.body.prepend(canvas); }
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 500);
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -50,6 +60,22 @@ let gameStarted = false;
 let isHornActive = false;
 let paused = false;
 window.timeInMinutes = 7 * 60;
+
+// ---------- Early start (works even if bootstrap still loading) ----------
+window.__kanoStartQueued = false;
+window.__kanoStartShift = null;
+document.getElementById('start-game-btn')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  if (typeof window.__kanoStartShift === 'function') {
+    window.__kanoStartShift();
+  } else {
+    window.__kanoStartQueued = true;
+    showLoading('Almost ready...', 60);
+    showBanner('Loading world — starting in a moment...');
+  }
+});
+
 
 // ---------- Early menu UI ----------
 
@@ -121,6 +147,7 @@ function showBanner(msg) {
   const text = document.getElementById('banner-text');
   if (!banner || !text) return;
   text.textContent = typeof msg === 'string' ? msg : (msg.msg || '');
+  banner.style.display = 'block';
   banner.style.opacity = '1';
   banner.style.transform = 'translateY(0)';
   clearTimeout(window._bannerTimer);
@@ -242,8 +269,10 @@ async function bootstrap() {
 
   const pedestrianManager = new PedestrianManager(scene, kekeController, assetManager);
   pedestrianManager.init().catch(() => {});
-  const particleSystem = new KanoParticleSystem(scene, kekeGroup);
-  const weatherManager = new KanoWeatherManager(scene, kekeController, passengerManager);
+  let particleSystem = { update() {} };
+  try { particleSystem = new KanoParticleSystem(scene, kekeGroup); } catch (e) { console.warn('particles', e); }
+  let weatherManager = { update() {}, currentWeather: 'CLEAR' };
+  try { weatherManager = new KanoWeatherManager(scene, kekeController, passengerManager); } catch (e) { console.warn('weather', e); }
   const customizer = new KekeCustomizer(scene, kekeGroup);
   const prayerManager = new PrayerTimeManager({ stamina: 100, stressLevel: 0 });
   const settlementManager = new DailySettlementManager(passengerManager, fuelManager, kekeController, missionManager);
@@ -334,6 +363,7 @@ async function bootstrap() {
 
   // Start shift
   window.__kanoStartShift = () => {
+    if (gameStarted && flow?.state === 'DRIVING') return;
     // Re-read selection
     const ds = document.getElementById('driver-select');
     const ks = document.getElementById('keke-select');
@@ -379,6 +409,11 @@ async function bootstrap() {
   document.getElementById('start-game-btn')?.addEventListener('click', () => {
     if (window.__kanoStartShift) window.__kanoStartShift();
   });
+  // Flush queued start from early click
+  if (window.__kanoStartQueued) {
+    window.__kanoStartQueued = false;
+    try { window.__kanoStartShift(); } catch (e) { console.warn(e); }
+  }
 
   // Shop
   document.getElementById('buy-neon')?.addEventListener('click', () => {

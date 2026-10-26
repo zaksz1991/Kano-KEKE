@@ -46,7 +46,7 @@
     .bar-bg { width: 160px; height: 12px; background: rgba(0,0,0,0.6); border: 1px solid #fff; border-radius: 4px; overflow: hidden; margin-top: 4px; }
     .bar-fill { height: 100%; transition: width 0.3s; }
 
-    #notification-banner { transition: opacity 0.35s, transform 0.35s; opacity:0; transform:translateY(-20px); position: absolute; top: 100px; width: 100%; text-align: center; display: none; z-index: 20; }
+    #notification-banner { transition: opacity 0.35s, transform 0.35s; opacity:0; transform:translateY(-20px); position: absolute; top: 100px; width: 100%; text-align: center; display: block; pointer-events: none; z-index: 20; }
     #banner-text { background: rgba(0,0,0,0.85); color: #ffcc00; padding: 12px 24px; border-radius: 8px; border: 2px solid #ffcc00; font-weight: bold; font-size: 16px; display: inline-block; }
 
     #shop-modal { position: absolute; top: 15%; left: 50%; transform: translateX(-50%); width: 360px; background: rgba(15,15,20,0.95); color: #fff; padding: 20px; border-radius: 12px; border: 2px solid #ffcc00; display: none; z-index: 30; }
@@ -72,6 +72,7 @@
       <div>
         <label style="font-size: 12px; color: #00ffff;">DRIVER:</label><br/>
         <select id="driver-select">
+          <option value="ruffneck" selected>RuffNeck — Street King</option>
           <option value="bello">Bello "Maza Bawa"</option>
           <option value="sani">Sani "Dan Ladi"</option>
           <option value="zainab">Zainab "Kano Queen"</option>
