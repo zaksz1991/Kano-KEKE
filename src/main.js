@@ -383,7 +383,7 @@ async function bootstrap() {
         if (e.type === 'HOTSPOT_PROMPT') showBanner(e.msg);
       });
 
-      particleSystem.update(delta, kekeController.currentSpeed);
+      particleSystem.update(delta, kekeController.currentSpeed, weatherManager.getWeather?.() || weatherManager.currentWeather || 'CLEAR');
       pedestrianManager.update(delta);
 
       const speedDisplay = document.getElementById('speed-display');

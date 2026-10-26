@@ -319,15 +319,21 @@ export class InfiniteRoadSystem {
   }
 
   update(playerZ) {
-    // Recycle chunks that are far behind
-    const half = (this.visibleChunks * this.chunkLength) / 2;
+    // Recycle chunks that are far behind + simple distance LOD
     this.chunks.forEach((chunk) => {
       if (chunk.position.z + this.chunkLength < playerZ - this.chunkLength * 1.5) {
-        // Move to front
         const maxZ = Math.max(...this.chunks.map(c => c.position.z));
         chunk.position.z = maxZ + this.chunkLength;
-        // Optional: re-randomize content for variety (expensive – skip for now)
       }
+
+      // Simple LOD: hide detailed side objects when far
+      const dist = Math.abs(chunk.position.z - playerZ);
+      const detailVisible = dist < this.chunkLength * 3.2;
+      chunk.children.forEach((child, idx) => {
+        // keep road surface (first child) always visible
+        if (idx === 0) return;
+        child.visible = detailVisible;
+      });
     });
   }
 

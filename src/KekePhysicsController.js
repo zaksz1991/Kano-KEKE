@@ -94,6 +94,12 @@ export class KekePhysicsController {
     this.velocity = THREE.MathUtils.clamp(this.velocity, -this.reverseMax, this.maxSpeed);
     this.currentSpeed = Math.abs(this.velocity);
 
+    // Weather grip (set by KanoWeatherManager)
+    if (this._weatherGrip !== undefined && this._weatherGrip < 1) {
+      // Slight loss of traction – velocity drifts toward lower magnitude
+      this.velocity *= 1 - (1 - this._weatherGrip) * 0.015;
+    }
+
     // --- Steering (speed dependent) ---
     const speedFactor = THREE.MathUtils.clamp(this.currentSpeed / 8, 0.15, 1);
     if (Math.abs(this.steerInput) > 0.02 && this.currentSpeed > 0.4) {
