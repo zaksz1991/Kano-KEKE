@@ -188,22 +188,45 @@ async function bootstrap() {
     showLoading(`Loading ${name}...`, Math.min(90, 10 + percent * 0.7));
   });
 
-  // Only essential assets first (others load lazily inside their managers)
+  // Fast path: only try keke for a few seconds, then continue with box fallback
+  assetManager.setProgressCallback(({ percent, path }) => {
+    const name = path ? path.split('/').pop() : '';
+    showLoading(`Loading ${name}...`, Math.min(85, 10 + percent * 0.7));
+  });
+
   const critical = [
-    { path: '/assets/models/keke.glb', options: { scale: 1.15 } },
-    { path: '/assets/models/textures/road_diffuse.jpg', type: 'texture' }
+    { path: '/assets/models/keke.glb', options: { scale: 1.15 } }
   ];
 
   try {
-    await assetManager.preload(critical);
+    await Promise.race([
+      assetManager.preload(critical),
+      new Promise((resolve) => setTimeout(resolve, 8000)) // max 8s wait
+    ]);
   } catch (e) {
     console.warn('Preload soft-fail', e);
   }
-  showLoading('Building world...', 92);
+  assetManager.setProgressCallback(null); // stop progress spam
+  showLoading('Building world...', 95);
 
   // ---- Keke ----
   const kekeGroup = new THREE.Group();
   scene.add(kekeGroup);
+
+  // Instant ground so screen is never empty orange
+  const instantGround = new THREE.Mesh(
+    new THREE.PlaneGeometry(200, 800),
+    new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.95 })
+  );
+  instantGround.rotation.x = -Math.PI / 2;
+  instantGround.position.z = 200;
+  instantGround.receiveShadow = true;
+  scene.add(instantGround);
+
+  // Camera starts behind the keke
+  camera.position.set(0, 5.5, -11);
+  camera.lookAt(0, 1.2, 8);
+
 
   // Temporary body while model loads
   const tempBody = new THREE.Mesh(
@@ -229,7 +252,7 @@ async function bootstrap() {
 
   const cameraRig = new KekeCameraRig(camera, kekeGroup);
   const roadSystem = new InfiniteRoadSystem(scene, assetManager);
-  await roadSystem.init().catch(e => console.warn('Road init failed', e));
+  roadSystem.init().catch(e => console.warn('Road init failed', e));
 
   const landmarkManager = new KanoLandmarkManager(scene, assetManager);
   landmarkManager.init().catch(e => console.warn('Landmark init failed', e));
@@ -326,6 +349,15 @@ async function bootstrap() {
     const hudR = document.getElementById('top-right-hud');
     if (hudL) hudL.style.display = 'block';
     if (hudR) hudR.style.display = 'block';
+    // Snap camera behind keke so player sees the road immediately
+    try {
+      camera.position.set(0, 5.5, -11);
+      camera.lookAt(0, 1.2, 5);
+      if (cameraRig && cameraRig.currentPos) {
+        cameraRig.currentPos.set(0, 5.5, -11);
+        cameraRig.lookAtPos.set(0, 1.2, 5);
+      }
+    } catch (e) {}
     showBanner('🚗 Shift started! Drive safe in Kano.');
     const sel = document.getElementById('route-select');
     const routeName = document.getElementById('route-name-display');

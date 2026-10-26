@@ -20,27 +20,19 @@ export class DynamicTrafficManager {
   }
 
   async init() {
-    try {
-      this.carModel = await this.assets.loadGLB('/assets/models/traffic_vehicle.glb', {
-        scale: 1.1,
-        castShadow: true
-      });
-    } catch (e) {
-      this.carModel = null;
-    }
-    try {
-      this.okadaModel = await this.assets.loadGLB('/assets/models/okada.glb', {
-        scale: 1.0,
-        castShadow: true
-      });
-    } catch (e) {
-      this.okadaModel = null;
-    }
-
+    // Spawn procedural traffic immediately
     for (let i = 0; i < this.maxVehicles; i++) {
       this._spawnVehicle(true);
     }
     this.ready = true;
+
+    // Optional real models in background
+    this.assets.loadGLB('/assets/models/traffic_vehicle.glb', { scale: 1.1, castShadow: true })
+      .then((m) => { if (m) this.carModel = m; })
+      .catch(() => {});
+    this.assets.loadGLB('/assets/models/okada.glb', { scale: 1.0, castShadow: true })
+      .then((m) => { if (m) this.okadaModel = m; })
+      .catch(() => {});
   }
 
   _createFallbackVehicle(isOkada) {

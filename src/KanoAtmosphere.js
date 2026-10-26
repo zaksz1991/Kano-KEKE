@@ -5,7 +5,7 @@ import * as THREE from 'three';
  */
 export function setupKanoAtmosphere(scene, renderer) {
   scene.background = new THREE.Color(0xd4a373);
-  scene.fog = new THREE.FogExp2(0xd4a373, 0.0055);
+  scene.fog = new THREE.FogExp2(0xd4a373, 0.0035);
 
   // Sun
   const sunLight = new THREE.DirectionalLight(0xfffaed, 2.6);
@@ -62,7 +62,7 @@ export function updateAtmosphereByTime(scene, renderer, timeInMinutes, roadSyste
     if (hemi) hemi.intensity = 0.25;
     scene.background.set(0x0a0e18);
     if (scene.fog) scene.fog.color.set(0x0a0e18);
-    if (scene.fog) scene.fog.density = 0.009;
+    if (scene.fog) scene.fog.density = 0.006;
     renderer.toneMappingExposure = 0.85;
   } else {
     sun.intensity = 0.6 + sunHeight * 2.1;
@@ -72,7 +72,7 @@ export function updateAtmosphereByTime(scene, renderer, timeInMinutes, roadSyste
     scene.background.set(warm);
     if (scene.fog) {
       scene.fog.color.set(warm);
-      scene.fog.density = 0.0045 + (1 - sunHeight) * 0.003;
+      scene.fog.density = 0.003 + (1 - sunHeight) * 0.002;
     }
     renderer.toneMappingExposure = 1.05 + sunHeight * 0.25;
   }

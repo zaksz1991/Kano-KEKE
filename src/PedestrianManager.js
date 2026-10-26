@@ -19,21 +19,14 @@ export class PedestrianManager {
   }
 
   async init() {
-    try {
-      this.model = await this.assets.loadGLB('/assets/models/pedestrian.glb', {
-        scale: 1.0,
-        castShadow: true,
-        receiveShadow: false
-      });
-    } catch (e) {
-      console.warn('Pedestrian GLB missing – using procedural silhouettes');
-      this.model = null;
-    }
-
     for (let i = 0; i < this.maxPeds; i++) {
       this._spawn(true);
     }
     this.ready = true;
+    // Optional real model later
+    this.assets.loadGLB('/assets/models/pedestrian.glb', { scale: 1.0, castShadow: true })
+      .then((m) => { if (m) this.model = m; })
+      .catch(() => {});
   }
 
   _createFallback() {

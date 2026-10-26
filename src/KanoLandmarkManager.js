@@ -1,8 +1,7 @@
 import * as THREE from 'three';
 
 /**
- * Landmark Manager – loads real GLB landmarks when available,
- * falls back to high-quality procedural Kano landmarks.
+ * Landmarks – procedural immediately, optional GLB enhancement later
  */
 export class KanoLandmarkManager {
   constructor(scene, assetManager) {
@@ -13,83 +12,36 @@ export class KanoLandmarkManager {
   }
 
   async init() {
-    // Landmark definitions with approximate Z positions along the main route
+    // Instant procedural landmarks so world is never empty
     const defs = [
-      {
-        name: 'Gidan Rumfa – Emir’s Palace Gate',
-        path: '/assets/models/landmarks/palace_gate.glb',
-        z: 180,
-        scale: 1.4,
-        x: -14,
-        fallback: () => this._createPalaceGate(180)
-      },
-      {
-        name: 'Kofar Mata Traditional Dye Pits',
-        path: '/assets/models/landmarks/dye_pits.glb',
-        z: 420,
-        scale: 1.2,
-        x: 16,
-        fallback: () => this._createDyePits(420)
-      },
-      {
-        name: 'Ancient Kano City Walls (Ganuwa)',
-        path: '/assets/models/landmarks/city_walls.glb',
-        z: 680,
-        scale: 1.0,
-        x: -18,
-        fallback: () => this._createCityWalls(680)
-      },
-      {
-        name: 'Kurmi Market Wheels Monument',
-        path: '/assets/models/landmarks/wheels.glb',
-        z: 950,
-        scale: 1.3,
-        x: 12,
-        fallback: () => this._createWheels(950)
-      }
+      { name: "Gidan Rumfa – Emir's Palace Gate", z: 180, x: -14, fallback: () => this._createPalaceGate(180, -14) },
+      { name: 'Kofar Mata Traditional Dye Pits', z: 420, x: 16, fallback: () => this._createDyePits(420, 16) },
+      { name: 'Ancient Kano City Walls (Ganuwa)', z: 680, x: -18, fallback: () => this._createCityWalls(680) },
+      { name: 'Kurmi Market Wheels Monument', z: 950, x: 12, fallback: () => this._createWheels(950, 12) }
     ];
 
     for (const def of defs) {
-      let group = null;
-      try {
-        const model = await this.assets.loadGLB(def.path, {
-          scale: def.scale,
-          castShadow: true,
-          receiveShadow: true
-        });
-        group = new THREE.Group();
-        group.add(model);
-        group.position.set(def.x, 0, def.z);
-      } catch (e) {
-        console.warn(`Landmark GLB missing (${def.name}), using procedural`);
-        group = def.fallback();
-      }
-
+      const group = def.fallback();
       if (group) {
-        this.scene.add(group);
-        this.landmarks.push({
-          name: def.name,
-          zPos: def.z,
-          group,
-          visited: false
-        });
+        this.landmarks.push({ name: def.name, zPos: def.z, group, visited: false });
       }
     }
     this.loaded = true;
+
+    // Optional: try to swap in real GLBs in background (skip on slow networks)
+    // Disabled by default to avoid long "loading wheels.glb" on mobile
   }
 
-  _createPalaceGate(z) {
+  _createPalaceGate(z, x) {
     const g = new THREE.Group();
-    g.position.z = z;
+    g.position.set(x, 0, z);
     const mat = new THREE.MeshStandardMaterial({ color: 0xc9a66b, roughness: 0.9 });
-    // Twin towers
-    for (const x of [-4, 4]) {
+    for (const tx of [-4, 4]) {
       const tower = new THREE.Mesh(new THREE.BoxGeometry(2.2, 9, 2.2), mat);
-      tower.position.set(x, 4.5, 0);
+      tower.position.set(tx, 4.5, 0);
       tower.castShadow = true;
       g.add(tower);
     }
-    // Arch
     const arch = new THREE.Mesh(new THREE.BoxGeometry(6.5, 1.5, 1.8), mat);
     arch.position.set(0, 7.5, 0);
     g.add(arch);
@@ -97,15 +49,12 @@ export class KanoLandmarkManager {
     return g;
   }
 
-  _createDyePits(z) {
+  _createDyePits(z, x) {
     const g = new THREE.Group();
-    g.position.z = z;
+    g.position.set(x, 0, z);
     const pitMat = new THREE.MeshStandardMaterial({ color: 0x1a237e, roughness: 0.6 });
     for (let i = 0; i < 8; i++) {
-      const pit = new THREE.Mesh(
-        new THREE.CylinderGeometry(1.1, 1.0, 0.6, 12),
-        pitMat
-      );
+      const pit = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.0, 0.6, 12), pitMat);
       pit.position.set((i % 4) * 3.2 - 4.8, 0.3, Math.floor(i / 4) * 3.5);
       pit.receiveShadow = true;
       g.add(pit);
@@ -126,9 +75,9 @@ export class KanoLandmarkManager {
     return wall;
   }
 
-  _createWheels(z) {
+  _createWheels(z, x) {
     const g = new THREE.Group();
-    g.position.set(12, 0, z);
+    g.position.set(x, 0, z);
     const rim = new THREE.Mesh(
       new THREE.TorusGeometry(2.2, 0.25, 8, 24),
       new THREE.MeshStandardMaterial({ color: 0x5d4037, metalness: 0.3 })
