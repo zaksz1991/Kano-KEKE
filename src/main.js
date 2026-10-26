@@ -112,26 +112,28 @@ function hideLoading() {
 async function bootstrap() {
   showLoading('Loading Kano streets & assets...', 5);
 
+  // Safety: never leave user on loading screen forever
+  const safetyHide = setTimeout(() => {
+    console.warn('Loading timeout – forcing start with fallbacks');
+    hideLoading();
+  }, 20000);
+
   assetManager.setProgressCallback(({ percent, path }) => {
     const name = path ? path.split('/').pop() : '';
     showLoading(`Loading ${name}...`, Math.min(90, 10 + percent * 0.7));
   });
 
-  // Critical assets
+  // Only essential assets first (others load lazily inside their managers)
   const critical = [
     { path: '/assets/models/keke.glb', options: { scale: 1.15 } },
-    { path: '/assets/models/textures/road_diffuse.jpg', type: 'texture' },
-    { path: '/assets/models/environment/road_tile.glb', options: { scale: 1 } },
-    { path: '/assets/models/traffic_vehicle.glb', options: { scale: 1.05 } },
-    { path: '/assets/models/okada.glb', options: { scale: 1 } },
-    { path: '/assets/models/landmarks/palace_gate.glb', options: { scale: 1.3 } },
-    { path: '/assets/models/landmarks/dye_pits.glb', options: { scale: 1.1 } },
-    { path: '/assets/models/landmarks/city_walls.glb', options: { scale: 1 } },
-    { path: '/assets/models/landmarks/wheels.glb', options: { scale: 1.2 } },
-    { path: '/assets/models/pedestrian.glb', options: { scale: 1.0 } }
+    { path: '/assets/models/textures/road_diffuse.jpg', type: 'texture' }
   ];
 
-  await assetManager.preload(critical);
+  try {
+    await assetManager.preload(critical);
+  } catch (e) {
+    console.warn('Preload soft-fail', e);
+  }
   showLoading('Building world...', 92);
 
   // ---- Keke ----
@@ -162,13 +164,13 @@ async function bootstrap() {
 
   const cameraRig = new KekeCameraRig(camera, kekeGroup);
   const roadSystem = new InfiniteRoadSystem(scene, assetManager);
-  await roadSystem.init();
+  try { await roadSystem.init(); } catch(e) { console.warn('Road init failed', e); }
 
   const landmarkManager = new KanoLandmarkManager(scene, assetManager);
-  await landmarkManager.init();
+  try { await landmarkManager.init(); } catch(e) { console.warn('Landmark init failed', e); }
 
   const trafficManager = new DynamicTrafficManager(scene, kekeController, assetManager);
-  await trafficManager.init();
+  try { await trafficManager.init(); } catch(e) { console.warn('Traffic init failed', e); }
 
   const passengerManager = new PassengerManager(scene, kekeController);
   passengerManager.dailyEarnings = savedData.cash ?? 1500;
@@ -192,7 +194,7 @@ async function bootstrap() {
   setupMobileControls(input, () => audioEngine.playHorn());
 
   const pedestrianManager = new PedestrianManager(scene, kekeController, assetManager);
-  await pedestrianManager.init();
+  try { await pedestrianManager.init(); } catch(e) { console.warn('Pedestrian init failed', e); }
   const maintenanceEngine = new KekeMaintenanceEngine(kekeController, fuelManager);
   const dialogueManager = new PassengerDialogueManager();
   const hotspotManager = new SpatialHotspotManager(
@@ -239,9 +241,13 @@ async function bootstrap() {
     keys[e.code] = true;
     if (e.code === 'KeyH' || e.code === 'Space') { isHornActive = true; audioEngine.playHorn(); }
     if (e.code === 'KeyR') {
-      const on = radioManager.toggle();
-      const el = document.getElementById('radio-display');
-      if (el) el.textContent = on ? 'ON – Hausa FM' : 'OFF';
+      if (radioManager.togglePower) {
+        radioManager.togglePower((msg) => {
+          const el = document.getElementById('radio-display');
+          if (el) el.textContent = radioManager.isPlaying ? 'ON – Hausa FM' : 'OFF';
+          if (msg) console.log(msg);
+        });
+      }
     }
   });
   window.addEventListener('keyup', (e) => {
@@ -298,8 +304,9 @@ async function bootstrap() {
   const earningsEl = document.getElementById('earnings');
   if (earningsEl) earningsEl.innerText = passengerManager.dailyEarnings;
 
+  clearTimeout(safetyHide);
   hideLoading();
-  showBanner('Welcome to Kano Run v2.0 – Professional Upgrade');
+  showBanner('Welcome to Kano Run – Drive safe!');
 
   // ============================================================
   // 5. Game Loop
@@ -408,9 +415,11 @@ async function bootstrap() {
 }
 
 bootstrap().catch((err) => {
-  console.error('Bootstrap failed', err);
+  console.error('Bootstrap error (continuing with fallbacks)', err);
   hideLoading();
-  alert('Failed to load game assets. Check console.');
+  // Do NOT alert-block the user – game should still be playable with procedural fallbacks
+  const banner = document.getElementById('banner-text');
+  if (banner) banner.textContent = 'Loaded with fallbacks – some assets missing';
 });
 
 // Resize

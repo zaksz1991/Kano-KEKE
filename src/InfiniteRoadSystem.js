@@ -77,11 +77,15 @@ export class InfiniteRoadSystem {
 
     // === ROAD SURFACE ===
     if (this.roadTileModel) {
-      const tile = this.roadTileModel.clone(true);
-      tile.position.set(0, 0, 0);
-      // Scale to fit chunk if needed – assume model is roughly correct
-      group.add(tile);
-    } else {
+      try {
+        const tile = this.roadTileModel.clone(true);
+        tile.position.set(0, 0, 0);
+        group.add(tile);
+      } catch (e) {
+        this.roadTileModel = null; // fall through to procedural
+      }
+    }
+    if (!this.roadTileModel) {
       const roadGeo = new THREE.PlaneGeometry(14, this.chunkLength, 1, 4);
       const roadMat = new THREE.MeshStandardMaterial({
         color: 0x2a2a2a,

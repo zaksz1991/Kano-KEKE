@@ -3,65 +3,63 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
-import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 
 /**
- * Cinematic post-processing stack for Kano heat & dust feel
+ * Cinematic post-processing – safe fallback to raw renderer if anything fails
  */
 export function setupPostProcessing(renderer, scene, camera) {
-  const composer = new EffectComposer(renderer);
-  const renderPass = new RenderPass(scene, camera);
-  composer.addPass(renderPass);
+  try {
+    const composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
 
-  // Soft bloom for neon underglow + street lights + sun highlights
-  const bloom = new UnrealBloomPass(
-    new THREE.Vector2(window.innerWidth, window.innerHeight),
-    0.35,   // strength
-    0.55,   // radius
-    0.82    // threshold
-  );
-  composer.addPass(bloom);
+    const bloom = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      0.32,
+      0.5,
+      0.85
+    );
+    composer.addPass(bloom);
 
-  // Subtle vignette + warm color grade
-  const vignetteShader = {
-    uniforms: {
-      tDiffuse: { value: null },
-      offset: { value: 1.05 },
-      darkness: { value: 1.15 },
-      warmth: { value: 0.06 }
-    },
-    vertexShader: `
-      varying vec2 vUv;
-      void main() {
-        vUv = uv;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
-    fragmentShader: `
-      uniform sampler2D tDiffuse;
-      uniform float offset;
-      uniform float darkness;
-      uniform float warmth;
-      varying vec2 vUv;
-      void main() {
-        vec4 color = texture2D(tDiffuse, vUv);
-        vec2 uv = (vUv - 0.5) * vec2(offset);
-        float vig = smoothstep(0.8, 0.25, dot(uv, uv));
-        color.rgb *= vig;
-        // Warm Kano grade
-        color.r += warmth * 0.6;
-        color.g += warmth * 0.25;
-        color.b -= warmth * 0.15;
-        gl_FragColor = color;
-      }
-    `
-  };
+    const vignetteShader = {
+      uniforms: {
+        tDiffuse: { value: null },
+        offset: { value: 1.05 },
+        darkness: { value: 1.12 },
+        warmth: { value: 0.05 }
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform float offset;
+        uniform float warmth;
+        varying vec2 vUv;
+        void main() {
+          vec4 color = texture2D(tDiffuse, vUv);
+          vec2 uv = (vUv - 0.5) * vec2(offset);
+          float vig = smoothstep(0.85, 0.2, dot(uv, uv));
+          color.rgb *= vig;
+          color.r += warmth * 0.5;
+          color.g += warmth * 0.2;
+          color.b -= warmth * 0.12;
+          gl_FragColor = color;
+        }
+      `
+    };
+    composer.addPass(new ShaderPass(vignetteShader));
 
-  const vignettePass = new ShaderPass(vignetteShader);
-  composer.addPass(vignettePass);
-
-  const outputPass = new OutputPass();
-  composer.addPass(outputPass);
-
-  return composer;
+    return composer;
+  } catch (e) {
+    console.warn('[PostProcess] Falling back to raw renderer', e);
+    // Fake composer so main loop keeps working
+    return {
+      render: () => renderer.render(scene, camera),
+      setSize: (w, h) => renderer.setSize(w, h)
+    };
+  }
 }
