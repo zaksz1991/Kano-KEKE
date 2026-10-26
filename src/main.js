@@ -1,43 +1,54 @@
 import * as THREE from 'three';
 import { AssetManager } from './AssetManager.js';
 import { setupKanoAtmosphere, updateAtmosphereByTime } from './KanoAtmosphere.js';
+import { setupPostProcessing } from './KanoPostProcessor.js';
 import { KekePhysicsController } from './KekePhysicsController.js';
 import { KekeCameraRig } from './KekeCameraRig.js';
 import { InfiniteRoadSystem } from './InfiniteRoadSystem.js';
 import { PassengerManager } from './PassengerManager.js';
 import { FuelManager } from './FuelManager.js';
-import { KekeCustomizer } from './KekeCustomizer.js';
-import { NightThugDangerEngine } from './NightThugDangerEngine.js';
-import { SpatialHotspotManager } from './SpatialHotspotManager.js';
-import { PrayerTimeManager } from './PrayerTimeManager.js';
-import { HausaRadioManager } from './HausaRadioManager.js';
-import { DailySettlementManager } from './DailySettlementManager.js';
-import { CoinPickupManager } from './CoinPickupManager.js';
-import { PassengerFightEngine } from './PassengerFightEngine.js';
-import { KekeCollisionSystem } from './KekeCollisionSystem.js';
-import { KanoWeatherManager } from './KanoWeatherManager.js';
 import { DynamicTrafficManager } from './DynamicTrafficManager.js';
 import { PoliceCheckpointEngine } from './PoliceCheckpointEngine.js';
 import { KanoAudioEngine } from './KanoAudioEngine.js';
 import { KanoLandmarkManager } from './KanoLandmarkManager.js';
 import { CharacterSelectionManager } from './CharacterSelectionManager.js';
-import { KekeMaintenanceEngine } from './KekeMaintenanceEngine.js';
-import { PassengerDialogueManager } from './PassengerDialogueManager.js';
+import { GameFlowManager } from './GameFlowManager.js';
+import { PedestrianManager } from './PedestrianManager.js';
+import { KanoParticleSystem } from './KanoParticleSystem.js';
+import { KanoWeatherManager } from './KanoWeatherManager.js';
 import { SaveSystem } from './SaveSystem.js';
 import { setupMobileControls } from './MobileTouchControls.js';
-import { RedisSyncManager } from './backend/RedisSyncManager.js';
 import { KANO_ROUTES } from './KanoRoutesData.js';
-import { setupPostProcessing } from './KanoPostProcessor.js';
-import { KanoParticleSystem } from './KanoParticleSystem.js';
-import { PedestrianManager } from './PedestrianManager.js';
+import { KekeCustomizer } from './KekeCustomizer.js';
+import { PrayerTimeManager } from './PrayerTimeManager.js';
+import { DailySettlementManager } from './DailySettlementManager.js';
 
+// ---------- Renderer ----------
+const canvas = document.getElementById('webgl-canvas');
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 500);
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.toneMappingExposure = 1.65;
+setupKanoAtmosphere(scene, renderer);
+const composer = setupPostProcessing(renderer, scene, camera);
 
-// ============================================================
-// EARLY UI – routes + start button (must work even if assets slow)
-// ============================================================
-(function wireMenuUI() {
+// ---------- Shared state ----------
+const assetManager = new AssetManager();
+const saved = SaveSystem.loadGame();
+const charSelect = new CharacterSelectionManager();
+const input = { throttle: 0, steering: 0, horn: false };
+const keys = {};
+let gameStarted = false;
+let isHornActive = false;
+let paused = false;
+window.timeInMinutes = 7 * 60;
+
+// ---------- Early menu UI ----------
+(function wireMenu() {
   const routeSelect = document.getElementById('route-select');
-  if (routeSelect && routeSelect.options.length === 0 && Array.isArray(KANO_ROUTES)) {
+  if (routeSelect && routeSelect.options.length === 0) {
     KANO_ROUTES.forEach((r) => {
       const opt = document.createElement('option');
       opt.value = r.id;
@@ -45,332 +56,187 @@ import { PedestrianManager } from './PedestrianManager.js';
       routeSelect.appendChild(opt);
     });
   }
-
-  // Driver select basic fill if empty
-  const driverSelect = document.getElementById('driver-select');
-  if (driverSelect && driverSelect.options.length === 0) {
-    ['Bello "Maza Bawa"', 'Aisha "Sarki Yar"', 'Musa "Dan Kano"', 'Fatima "Gida"'].forEach((name, i) => {
-      const opt = document.createElement('option');
-      opt.value = i;
-      opt.textContent = name;
-      driverSelect.appendChild(opt);
-    });
+  charSelect.populateUI();
+  // Ensure keke select exists
+  if (!document.getElementById('keke-select')) {
+    const panel = document.querySelector('.selection-panel');
+    if (panel) {
+      const wrap = document.createElement('div');
+      wrap.innerHTML = `<div style="color:#00ffff;font-size:12px;margin-top:8px;">KEKE:</div>`;
+      const sel = document.createElement('select');
+      sel.id = 'keke-select';
+      wrap.appendChild(sel);
+      panel.appendChild(wrap);
+      charSelect.populateUI();
+    }
   }
 })();
 
-// Shared game state
-let gameStarted = false;
-window.__kanoStartShift = null; // set after world ready
-
-// Hide HUD until shift starts
-['top-left-hud','top-right-hud'].forEach(id => {
-  const el = document.getElementById(id);
-  if (el) el.style.display = 'none';
-});
-
-
-const startBtnEarly = document.getElementById('start-game-btn');
-if (startBtnEarly) {
-  startBtnEarly.addEventListener('click', () => {
-    if (typeof window.__kanoStartShift === 'function') {
-      window.__kanoStartShift();
-    } else {
-      // World still loading – force start with whatever is ready
-      gameStarted = true;
-      const menu = document.getElementById('main-menu-overlay');
-      if (menu) menu.style.display = 'none';
-      const mobile = document.getElementById('mobile-controls-overlay');
-      if (mobile) mobile.style.display = 'block';
-    }
-  });
-}
-
-// ============================================================
-// 1. Renderer / Scene / Camera
-// ============================================================
-const canvas = document.getElementById('webgl-canvas');
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 600);
-const renderer = new THREE.WebGLRenderer({
-  canvas,
-  antialias: true,
-  powerPreference: 'high-performance'
-});
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.toneMappingExposure = 1.65;
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
-setupKanoAtmosphere(scene, renderer);
-
-const composer = setupPostProcessing(renderer, scene, camera);
-
-// Early render loop so screen is never frozen while assets load
-let _worldReady = false;
-let _drive = null; // set when controllers ready: { setInput, update, cameraRig, group }
-
-(function earlyRenderLoop() {
-  requestAnimationFrame(earlyRenderLoop);
-  if (!_worldReady) {
-    // Even before full bootstrap, if player started and drive is ready – move
-    if (gameStarted && _drive) {
-      try {
-        const t = input.throttle || 0;
-        const s = input.steering || 0;
-        _drive.setInput(t, s);
-        _drive.update(0.016);
-        if (_drive.cameraRig) _drive.cameraRig.update(0.016, _drive.controller.currentSpeed);
-      } catch (e) {}
-    }
-    try { composer.render(); } catch (e) {}
-  }
-})();
-
-
-// ============================================================
-// 2. Core state
-// ============================================================
-const assetManager = new AssetManager();
-const savedData = SaveSystem.loadGame();
-
-let redisSync = null;
-try {
-  redisSync = new RedisSyncManager();
-  if (typeof redisSync.connect === 'function') redisSync.connect(() => {});
-} catch (e) {
-  console.log('ℹ️ Multiplayer sync fallback active.');
-}
-
-const input = { throttle: 0, steering: 0 };
-let isHornActive = false;
-// setupMobileControls moved after audio init
-
-// ============================================================
-// 3. Loading UI helper
-// ============================================================
-function showLoading(msg, percent = 0) {
+// Loading
+function showLoading(msg, pct = 0) {
   let el = document.getElementById('loading-overlay');
   if (!el) {
     el = document.createElement('div');
     el.id = 'loading-overlay';
-    el.style.cssText = `
-      position:fixed;inset:0;background:#0a0a0f;z-index:200;
-      display:flex;flex-direction:column;align-items:center;justify-content:center;
-      color:#ffcc00;font-family:system-ui,sans-serif;`;
-    el.innerHTML = `
-      <div style="font-size:28px;font-weight:800;letter-spacing:3px;margin-bottom:12px;">KANO RUN</div>
-      <div id="load-msg" style="font-size:14px;color:#00ffff;margin-bottom:18px;">Preparing streets of Kano...</div>
+    el.style.cssText = 'position:fixed;inset:0;background:#0a0a0f;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#ffcc00;font-family:system-ui,sans-serif;';
+    el.innerHTML = `<div style="font-size:28px;font-weight:800;letter-spacing:3px;">KANO RUN</div>
+      <div id="load-msg" style="font-size:14px;color:#00ffff;margin:14px 0;">${msg}</div>
       <div style="width:260px;height:6px;background:#222;border-radius:4px;overflow:hidden;">
-        <div id="load-bar" style="width:0%;height:100%;background:linear-gradient(90deg,#ffcc00,#ff9800);transition:width 0.2s;"></div>
-      </div>
-      <div id="load-pct" style="margin-top:10px;font-size:12px;color:#888;">0%</div>`;
+        <div id="load-bar" style="width:${pct}%;height:100%;background:linear-gradient(90deg,#ffcc00,#ff9800);"></div>
+      </div>`;
     document.body.appendChild(el);
+  } else {
+    const m = document.getElementById('load-msg');
+    const b = document.getElementById('load-bar');
+    if (m) m.textContent = msg;
+    if (b) b.style.width = `${pct}%`;
   }
-  const msgEl = document.getElementById('load-msg');
-  const bar = document.getElementById('load-bar');
-  const pct = document.getElementById('load-pct');
-  if (msgEl) msgEl.textContent = msg;
-  if (bar) bar.style.width = `${percent}%`;
-  if (pct) pct.textContent = `${percent}%`;
 }
-
 function hideLoading() {
   const el = document.getElementById('loading-overlay');
-  if (el) {
-    el.style.opacity = '0';
-    el.style.transition = 'opacity 0.5s';
-    setTimeout(() => el.remove(), 550);
-  }
+  if (el) { el.style.opacity = '0'; setTimeout(() => el.remove(), 400); }
+}
+function showBanner(msg) {
+  const banner = document.getElementById('notification-banner');
+  const text = document.getElementById('banner-text');
+  if (!banner || !text) return;
+  text.textContent = typeof msg === 'string' ? msg : (msg.msg || '');
+  banner.style.opacity = '1';
+  banner.style.transform = 'translateY(0)';
+  clearTimeout(window._bannerTimer);
+  window._bannerTimer = setTimeout(() => {
+    banner.style.opacity = '0';
+    banner.style.transform = 'translateY(-20px)';
+  }, 3500);
 }
 
-// ============================================================
-// 4. Bootstrap (async)
-// ============================================================
+// ---------- Bootstrap ----------
 async function bootstrap() {
-  showLoading('Loading Kano streets & assets...', 5);
+  showLoading('Loading Kano streets...', 10);
+  const safety = setTimeout(() => hideLoading(), 15000);
 
-  // Safety: never leave user on loading screen forever
-  const safetyHide = setTimeout(() => {
-    console.warn('Loading timeout – forcing start with fallbacks');
-    hideLoading();
-  }, 20000);
-
-  assetManager.setProgressCallback(({ percent, path }) => {
-    const name = path ? path.split('/').pop() : '';
-    showLoading(`Loading ${name}...`, Math.min(90, 10 + percent * 0.7));
-  });
-
-  // Fast path: only try keke for a few seconds, then continue with box fallback
-  assetManager.setProgressCallback(({ percent, path }) => {
-    const name = path ? path.split('/').pop() : '';
-    showLoading(`Loading ${name}...`, Math.min(85, 10 + percent * 0.7));
-  });
-
-  const critical = [
-    { path: '/assets/models/keke.glb', options: { scale: 1.15 } }
-  ];
-
-  try {
-    await Promise.race([
-      assetManager.preload(critical),
-      new Promise((resolve) => setTimeout(resolve, 8000)) // max 8s wait
-    ]);
-  } catch (e) {
-    console.warn('Preload soft-fail', e);
-  }
-  assetManager.setProgressCallback(null); // stop progress spam
-  showLoading('Building world...', 95);
-
-  // ---- Keke ----
+  // Keke group
   const kekeGroup = new THREE.Group();
   scene.add(kekeGroup);
-
-  // Instant ground so screen is never empty orange
-  const instantGround = new THREE.Mesh(
-    new THREE.PlaneGeometry(220, 900),
-    new THREE.MeshStandardMaterial({ color: 0x5a5045, roughness: 1.0 })
-  );
-  instantGround.rotation.x = -Math.PI / 2;
-  instantGround.position.z = 200;
-  instantGround.receiveShadow = true;
-  scene.add(instantGround);
-
-  // Camera starts behind the keke
-  camera.position.set(0, 5.5, -11);
-  camera.lookAt(0, 1.2, 8);
-
-
-  // Temporary body while model loads
   const tempBody = new THREE.Mesh(
     new THREE.BoxGeometry(1.5, 1.35, 2.5),
-    new THREE.MeshStandardMaterial({ color: 0xffcc00, roughness: 0.45 })
+    new THREE.MeshStandardMaterial({ color: 0xffcc00, roughness: 0.45, metalness: 0.2 })
   );
   tempBody.position.y = 0.75;
   tempBody.castShadow = true;
   kekeGroup.add(tempBody);
 
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(240, 1000),
+    new THREE.MeshStandardMaterial({ color: 0x6b5e4e, roughness: 1 })
+  );
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.z = 200;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  camera.position.set(0, 5, -12);
+  camera.lookAt(0, 1, 5);
+
+  // Load keke model (timeout)
+  showLoading('Loading keke...', 40);
   let kekeModel = null;
   try {
     kekeModel = await Promise.race([
       assetManager.loadGLB('/assets/models/keke.glb', { scale: 1.15 }),
-      new Promise((resolve) => setTimeout(() => resolve(null), 6000))
+      new Promise((r) => setTimeout(() => r(null), 7000))
     ]);
     if (kekeModel) {
       kekeGroup.remove(tempBody);
       kekeModel.traverse((n) => {
-        if (n.isMesh && n.material) {
-          const mats = Array.isArray(n.material) ? n.material : [n.material];
-          mats.forEach(m => {
-            if (!m) return;
-            m.envMapIntensity = 1.8;
-            if (m.color) m.color.offsetHSL(0, 0.05, 0.06);
-            m.needsUpdate = true;
-          });
+        if (n.isMesh) {
           n.castShadow = true;
           n.receiveShadow = true;
+          if (n.material) {
+            const mats = Array.isArray(n.material) ? n.material : [n.material];
+            mats.forEach((m) => { if (m) { m.envMapIntensity = 1.8; m.needsUpdate = true; } });
+          }
+        }
+      });
+      // Apply selected keke color tint
+      const kekeDef = charSelect.getKeke();
+      kekeModel.traverse((n) => {
+        if (n.isMesh && n.material && n.material.color) {
+          // subtle - only if yellow-ish base
         }
       });
       kekeGroup.add(kekeModel);
-    } else {
-      console.warn('Keke GLB slow/missing – using yellow box');
     }
   } catch (e) {
-    console.warn('Keke GLB fallback to procedural box', e);
+    console.warn('Keke model fallback');
   }
 
-  // ---- Systems ----
+  showLoading('Building world...', 70);
+
+  // Systems
   const kekeController = new KekePhysicsController(kekeGroup);
   if (kekeModel) kekeController.bindWheels(kekeModel);
-  const cameraRig = new KekeCameraRig(camera, kekeGroup);
-  _drive = {
-    controller: kekeController,
-    setInput: (t, s) => kekeController.setInput(t, s),
-    update: (dt) => kekeController.update(dt),
-    cameraRig,
-    group: kekeGroup
-  };
+  // Apply driver/keke bonuses
+  const driver = charSelect.getDriver();
+  const kekeDef = charSelect.getKeke();
+  kekeController.maxSpeed = 28 * (kekeDef.speed || 1) * (driver.speedBonus || 1);
 
-  // cameraRig already created
+  const cameraRig = new KekeCameraRig(camera, kekeGroup);
+  const flow = new GameFlowManager(scene, camera, kekeGroup, kekeController, cameraRig);
 
   const roadSystem = new InfiniteRoadSystem(scene, assetManager);
-  roadSystem.init().catch(e => console.warn('Road init failed', e));
+  roadSystem.init().catch(() => {});
 
   const landmarkManager = new KanoLandmarkManager(scene, assetManager);
-  landmarkManager.init().catch(e => console.warn('Landmark init failed', e));
+  landmarkManager.init().catch(() => {});
 
   const trafficManager = new DynamicTrafficManager(scene, kekeController, assetManager);
-  trafficManager.init().catch(e => console.warn('Traffic init failed', e));
+  trafficManager.init().catch(() => {});
 
-  const passengerManager = new PassengerManager(scene, kekeController);
-  passengerManager.dailyEarnings = savedData.cash ?? 1500;
+  const passengerManager = new PassengerManager(scene, kekeController, assetManager);
+  passengerManager.dailyEarnings = saved.cash ?? 1500;
+  passengerManager.capacity = kekeDef.capacity || 3;
+  passengerManager.negotiationBonus = driver.negotiationBonus || 1;
+  passengerManager.tipBonus = driver.tipBonus || 1;
+  passengerManager.initModels().catch(() => {});
 
   const fuelManager = new FuelManager(kekeController);
-  const customizer = new KekeCustomizer(scene, kekeGroup);
-  const nightEngine = new NightThugDangerEngine(scene, kekeController, customizer, {});
-  const prayerManager = new PrayerTimeManager({ stamina: 100, stressLevel: 0 });
-  const radioManager = new HausaRadioManager();
-  const settlementManager = new DailySettlementManager(passengerManager, fuelManager, kekeController);
-  const coinManager = new CoinPickupManager(scene, kekeController);
-  const fightEngine = new PassengerFightEngine(kekeController, passengerManager);
-  const collisionSystem = new KekeCollisionSystem(kekeGroup, kekeController);
-  const weatherManager = new KanoWeatherManager(scene, kekeController, passengerManager);
   const policeEngine = new PoliceCheckpointEngine(scene, kekeController, passengerManager);
+  policeEngine.spawnCheckpoint(200);
   const audioEngine = new KanoAudioEngine();
   audioEngine.setup(camera, kekeGroup);
   audioEngine.enableOnInteraction();
+  const pedestrianManager = new PedestrianManager(scene, kekeController, assetManager);
+  pedestrianManager.init().catch(() => {});
+  const particleSystem = new KanoParticleSystem(scene, kekeGroup);
+  const weatherManager = new KanoWeatherManager(scene, kekeController, passengerManager);
+  const customizer = new KekeCustomizer(scene, kekeGroup);
+  const prayerManager = new PrayerTimeManager({ stamina: 100, stressLevel: 0 });
+  const settlementManager = new DailySettlementManager(passengerManager, fuelManager, kekeController);
 
-  // Mobile controls (now that we have audio for horn)
   setupMobileControls(input, () => audioEngine.playHorn());
   const mobileEl = document.getElementById('mobile-controls-overlay');
-  if (mobileEl) mobileEl.style.display = 'none'; // hide until START SHIFT
+  if (mobileEl) mobileEl.style.display = 'none';
 
-  const pedestrianManager = new PedestrianManager(scene, kekeController, assetManager);
-  pedestrianManager.init().catch(e => console.warn('Pedestrian init failed', e));
-  const maintenanceEngine = new KekeMaintenanceEngine(kekeController, fuelManager);
-  const dialogueManager = new PassengerDialogueManager();
-  const hotspotManager = new SpatialHotspotManager(
-    scene, kekeController, fuelManager, passengerManager, prayerManager, maintenanceEngine
-  );
-  const particleSystem = new KanoParticleSystem(scene, kekeGroup);
-
-  policeEngine.spawnCheckpoint(220);
-
-  // Routes already populated in early UI
-
-  // HUD helpers
-  function showBanner(msg) {
-    const banner = document.getElementById('notification-banner');
-    const text = document.getElementById('banner-text');
-    if (banner && text) {
-      text.textContent = msg;
-      banner.style.opacity = '1';
-      banner.style.transform = 'translateY(0)';
-      clearTimeout(window._bannerTimer);
-      window._bannerTimer = setTimeout(() => {
-        banner.style.opacity = '0';
-        banner.style.transform = 'translateY(-20px)';
-      }, 3200);
-    }
-  }
-
-  // Time system
-  window.timeInMinutes = 6 * 60; // start 06:00
-  let timeAccum = 0;
-
-  // Input – keyboard
-  const keys = {};
+  // Input
   window.addEventListener('keydown', (e) => {
     keys[e.code] = true;
-    if (e.code === 'KeyH' || e.code === 'Space') { isHornActive = true; audioEngine.playHorn(); }
+    if (e.code === 'KeyH' || e.code === 'Space') {
+      isHornActive = true;
+      audioEngine.playHorn();
+    }
     if (e.code === 'KeyR') {
-      if (radioManager.togglePower) {
-        radioManager.togglePower((msg) => {
-          const el = document.getElementById('radio-display');
-          if (el) el.textContent = radioManager.isPlaying ? 'ON – Hausa FM' : 'OFF';
-          if (msg) console.log(msg);
-        });
-      }
+      const name = audioEngine.cycleRadio();
+      const el = document.getElementById('radio-display');
+      if (el) el.textContent = name;
+      showBanner(`📻 ${name}`);
+    }
+    if (e.code === 'KeyP' || e.code === 'Escape') {
+      paused = flow.togglePause();
+      showBanner(paused ? '⏸ Paused' : '▶ Resumed');
+    }
+    if (e.code === 'KeyE') {
+      passengerManager.acceptDeal((ev) => showBanner(ev));
     }
   });
   window.addEventListener('keyup', (e) => {
@@ -378,196 +244,174 @@ async function bootstrap() {
     if (e.code === 'KeyH' || e.code === 'Space') isHornActive = false;
   });
 
-  // Start button
-  // Start shift handler – called from early-wired button
+  // Start shift
   window.__kanoStartShift = () => {
+    // Re-read selection
+    const ds = document.getElementById('driver-select');
+    const ks = document.getElementById('keke-select');
+    if (ds) charSelect.selectDriver(ds.value);
+    if (ks) charSelect.selectKeke(ks.value);
+    const d = charSelect.getDriver();
+    const k = charSelect.getKeke();
+    kekeController.maxSpeed = 28 * (k.speed || 1) * (d.speedBonus || 1);
+    passengerManager.capacity = k.capacity || 3;
+    passengerManager.negotiationBonus = d.negotiationBonus || 1;
+    passengerManager.tipBonus = d.tipBonus || 1;
+
     gameStarted = true;
-    if (kekeController && kekeController.maxSpeed < 1) kekeController.maxSpeed = 22;
     const menu = document.getElementById('main-menu-overlay');
     if (menu) menu.style.display = 'none';
-    const mobile = document.getElementById('mobile-controls-overlay');
-    if (mobile) mobile.style.display = 'block';
-    const hudL = document.getElementById('top-left-hud');
-    const hudR = document.getElementById('top-right-hud');
-    if (hudL) hudL.style.display = 'block';
-    if (hudR) hudR.style.display = 'block';
-    // Snap camera behind keke so player sees the road immediately
-    try {
-      camera.position.set(0, 5.5, -11);
-      camera.lookAt(0, 1.2, 5);
-      if (cameraRig && cameraRig.currentPos) {
-        cameraRig.currentPos.set(0, 5.5, -11);
-        cameraRig.lookAtPos.set(0, 1.2, 5);
-      }
-    } catch (e) {}
-    showBanner('🚗 Shift started! Drive safe in Kano.');
-    const sel = document.getElementById('route-select');
+    if (mobileEl) mobileEl.style.display = 'block';
+    ['top-left-hud', 'top-right-hud'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'block';
+    });
+    const routeSel = document.getElementById('route-select');
     const routeName = document.getElementById('route-name-display');
-    if (sel && routeName) {
-      const route = KANO_ROUTES.find(r => String(r.id) === String(sel.value)) || KANO_ROUTES[0];
+    if (routeSel && routeName) {
+      const route = KANO_ROUTES.find((r) => String(r.id) === String(routeSel.value)) || KANO_ROUTES[0];
       if (route) routeName.textContent = route.name.split('➔')[0].trim();
     }
+    const earn = document.getElementById('earnings');
+    if (earn) earn.innerText = passengerManager.dailyEarnings;
+
+    showBanner(`${d.name} · ${k.name}`);
+    flow.beginIntro();
+    audioEngine.playOneShot(120, 0.3, 'sawtooth', 0.08);
   };
+
+  document.getElementById('start-game-btn')?.addEventListener('click', () => {
+    if (window.__kanoStartShift) window.__kanoStartShift();
+  });
 
   // Shop
   document.getElementById('buy-neon')?.addEventListener('click', () => {
     if (passengerManager.dailyEarnings >= 3500) {
       passengerManager.dailyEarnings -= 3500;
-      customizer.applyNeon();
-      showBanner('🚨 Neon Underglow installed!');
+      customizer.applyNeon?.() || customizer.installNeon?.();
+      showBanner('🚨 Neon installed');
       document.getElementById('earnings').innerText = passengerManager.dailyEarnings;
-    } else showBanner('Not enough cash for Neon.');
-  });
-  document.getElementById('buy-subwoofer')?.addEventListener('click', () => {
-    if (passengerManager.dailyEarnings >= 5000) {
-      passengerManager.dailyEarnings -= 5000;
-      showBanner('🔊 Subwoofer System installed!');
-      document.getElementById('earnings').innerText = passengerManager.dailyEarnings;
-    } else showBanner('Not enough cash for Subwoofer.');
-  });
-  document.getElementById('buy-bumper')?.addEventListener('click', () => {
-    if (passengerManager.dailyEarnings >= 6500) {
-      passengerManager.dailyEarnings -= 6500;
-      showBanner('🛡️ Reinforced Bumper installed!');
-      document.getElementById('earnings').innerText = passengerManager.dailyEarnings;
-    } else showBanner('Not enough cash for Bumper.');
-  });
-  document.getElementById('close-shop')?.addEventListener('click', () => {
-    document.getElementById('shop-modal').style.display = 'none';
+    }
   });
 
-  // Earnings display
-  const earningsEl = document.getElementById('earnings');
-  if (earningsEl) earningsEl.innerText = passengerManager.dailyEarnings;
-
-  
-
-  clearTimeout(safetyHide);
+  clearTimeout(safety);
   hideLoading();
-  showBanner('Welcome to Kano Run – Drive safe!');
+  showBanner('Select driver & route, then START SHIFT');
 
-  // ============================================================
-  // 5. Game Loop
-  // ============================================================
+  // Hide HUDs until start
+  ['top-left-hud', 'top-right-hud'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+
+  // ---------- Loop ----------
   const clock = new THREE.Clock();
+  let timeAccum = 0;
 
   function animate() {
     requestAnimationFrame(animate);
-    const delta = clock.getDelta();
+    const delta = Math.min(clock.getDelta(), 0.05);
 
-    if (gameStarted) {
-      try {
-      // Keyboard input merge with mobile
-      let throttle = input.throttle || 0;
-      let steer = input.steering || 0;
-      if (keys['KeyW'] || keys['ArrowUp']) throttle = 1;
-      if (keys['KeyS'] || keys['ArrowDown']) throttle = -1;
-      if (keys['KeyA'] || keys['ArrowLeft']) steer = 1;
-      if (keys['KeyD'] || keys['ArrowRight']) steer = -1;
-      if (input.horn) isHornActive = true;
+    if (!gameStarted) {
+      // Menu orbit
+      const t = clock.elapsedTime;
+      camera.position.set(Math.sin(t * 0.12) * 14, 5.5, Math.cos(t * 0.12) * 14);
+      camera.lookAt(0, 1.2, 0);
+      try { composer.render(); } catch (e) { renderer.render(scene, camera); }
+      return;
+    }
 
-      // Always drive – never stuck
-      if (kekeController.maxSpeed < 1) kekeController.maxSpeed = 22;
+    if (paused || flow.state === 'PAUSED') {
+      try { composer.render(); } catch (e) { renderer.render(scene, camera); }
+      return;
+    }
 
-      kekeController.setInput(throttle, steer);
-      kekeController.update(delta);
-      cameraRig.update(delta, kekeController.currentSpeed);
+    try {
+      // Intro / flow
+      flow.update(delta, showBanner);
 
-      // Time advance (1 real second ≈ 30 game seconds for playable day cycle)
-      timeAccum += delta;
-      if (timeAccum > 0.5) {
-        window.timeInMinutes = (window.timeInMinutes + 1) % 1440;
-        timeAccum = 0;
-        const hours = Math.floor(window.timeInMinutes / 60);
-        const mins = Math.floor(window.timeInMinutes % 60);
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        const h12 = hours % 12 || 12;
-        const clockEl = document.getElementById('clock-display');
-        if (clockEl) clockEl.textContent = `${h12}:${mins.toString().padStart(2, '0')} ${ampm}`;
+      const canDrive = flow.isDriving();
+
+      // Input only while driving
+      let throttle = 0;
+      let steer = 0;
+      if (canDrive) {
+        throttle = input.throttle || 0;
+        steer = input.steering || 0;
+        if (keys['KeyW'] || keys['ArrowUp']) throttle = 1;
+        if (keys['KeyS'] || keys['ArrowDown']) throttle = -1;
+        if (keys['KeyA'] || keys['ArrowLeft']) steer = 1;
+        if (keys['KeyD'] || keys['ArrowRight']) steer = -1;
+        if (input.horn) isHornActive = true;
       }
 
+      if (canDrive) {
+        if (kekeController.maxSpeed < 1) kekeController.maxSpeed = 28 * (charSelect.getKeke().speed || 1);
+        kekeController.setInput(throttle, steer);
+        kekeController.update(delta);
+        cameraRig.update(delta, kekeController.currentSpeed);
+      }
+
+      // World systems always tick during/after intro
       roadSystem.update(kekeGroup.position.z);
-      audioEngine.updateEngine?.(kekeController.currentSpeed, kekeController.maxSpeed);
-
       trafficManager.update(delta, isHornActive);
-      policeEngine.update((e) => showBanner(e.msg));
-
-      if (redisSync?.sendPlayerState) {
-        redisSync.sendPlayerState(kekeGroup.position, kekeController.currentSpeed, 1);
-      }
-
-      updateAtmosphereByTime(scene, renderer, window.timeInMinutes, roadSystem);
-      prayerManager.update(window.timeInMinutes, (e) => { if (e.msg) showBanner(e.msg); });
-      weatherManager.update(delta, kekeGroup.position, (msg) => showBanner(msg));
-      landmarkManager.update(kekeGroup.position.z, (msg) => showBanner(msg));
-
-      coinManager.update(delta, passengerManager, (e) => {
-        showBanner(`🪙 Collected Kano Coin (+₦${e.value})!`);
-        if (earningsEl) earningsEl.innerText = passengerManager.dailyEarnings;
-      });
-
-      collisionSystem.checkCollisions((msg) => showBanner(msg));
-      maintenanceEngine.update(delta, kekeController.currentSpeed, (msg) => showBanner(msg));
-      dialogueManager.update(delta, kekeController.currentSpeed, (e) => { if (e.msg) showBanner(e.msg); });
-
-      passengerManager.update(delta, (e) => {
-        if (e.msg) showBanner(e.msg);
-        if (earningsEl) earningsEl.innerText = passengerManager.dailyEarnings;
-      });
-
-      fuelManager.update(delta, (e) => {
-        if (e.type === 'FUEL_UPDATE') {
-          const fuelBar = document.getElementById('fuel-bar');
-          if (fuelBar) fuelBar.style.width = `${e.level}%`;
-        }
-        if (e.type === 'OUT_OF_FUEL') showBanner(e.msg);
-      });
-
-      nightEngine.update(window.timeInMinutes, passengerManager.dailyEarnings, (e) => {
-        if (e.msg) showBanner(e.msg);
-      });
-
-      hotspotManager.update((e) => {
-        if (e.type === 'HOTSPOT_PROMPT') showBanner(e.msg);
-      });
-
-      particleSystem.update(delta, kekeController.currentSpeed, weatherManager.getWeather?.() || weatherManager.currentWeather || 'CLEAR');
       pedestrianManager.update(delta);
+      landmarkManager.update(kekeGroup.position.z, showBanner);
+      weatherManager.update(delta, kekeGroup.position, showBanner);
+      particleSystem.update(delta, kekeController.currentSpeed, weatherManager.currentWeather || 'CLEAR');
+      updateAtmosphereByTime(scene, renderer, window.timeInMinutes, roadSystem);
 
-      const speedDisplay = document.getElementById('speed-display');
-      if (speedDisplay) {
-        // velocity is m/s → km/h
-        speedDisplay.innerText = Math.round(Math.abs(kekeController.velocity) * 3.6);
+      if (canDrive) {
+        passengerManager.update(delta, (ev) => {
+          showBanner(ev);
+          const earn = document.getElementById('earnings');
+          if (earn && ev.earnings != null) earn.innerText = ev.earnings;
+          if (ev.type === 'BOARD') audioEngine.playOneShot(520, 0.12, 'sine', 0.1);
+          if (ev.type === 'DROPOFF') audioEngine.playOneShot(660, 0.15, 'triangle', 0.12);
+        });
+        policeEngine.update((ev) => showBanner(ev));
+        fuelManager.update(delta, (e) => {
+          if (e.type === 'FUEL_UPDATE') {
+            const bar = document.getElementById('fuel-bar');
+            if (bar) bar.style.width = `${e.level}%`;
+          }
+          if (e.type === 'OUT_OF_FUEL') showBanner(e.msg);
+        });
+        prayerManager.update(window.timeInMinutes, (e) => { if (e?.msg) showBanner(e.msg); });
+        audioEngine.updateEngine(kekeController.currentSpeed, kekeController.maxSpeed);
+
+        // Clock
+        timeAccum += delta;
+        if (timeAccum > 0.5) {
+          window.timeInMinutes = (window.timeInMinutes + 1) % 1440;
+          timeAccum = 0;
+          const hours = Math.floor(window.timeInMinutes / 60);
+          const mins = Math.floor(window.timeInMinutes % 60);
+          const ampm = hours >= 12 ? 'PM' : 'AM';
+          const h12 = hours % 12 || 12;
+          const clockEl = document.getElementById('clock-display');
+          if (clockEl) clockEl.textContent = `${h12}:${mins.toString().padStart(2, '0')} ${ampm}`;
+        }
+
+        const speedDisplay = document.getElementById('speed-display');
+        if (speedDisplay) speedDisplay.innerText = Math.round(Math.abs(kekeController.velocity) * 3.6);
       }
     } catch (err) {
-        console.warn('Frame update error', err);
-      }
-    } else {
-      // Menu idle – gentle camera orbit
-      camera.position.set(
-        Math.sin(clock.elapsedTime * 0.15) * 14,
-        6,
-        Math.cos(clock.elapsedTime * 0.15) * 14
-      );
-      camera.lookAt(0, 1, 0);
+      console.warn('frame', err);
     }
 
     try { composer.render(); } catch (e) { renderer.render(scene, camera); }
   }
 
-  _worldReady = true;
   animate();
 }
 
-bootstrap().catch((err) => {
-  console.error('Bootstrap error (continuing with fallbacks)', err);
+bootstrap().catch((e) => {
+  console.error(e);
   hideLoading();
-  // Do NOT alert-block the user – game should still be playable with procedural fallbacks
-  const banner = document.getElementById('banner-text');
-  if (banner) banner.textContent = 'Loaded with fallbacks – some assets missing';
+  showBanner('Loaded with fallbacks');
 });
 
-// Resize
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
