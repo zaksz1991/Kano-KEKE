@@ -19,6 +19,7 @@ export function setupMobileControls(inputState, onHorn) {
     <div id="touch-right" style="position:absolute;bottom:145px;left:105px;width:68px;height:68px;background:rgba(255,255,255,0.22);border:1px solid #fff;border-radius:50%;pointer-events:auto;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:18px;user-select:none;">▶</div>
     <div id="touch-horn" style="position:absolute;bottom:145px;right:30px;width:68px;height:68px;background:rgba(0,200,255,0.35);border:2px solid #00e5ff;border-radius:50%;pointer-events:auto;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:12px;user-select:none;">HORN</div>
   `;
+  touchUI.style.display = 'none'; // shown only after START SHIFT
   document.body.appendChild(touchUI);
 
   const bind = (id, startFn, endFn) => {

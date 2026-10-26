@@ -31,6 +31,60 @@ import { setupPostProcessing } from './KanoPostProcessor.js';
 import { KanoParticleSystem } from './KanoParticleSystem.js';
 import { PedestrianManager } from './PedestrianManager.js';
 
+
+// ============================================================
+// EARLY UI – routes + start button (must work even if assets slow)
+// ============================================================
+(function wireMenuUI() {
+  const routeSelect = document.getElementById('route-select');
+  if (routeSelect && routeSelect.options.length === 0 && Array.isArray(KANO_ROUTES)) {
+    KANO_ROUTES.forEach((r) => {
+      const opt = document.createElement('option');
+      opt.value = r.id;
+      opt.textContent = r.name;
+      routeSelect.appendChild(opt);
+    });
+  }
+
+  // Driver select basic fill if empty
+  const driverSelect = document.getElementById('driver-select');
+  if (driverSelect && driverSelect.options.length === 0) {
+    ['Bello "Maza Bawa"', 'Aisha "Sarki Yar"', 'Musa "Dan Kano"', 'Fatima "Gida"'].forEach((name, i) => {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = name;
+      driverSelect.appendChild(opt);
+    });
+  }
+})();
+
+// Shared game state
+let gameStarted = false;
+window.__kanoStartShift = null; // set after world ready
+
+// Hide HUD until shift starts
+['top-left-hud','top-right-hud'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'none';
+});
+
+
+const startBtnEarly = document.getElementById('start-game-btn');
+if (startBtnEarly) {
+  startBtnEarly.addEventListener('click', () => {
+    if (typeof window.__kanoStartShift === 'function') {
+      window.__kanoStartShift();
+    } else {
+      // World still loading – force start with whatever is ready
+      gameStarted = true;
+      const menu = document.getElementById('main-menu-overlay');
+      if (menu) menu.style.display = 'none';
+      const mobile = document.getElementById('mobile-controls-overlay');
+      if (mobile) mobile.style.display = 'block';
+    }
+  });
+}
+
 // ============================================================
 // 1. Renderer / Scene / Camera
 // ============================================================
@@ -48,7 +102,18 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 setupKanoAtmosphere(scene, renderer);
+
 const composer = setupPostProcessing(renderer, scene, camera);
+
+// Early render loop so screen is never frozen while assets load
+let _worldReady = false;
+(function earlyRenderLoop() {
+  requestAnimationFrame(earlyRenderLoop);
+  if (!_worldReady) {
+    try { composer.render(); } catch (e) {}
+  }
+})();
+
 
 // ============================================================
 // 2. Core state
@@ -164,13 +229,13 @@ async function bootstrap() {
 
   const cameraRig = new KekeCameraRig(camera, kekeGroup);
   const roadSystem = new InfiniteRoadSystem(scene, assetManager);
-  try { await roadSystem.init(); } catch(e) { console.warn('Road init failed', e); }
+  await roadSystem.init().catch(e => console.warn('Road init failed', e));
 
   const landmarkManager = new KanoLandmarkManager(scene, assetManager);
-  try { await landmarkManager.init(); } catch(e) { console.warn('Landmark init failed', e); }
+  landmarkManager.init().catch(e => console.warn('Landmark init failed', e));
 
   const trafficManager = new DynamicTrafficManager(scene, kekeController, assetManager);
-  try { await trafficManager.init(); } catch(e) { console.warn('Traffic init failed', e); }
+  trafficManager.init().catch(e => console.warn('Traffic init failed', e));
 
   const passengerManager = new PassengerManager(scene, kekeController);
   passengerManager.dailyEarnings = savedData.cash ?? 1500;
@@ -192,9 +257,11 @@ async function bootstrap() {
 
   // Mobile controls (now that we have audio for horn)
   setupMobileControls(input, () => audioEngine.playHorn());
+  const mobileEl = document.getElementById('mobile-controls-overlay');
+  if (mobileEl) mobileEl.style.display = 'none'; // hide until START SHIFT
 
   const pedestrianManager = new PedestrianManager(scene, kekeController, assetManager);
-  try { await pedestrianManager.init(); } catch(e) { console.warn('Pedestrian init failed', e); }
+  pedestrianManager.init().catch(e => console.warn('Pedestrian init failed', e));
   const maintenanceEngine = new KekeMaintenanceEngine(kekeController, fuelManager);
   const dialogueManager = new PassengerDialogueManager();
   const hotspotManager = new SpatialHotspotManager(
@@ -204,16 +271,7 @@ async function bootstrap() {
 
   policeEngine.spawnCheckpoint(220);
 
-  // Populate route select
-  const routeSelect = document.getElementById('route-select');
-  if (routeSelect) {
-    KANO_ROUTES.forEach((r) => {
-      const opt = document.createElement('option');
-      opt.value = r.id;
-      opt.textContent = r.name;
-      routeSelect.appendChild(opt);
-    });
-  }
+  // Routes already populated in early UI
 
   // HUD helpers
   function showBanner(msg) {
@@ -256,22 +314,26 @@ async function bootstrap() {
   });
 
   // Start button
-  let gameStarted = false;
-  const startBtn = document.getElementById('start-game-btn');
-  if (startBtn) {
-    startBtn.addEventListener('click', () => {
-      gameStarted = true;
-      const menu = document.getElementById('main-menu-overlay');
-      if (menu) menu.style.display = 'none';
-      showBanner('🚗 Shift started! Drive safe in Kano.');
-      // Set route name
-      const sel = document.getElementById('route-select');
-      const routeName = document.getElementById('route-name-display');
-      if (sel && routeName && KANO_ROUTES[sel.value - 1]) {
-        routeName.textContent = KANO_ROUTES[sel.value - 1].name.split('➔')[0].trim();
-      }
-    });
-  }
+  // Start shift handler – called from early-wired button
+  window.__kanoStartShift = () => {
+    if (gameStarted) return;
+    gameStarted = true;
+    const menu = document.getElementById('main-menu-overlay');
+    if (menu) menu.style.display = 'none';
+    const mobile = document.getElementById('mobile-controls-overlay');
+    if (mobile) mobile.style.display = 'block';
+    const hudL = document.getElementById('top-left-hud');
+    const hudR = document.getElementById('top-right-hud');
+    if (hudL) hudL.style.display = 'block';
+    if (hudR) hudR.style.display = 'block';
+    showBanner('🚗 Shift started! Drive safe in Kano.');
+    const sel = document.getElementById('route-select');
+    const routeName = document.getElementById('route-name-display');
+    if (sel && routeName) {
+      const route = KANO_ROUTES.find(r => String(r.id) === String(sel.value)) || KANO_ROUTES[0];
+      if (route) routeName.textContent = route.name.split('➔')[0].trim();
+    }
+  };
 
   // Shop
   document.getElementById('buy-neon')?.addEventListener('click', () => {
@@ -411,6 +473,7 @@ async function bootstrap() {
     composer.render();
   }
 
+  _worldReady = true;
   animate();
 }
 
