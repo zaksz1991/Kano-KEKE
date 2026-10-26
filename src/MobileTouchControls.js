@@ -1,4 +1,8 @@
-export function setupMobileControls(inputState) {
+/**
+ * Mobile Touch Controls for Kano Run
+ * Throttle / Brake / Steer + Horn button
+ */
+export function setupMobileControls(inputState, onHorn) {
   const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
   if (!isTouchDevice) return;
 
@@ -9,22 +13,28 @@ export function setupMobileControls(inputState) {
     pointer-events: none; z-index: 40;
   `;
   touchUI.innerHTML = `
-    <div id="touch-throttle" style="position: absolute; bottom: 40px; right: 40px; width: 90px; height: 90px; background: rgba(255,204,0,0.4); border: 2px solid #ffcc00; border-radius: 50%; pointer-events: auto; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #000; font-family: monospace; font-size: 14px;">ACCEL</div>
-    <div id="touch-brake" style="position: absolute; bottom: 40px; left: 40px; width: 90px; height: 90px; background: rgba(255,50,50,0.4); border: 2px solid #ff5252; border-radius: 50%; pointer-events: auto; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #fff; font-family: monospace; font-size: 14px;">BRAKE</div>
-    <div id="touch-left" style="position: absolute; bottom: 150px; left: 30px; width: 70px; height: 70px; background: rgba(255,255,255,0.2); border: 1px solid #fff; border-radius: 50%; pointer-events: auto; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: bold;">◀</div>
-    <div id="touch-right" style="position: absolute; bottom: 150px; left: 110px; width: 70px; height: 70px; background: rgba(255,255,255,0.2); border: 1px solid #fff; border-radius: 50%; pointer-events: auto; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: bold;">▶</div>
+    <div id="touch-throttle" style="position:absolute;bottom:40px;right:30px;width:88px;height:88px;background:rgba(255,204,0,0.45);border:2px solid #ffcc00;border-radius:50%;pointer-events:auto;display:flex;align-items:center;justify-content:center;font-weight:bold;color:#000;font-size:13px;user-select:none;">ACCEL</div>
+    <div id="touch-brake" style="position:absolute;bottom:40px;left:30px;width:88px;height:88px;background:rgba(255,50,50,0.45);border:2px solid #ff5252;border-radius:50%;pointer-events:auto;display:flex;align-items:center;justify-content:center;font-weight:bold;color:#fff;font-size:13px;user-select:none;">BRAKE</div>
+    <div id="touch-left" style="position:absolute;bottom:145px;left:25px;width:68px;height:68px;background:rgba(255,255,255,0.22);border:1px solid #fff;border-radius:50%;pointer-events:auto;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:18px;user-select:none;">◀</div>
+    <div id="touch-right" style="position:absolute;bottom:145px;left:105px;width:68px;height:68px;background:rgba(255,255,255,0.22);border:1px solid #fff;border-radius:50%;pointer-events:auto;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:18px;user-select:none;">▶</div>
+    <div id="touch-horn" style="position:absolute;bottom:145px;right:30px;width:68px;height:68px;background:rgba(0,200,255,0.35);border:2px solid #00e5ff;border-radius:50%;pointer-events:auto;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:12px;user-select:none;">HORN</div>
   `;
   document.body.appendChild(touchUI);
 
-  document.getElementById('touch-throttle').addEventListener('touchstart', (e) => { e.preventDefault(); inputState.throttle = 1; });
-  document.getElementById('touch-throttle').addEventListener('touchend', (e) => { e.preventDefault(); inputState.throttle = 0; });
-  
-  document.getElementById('touch-brake').addEventListener('touchstart', (e) => { e.preventDefault(); inputState.throttle = -1; });
-  document.getElementById('touch-brake').addEventListener('touchend', (e) => { e.preventDefault(); inputState.throttle = 0; });
+  const bind = (id, startFn, endFn) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('touchstart', (e) => { e.preventDefault(); startFn(); }, { passive: false });
+    el.addEventListener('touchend', (e) => { e.preventDefault(); endFn(); }, { passive: false });
+    el.addEventListener('touchcancel', (e) => { e.preventDefault(); endFn(); }, { passive: false });
+  };
 
-  document.getElementById('touch-left').addEventListener('touchstart', (e) => { e.preventDefault(); inputState.steering = 1; });
-  document.getElementById('touch-left').addEventListener('touchend', (e) => { e.preventDefault(); inputState.steering = 0; });
-
-  document.getElementById('touch-right').addEventListener('touchstart', (e) => { e.preventDefault(); inputState.steering = -1; });
-  document.getElementById('touch-right').addEventListener('touchend', (e) => { e.preventDefault(); inputState.steering = 0; });
+  bind('touch-throttle', () => { inputState.throttle = 1; }, () => { inputState.throttle = 0; });
+  bind('touch-brake', () => { inputState.throttle = -1; }, () => { inputState.throttle = 0; });
+  bind('touch-left', () => { inputState.steering = 1; }, () => { inputState.steering = 0; });
+  bind('touch-right', () => { inputState.steering = -1; }, () => { inputState.steering = 0; });
+  bind('touch-horn', () => {
+    inputState.horn = true;
+    if (typeof onHorn === 'function') onHorn();
+  }, () => { inputState.horn = false; });
 }

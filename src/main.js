@@ -29,6 +29,7 @@ import { RedisSyncManager } from './backend/RedisSyncManager.js';
 import { KANO_ROUTES } from './KanoRoutesData.js';
 import { setupPostProcessing } from './KanoPostProcessor.js';
 import { KanoParticleSystem } from './KanoParticleSystem.js';
+import { PedestrianManager } from './PedestrianManager.js';
 
 // ============================================================
 // 1. Renderer / Scene / Camera
@@ -65,7 +66,7 @@ try {
 
 const input = { throttle: 0, steering: 0 };
 let isHornActive = false;
-setupMobileControls(input);
+// setupMobileControls moved after audio init
 
 // ============================================================
 // 3. Loading UI helper
@@ -126,7 +127,8 @@ async function bootstrap() {
     { path: '/assets/models/landmarks/palace_gate.glb', options: { scale: 1.3 } },
     { path: '/assets/models/landmarks/dye_pits.glb', options: { scale: 1.1 } },
     { path: '/assets/models/landmarks/city_walls.glb', options: { scale: 1 } },
-    { path: '/assets/models/landmarks/wheels.glb', options: { scale: 1.2 } }
+    { path: '/assets/models/landmarks/wheels.glb', options: { scale: 1.2 } },
+    { path: '/assets/models/pedestrian.glb', options: { scale: 1.0 } }
   ];
 
   await assetManager.preload(critical);
@@ -183,7 +185,14 @@ async function bootstrap() {
   const weatherManager = new KanoWeatherManager(scene, kekeController, passengerManager);
   const policeEngine = new PoliceCheckpointEngine(scene, kekeController, passengerManager);
   const audioEngine = new KanoAudioEngine();
+  audioEngine.setup(camera, kekeGroup);
   audioEngine.enableOnInteraction();
+
+  // Mobile controls (now that we have audio for horn)
+  setupMobileControls(input, () => audioEngine.playHorn());
+
+  const pedestrianManager = new PedestrianManager(scene, kekeController, assetManager);
+  await pedestrianManager.init();
   const maintenanceEngine = new KekeMaintenanceEngine(kekeController, fuelManager);
   const dialogueManager = new PassengerDialogueManager();
   const hotspotManager = new SpatialHotspotManager(
@@ -228,7 +237,7 @@ async function bootstrap() {
   const keys = {};
   window.addEventListener('keydown', (e) => {
     keys[e.code] = true;
-    if (e.code === 'KeyH' || e.code === 'Space') isHornActive = true;
+    if (e.code === 'KeyH' || e.code === 'Space') { isHornActive = true; audioEngine.playHorn(); }
     if (e.code === 'KeyR') {
       const on = radioManager.toggle();
       const el = document.getElementById('radio-display');
@@ -309,6 +318,8 @@ async function bootstrap() {
       if (keys['KeyS'] || keys['ArrowDown']) throttle = -1;
       if (keys['KeyA'] || keys['ArrowLeft']) steer = 1;
       if (keys['KeyD'] || keys['ArrowRight']) steer = -1;
+      // Mobile horn state
+      if (input.horn) isHornActive = true;
 
       kekeController.setInput(throttle, steer);
       kekeController.update(delta);
@@ -373,6 +384,7 @@ async function bootstrap() {
       });
 
       particleSystem.update(delta, kekeController.currentSpeed);
+      pedestrianManager.update(delta);
 
       const speedDisplay = document.getElementById('speed-display');
       if (speedDisplay) {
