@@ -33,6 +33,7 @@ import { FuelStationSystem } from './FuelStationSystem.js';
 import { ProximityRadar } from './ProximityRadar.js';
 import { HighScoreBoard } from './HighScoreBoard.js';
 import { PauseMenu } from './PauseMenu.js';
+import { DriverFatigueSystem } from './DriverFatigueSystem.js';
 
 // CapsuleGeometry polyfill for older three builds
 if (!THREE.CapsuleGeometry) {
@@ -292,6 +293,7 @@ async function bootstrap() {
   seatOccupancy.init().catch(() => {});
   const dashHud = new DashHUD();
   const radar = new ProximityRadar();
+  const fatigue = new DriverFatigueSystem(charSelect.getDriver());
   const roadsideLife = new KanoRoadsideLife(scene);
   try { roadsideLife.init(); } catch (e) { console.warn('roadside', e); }
   const missionManager = new MissionManager();
@@ -633,7 +635,12 @@ async function bootstrap() {
       try { roadsideLife.update(kekeGroup.position.z); } catch (e) {}
       trafficManager.update(delta, isHornActive);
       pedestrianManager.update(delta);
-      landmarkManager.update(kekeGroup.position.z, showBanner);
+      landmarkManager.update(kekeGroup.position.z, (msg) => {
+        showBanner(msg);
+        missionManager.xp = (missionManager.xp || 0) + 15;
+        missionManager.score = (missionManager.score || 0) + 50;
+        showBanner(String(msg) + ' · +15 XP');
+      });
       weatherManager.update(delta, kekeGroup.position, showBanner);
       particleSystem.update(delta, kekeController.currentSpeed, weatherManager.currentWeather || 'CLEAR');
       updateAtmosphereByTime(scene, renderer, window.timeInMinutes, roadSystem);
@@ -683,7 +690,7 @@ async function bootstrap() {
               seatsUsed: passengerManager.onBoard.length,
               seatsMax: passengerManager.capacity,
               lives: missionManager.lives,
-              missionsText: missionManager.getHudText(),
+              missionsText: missionManager.getHudText() + '\nStamina ' + fatigue.getPercent() + '%',
               notice: `+₦${fare}`
             });
             SaveSystem.saveGame({
@@ -739,6 +746,9 @@ async function bootstrap() {
           }
         } catch (err) {}
         audioEngine.updateEngine(kekeController.currentSpeed, kekeController.maxSpeed);
+        fatigue.update(delta, kekeController.currentSpeed, (ev) => showBanner(ev));
+        const fatMul = fatigue.getSpeedMul();
+        if (fatMul < 1) kekeController.velocity *= 0.985 + fatMul * 0.01;
 
         // Clock
         timeAccum += delta;
@@ -777,7 +787,7 @@ async function bootstrap() {
           seatsMax: passengerManager.capacity,
           lives: missionManager.lives,
           route: document.getElementById('route-name-display')?.textContent || 'Kano',
-          missionsText: missionManager.getHudText()
+          missionsText: missionManager.getHudText() + '\nStamina ' + fatigue.getPercent() + '%'
         });
       }
     } catch (err) {
