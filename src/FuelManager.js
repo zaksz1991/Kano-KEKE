@@ -14,7 +14,7 @@ export class FuelManager {
 
     const speedRatio = Math.abs(this.keke.currentSpeed) / Math.max(1, this.keke.maxSpeed);
     // Slow drain – full tank lasts several minutes of driving
-    this.fuel -= (0.15 + speedRatio * 0.35) * delta;
+    this.fuel -= (0.04 + speedRatio * 0.12) * delta;  // slower drain for playable shifts
     this.fuel = Math.max(0, this.fuel);
 
     if (this.fuel <= 0 && !this.isOut) {

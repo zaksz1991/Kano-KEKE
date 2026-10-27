@@ -37,15 +37,20 @@ export class InfiniteRoadSystem {
       });
       if (!model) return;
       this.roadTileModel = model;
-      // Decorate nearest chunks with a detail strip (LOD)
-      this.chunks.slice(0, 4).forEach((chunk, i) => {
-        try {
-          const tile = model.clone(true);
-          tile.position.set(0, 0.01, 0);
-          tile.scale.set(1, 1, this.chunkLength / 20);
-          chunk.add(tile);
-        } catch (e) {}
-      });
+      this.chunks.forEach((chunk) => this._applyRoadTile(chunk));
+    } catch (e) {}
+  }
+
+  _applyRoadTile(chunk) {
+    if (!this.roadTileModel || !chunk) return;
+    if (chunk.userData.hasRoadTile) return;
+    try {
+      const tile = this.roadTileModel.clone(true);
+      tile.position.set(0, 0.02, this.chunkLength * 0.5);
+      // Fit roughly along chunk
+      tile.scale.set(1.2, 1, this.chunkLength / 18);
+      chunk.add(tile);
+      chunk.userData.hasRoadTile = true;
     } catch (e) {}
   }
 
@@ -412,6 +417,8 @@ export class InfiniteRoadSystem {
       if (chunk.position.z + this.chunkLength < playerZ - this.chunkLength * 1.8) {
         const maxZ = Math.max(...this.chunks.map((c) => c.position.z));
         chunk.position.z = maxZ + this.chunkLength;
+        chunk.userData.hasRoadTile = false;
+        this._applyRoadTile(chunk);
       }
     });
   }

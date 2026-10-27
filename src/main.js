@@ -762,6 +762,12 @@ window.__kanoCash = 1500;
           { x: kekeGroup.position.x, z: kekeGroup.position.z, rotY: kekeGroup.rotation.y },
           radarTargets
         );
+        const fuelBar = document.getElementById('fuel-bar');
+        if (fuelBar) {
+          const lvl = Math.max(0, Math.min(100, fuelManager.fuel ?? 100));
+          fuelBar.style.width = lvl + '%';
+          fuelBar.style.background = lvl < 20 ? '#f44336' : lvl < 45 ? '#ff9800' : '#4CAF50';
+        }
         dashHud.update({
               speed: Math.abs(kekeController.velocity) * 3.6,
               cash: passengerManager.dailyEarnings,
@@ -871,6 +877,12 @@ window.__kanoCash = 1500;
           { x: kekeGroup.position.x, z: kekeGroup.position.z, rotY: kekeGroup.rotation.y },
           radarTargets
         );
+        const fuelBar = document.getElementById('fuel-bar');
+        if (fuelBar) {
+          const lvl = Math.max(0, Math.min(100, fuelManager.fuel ?? 100));
+          fuelBar.style.width = lvl + '%';
+          fuelBar.style.background = lvl < 20 ? '#f44336' : lvl < 45 ? '#ff9800' : '#4CAF50';
+        }
         dashHud.update({
           speed: Math.abs(kekeController.velocity) * 3.6,
           cash: passengerManager.dailyEarnings,
