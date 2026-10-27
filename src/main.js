@@ -599,13 +599,13 @@ async function bootstrap() {
     try {
       flow.state = 'DRIVING';
       flow.engineStarted = true;
-      camera.position.set(0, 2.2, -3.6);
-      camera.lookAt(0, 1.0, 4);
-      if (cameraRig?.currentPos) {
-        cameraRig.currentPos.set(0, 2.2, -3.6);
-        cameraRig.lookAtPos.set(0, 1.0, 4);
+      try {
+        cameraRig.setMode('near');
+        cameraRig._snapToTarget?.();
+      } catch (e) {
+        camera.position.set(0, 2.0, -3.0);
+        camera.lookAt(0, 1.0, 3.5);
       }
-      try { cameraRig.setMode?.('near'); } catch (e) {}
     } catch (e) {}
     showBanner('🚗 Drive! Hold ACCEL');
     try { audioEngine.playOneShot(120, 0.3, 'sawtooth', 0.08); } catch (e) {}
@@ -698,6 +698,13 @@ window.__kanoCash = 1500;
         kekeController.setInput(throttle, steer);
         kekeController.update(delta);
         cameraRig.update(delta, kekeController.currentSpeed);
+        // Backup: if camera somehow drifted far, snap close while moving
+        if (kekeController.currentSpeed > 1) {
+          const dist = camera.position.distanceTo(kekeGroup.position);
+          if (dist > 8) {
+            try { cameraRig._snapToTarget?.(); } catch (e) {}
+          }
+        }
       }
 
       // World systems always tick during/after intro
