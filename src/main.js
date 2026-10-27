@@ -37,6 +37,7 @@ import { DriverFatigueSystem } from './DriverFatigueSystem.js';
 import { AchievementSystem } from './AchievementSystem.js';
 import { FirstShiftTutorial } from './FirstShiftTutorial.js';
 import { StreetEventSystem } from './StreetEventSystem.js';
+import { KekeSignalLights } from './KekeSignalLights.js';
 
 // CapsuleGeometry polyfill for older three builds
 if (!THREE.CapsuleGeometry) {
@@ -268,6 +269,7 @@ async function bootstrap() {
 
   // Systems
   const kekeController = new KekePhysicsController(kekeGroup);
+  const signalLights = new KekeSignalLights(kekeGroup);
   if (kekeModel) kekeController.bindWheels(kekeModel);
   // Apply driver/keke bonuses
   const driver = charSelect.getDriver();
