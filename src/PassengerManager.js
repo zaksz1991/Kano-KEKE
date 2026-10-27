@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { makePerson } from './LowPolyLibrary.js';
 
 /**
  * Full passenger life-sim system:
@@ -61,38 +62,20 @@ export class PassengerManager {
   }
 
   _makePerson(isWaiting = true) {
-    let mesh;
     if (this.pedModel) {
-      mesh = this.pedModel.clone(true);
+      const mesh = this.pedModel.clone(true);
       mesh.scale.setScalar(0.9 + Math.random() * 0.2);
-    } else {
-      const g = new THREE.Group();
-      const colors = [0x1565c0, 0xc62828, 0x2e7d32, 0x6a1b9a, 0xef6c00, 0x00838f, 0x5d4037];
-      const body = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.22, 0.85, 4, 8),
-        new THREE.MeshStandardMaterial({ color: colors[Math.floor(Math.random() * colors.length)], roughness: 0.75 })
-      );
-      body.position.y = 1.0;
-      body.castShadow = true;
-      g.add(body);
-      const head = new THREE.Mesh(
-        new THREE.SphereGeometry(0.18, 8, 6),
-        new THREE.MeshStandardMaterial({ color: 0xd7ccc8, roughness: 0.65 })
-      );
-      head.position.y = 1.65;
-      g.add(head);
-      // Flagging arm for waiters
-      if (isWaiting) {
-        const arm = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.05, 0.05, 0.55, 5),
-          new THREE.MeshStandardMaterial({ color: 0xd7ccc8 })
-        );
-        arm.position.set(0.35, 1.35, 0);
-        arm.rotation.z = -0.9;
-        arm.name = 'flagArm';
-        g.add(arm);
-      }
-      mesh = g;
+      return mesh;
+    }
+    const mesh = makePerson();
+    if (isWaiting) {
+      // Raise arm for flagging
+      mesh.traverse((n) => {
+        if (n.isMesh && n.position.x > 0.2) {
+          n.rotation.z = -0.9;
+          n.name = 'flagArm';
+        }
+      });
     }
     return mesh;
   }

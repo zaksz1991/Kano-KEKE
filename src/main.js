@@ -65,7 +65,11 @@ const composer = isMobile
   : setupPostProcessing(renderer, scene, camera);
 if (isMobile) {
   renderer.shadowMap.enabled = false;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+  renderer.setPixelRatio(1);
+  renderer.setSize(window.innerWidth, window.innerHeight, false);
+  // shorter draw distance
+  camera.far = 220;
+  camera.updateProjectionMatrix();
 }
 
 // ---------- Shared state ----------
@@ -339,7 +343,9 @@ async function bootstrap() {
   const pedestrianManager = new PedestrianManager(scene, kekeController, assetManager);
   pedestrianManager.init().catch(() => {});
   let particleSystem = { update() {} };
-  try { particleSystem = new KanoParticleSystem(scene, kekeGroup); } catch (e) { console.warn('particles', e); }
+  if (!isMobile) {
+    try { particleSystem = new KanoParticleSystem(scene, kekeGroup); } catch (e) { console.warn('particles', e); }
+  }
   let weatherManager = { update() {}, currentWeather: 'CLEAR' };
   try { weatherManager = new KanoWeatherManager(scene, kekeController, passengerManager); } catch (e) { console.warn('weather', e); }
   const customizer = new KekeCustomizer(scene, kekeGroup);
@@ -564,12 +570,13 @@ async function bootstrap() {
     try {
       flow.state = 'DRIVING';
       flow.engineStarted = true;
-      camera.position.set(0, 3.8, -7.5);
-      camera.lookAt(0, 1.2, 5);
+      camera.position.set(0, 2.6, -4.8);
+      camera.lookAt(0, 1.1, 5);
       if (cameraRig?.currentPos) {
-        cameraRig.currentPos.set(0, 3.8, -7.5);
-        cameraRig.lookAtPos.set(0, 1.2, 5);
+        cameraRig.currentPos.set(0, 2.6, -4.8);
+        cameraRig.lookAtPos.set(0, 1.1, 5);
       }
+      try { cameraRig.setMode?.('near'); } catch (e) {}
     } catch (e) {}
     showBanner('🚗 Drive! Hold ACCEL');
     try { audioEngine.playOneShot(120, 0.3, 'sawtooth', 0.08); } catch (e) {}
