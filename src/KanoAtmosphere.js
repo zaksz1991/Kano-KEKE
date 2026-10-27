@@ -95,3 +95,14 @@ export function updateAtmosphereByTime(scene, renderer, timeInMinutes, roadSyste
     }
   });
 }
+
+
+export function setPrayerAmbient(scene, active) {
+  scene.traverse((o) => {
+    if (o.name === 'nightMarketLight' && o.isLight) {
+      // During prayer, slightly warmer/dimmer street mood
+      if (active) o.color.setHex(0xffcc80);
+      else o.color.setHex(0xffa726);
+    }
+  });
+}

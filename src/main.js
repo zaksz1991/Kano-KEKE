@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { AssetManager } from './AssetManager.js';
-import { setupKanoAtmosphere, updateAtmosphereByTime } from './KanoAtmosphere.js';
+import { setupKanoAtmosphere, updateAtmosphereByTime, setPrayerAmbient } from './KanoAtmosphere.js';
 import { setupPostProcessing } from './KanoPostProcessor.js';
 import { KekePhysicsController } from './KekePhysicsController.js';
 import { KekeCameraRig } from './KekeCameraRig.js';
@@ -588,7 +588,21 @@ async function bootstrap() {
           }
           if (e.type === 'OUT_OF_FUEL') showBanner(e.msg);
         });
-        prayerManager.update(window.timeInMinutes, (e) => { if (e?.msg) showBanner(e.msg); });
+        prayerManager.update(window.timeInMinutes, (e) => {
+          if (e?.msg) {
+            showBanner(e.msg);
+            try { voiceBank.speak('karota'); } catch (err) {}
+            try { setPrayerAmbient(scene, true); } catch (err) {}
+            try { audioEngine.playOneShot(220, 0.4, 'sine', 0.06); } catch (err) {}
+          }
+        });
+        // Soft speed during prayer
+        try {
+          const mul = prayerManager.getSpeedMultiplier?.() || 1;
+          if (mul < 1 && kekeController.maxSpeed > 10) {
+            kekeController.velocity *= 0.992;
+          }
+        } catch (err) {}
         audioEngine.updateEngine(kekeController.currentSpeed, kekeController.maxSpeed);
 
         // Clock

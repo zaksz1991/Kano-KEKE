@@ -41,6 +41,7 @@ export class DashHUD {
       </div>
       <div id="dash-missions" style="margin-top:8px;font-size:11px;color:#ffe082;white-space:pre-line;opacity:0.95;"></div>
       <div id="dash-notice" style="margin-top:4px;font-size:12px;color:#80cbc4;min-height:16px;"></div>
+      <div id="dash-fare-pop" style="position:absolute;right:16px;top:70px;font-size:22px;font-weight:900;color:#4caf50;opacity:0;transition:opacity 0.3s, transform 0.3s;transform:translateY(8px);">+₦0</div>
     `;
     document.body.appendChild(el);
     this.root = el;
@@ -88,6 +89,19 @@ export class DashHUD {
         this._noticeT = setTimeout(() => {
           if (n) n.textContent = '';
         }, 3200);
+      }
+      if (String(notice).startsWith('+₦')) {
+        const pop = document.getElementById('dash-fare-pop');
+        if (pop) {
+          pop.textContent = notice;
+          pop.style.opacity = '1';
+          pop.style.transform = 'translateY(0)';
+          clearTimeout(this._fareT);
+          this._fareT = setTimeout(() => {
+            pop.style.opacity = '0';
+            pop.style.transform = 'translateY(8px)';
+          }, 1500);
+        }
       }
     }
   }
