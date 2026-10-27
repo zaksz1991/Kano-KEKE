@@ -28,6 +28,7 @@ import { HausaVoiceBank } from './HausaVoiceBank.js';
 import { MissionBoardUI } from './MissionBoardUI.js';
 import { KekeSeatOccupancy } from './KekeSeatOccupancy.js';
 import { DashHUD } from './DashHUD.js';
+import { KanoRoadsideLife } from './KanoRoadsideLife.js';
 
 // CapsuleGeometry polyfill for older three builds
 if (!THREE.CapsuleGeometry) {
@@ -249,6 +250,8 @@ async function bootstrap() {
   const seatOccupancy = new KekeSeatOccupancy(kekeGroup, assetManager);
   seatOccupancy.init().catch(() => {});
   const dashHud = new DashHUD();
+  const roadsideLife = new KanoRoadsideLife(scene);
+  try { roadsideLife.init(); } catch (e) { console.warn('roadside', e); }
   const missionManager = new MissionManager();
   missionManager.loadProgress(saved);
   const missionBoard = new MissionBoardUI(missionManager, charSelect);
@@ -519,6 +522,7 @@ async function bootstrap() {
 
       // World systems always tick during/after intro
       roadSystem.update(kekeGroup.position.z);
+      try { roadsideLife.update(kekeGroup.position.z); } catch (e) {}
       trafficManager.update(delta, isHornActive);
       pedestrianManager.update(delta);
       landmarkManager.update(kekeGroup.position.z, showBanner);
