@@ -59,7 +59,14 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.toneMappingExposure = 1.65;
 setupKanoAtmosphere(scene, renderer);
-const composer = setupPostProcessing(renderer, scene, camera);
+const isMobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) || window.innerWidth < 900;
+const composer = isMobile
+  ? { render: () => renderer.render(scene, camera), setSize: (w,h) => renderer.setSize(w,h) }
+  : setupPostProcessing(renderer, scene, camera);
+if (isMobile) {
+  renderer.shadowMap.enabled = false;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+}
 
 // ---------- Shared state ----------
 const assetManager = new AssetManager();
@@ -553,8 +560,19 @@ async function bootstrap() {
     // hide old mission floating hud overlap
     const oldM = document.getElementById('mission-hud');
     if (oldM) oldM.style.display = 'none';
-    flow.beginIntro();
-    audioEngine.playOneShot(120, 0.3, 'sawtooth', 0.08);
+    // Skip fragile intro on mobile – go straight to driving
+    try {
+      flow.state = 'DRIVING';
+      flow.engineStarted = true;
+      camera.position.set(0, 3.8, -7.5);
+      camera.lookAt(0, 1.2, 5);
+      if (cameraRig?.currentPos) {
+        cameraRig.currentPos.set(0, 3.8, -7.5);
+        cameraRig.lookAtPos.set(0, 1.2, 5);
+      }
+    } catch (e) {}
+    showBanner('🚗 Drive! Hold ACCEL');
+    try { audioEngine.playOneShot(120, 0.3, 'sawtooth', 0.08); } catch (e) {}
   };
 
   document.getElementById('start-game-btn')?.addEventListener('click', () => {
@@ -619,20 +637,13 @@ async function bootstrap() {
         }
       }
 
-      // Force drive if intro stuck > 6s after start
-      if (gameStarted && flow.state !== 'DRIVING' && flow.state !== 'PAUSED' && flow.state !== 'MENU') {
-        if (!flow._stuckT) flow._stuckT = 0;
-        flow._stuckT += delta;
-        if (flow._stuckT > 3.5) {
-          flow.state = 'DRIVING';
-          flow.engineStarted = true;
-        }
-      } else if (flow.isDriving()) {
-        flow._stuckT = 0;
+      // ALWAYS accept drive input once shift started (not paused)
+      const canDrive = gameStarted && !paused && flow.state !== 'PAUSED';
+      if (canDrive && flow.state !== 'DRIVING') {
+        flow.state = 'DRIVING';
+        flow.engineStarted = true;
       }
-      const canDrive = flow.isDriving() || flow.state === 'ENGINE_START';
 
-      // Input only while driving
       let throttle = 0;
       let steer = 0;
       if (canDrive) {
@@ -643,10 +654,8 @@ async function bootstrap() {
         if (keys['KeyA'] || keys['ArrowLeft']) steer = 1;
         if (keys['KeyD'] || keys['ArrowRight']) steer = -1;
         if (input.horn) isHornActive = true;
-      }
 
-      if (canDrive) {
-        if (kekeController.maxSpeed < 1) kekeController.maxSpeed = 28 * (charSelect.getKeke().speed || 1);
+        if (kekeController.maxSpeed < 5) kekeController.maxSpeed = 26;
         kekeController.setInput(throttle, steer);
         kekeController.update(delta);
         cameraRig.update(delta, kekeController.currentSpeed);

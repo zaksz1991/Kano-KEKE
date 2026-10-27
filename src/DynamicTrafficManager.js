@@ -6,7 +6,7 @@ export class DynamicTrafficManager {
     this.player = kekeController;
     this.assets = assetManager;
     this.vehicles = [];
-    this.maxVehicles = 14;
+    this.maxVehicles = 8;
     this.carModel = null;
     this.okadaModel = null;
     this.ready = false;

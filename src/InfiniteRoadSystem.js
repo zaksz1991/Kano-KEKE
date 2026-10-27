@@ -8,7 +8,7 @@ export class InfiniteRoadSystem {
     this.scene = scene;
     this.assets = assetManager;
     this.chunkLength = 56;
-    this.visibleChunks = 12;
+    this.visibleChunks = 7;
     this.chunks = [];
     this.roadTexture = null;
 
