@@ -8,7 +8,7 @@ export class KanoRoadsideLife {
   constructor(scene) {
     this.scene = scene;
     this.props = [];
-    this.maxProps = 12;
+    this.maxProps = 8;
     this._spawnedUntil = 0;
     this.rng = (seed) => {
       let s = (Math.abs(seed | 0) % 2147483646) + 1;

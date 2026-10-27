@@ -359,10 +359,8 @@ async function bootstrap() {
 
   const pedestrianManager = new PedestrianManager(scene, kekeController, assetManager);
   pedestrianManager.init().catch(() => {});
-  let particleSystem = { update() {} };
-  if (!isMobile) {
-    try { particleSystem = new KanoParticleSystem(scene, kekeGroup); } catch (e) { console.warn('particles', e); }
-  }
+  // Dust/exhaust particles OFF – caused grey blob under keke and cost FPS
+  const particleSystem = { update() {} };
   let weatherManager = { update() {}, currentWeather: 'CLEAR' };
   try { weatherManager = new KanoWeatherManager(scene, kekeController, passengerManager); } catch (e) { console.warn('weather', e); }
   const customizer = new KekeCustomizer(scene, kekeGroup);
