@@ -30,6 +30,7 @@ import { KekeSeatOccupancy } from './KekeSeatOccupancy.js';
 import { DashHUD } from './DashHUD.js';
 import { KanoRoadsideLife } from './KanoRoadsideLife.js';
 import { FuelStationSystem } from './FuelStationSystem.js';
+import { ProximityRadar } from './ProximityRadar.js';
 
 // CapsuleGeometry polyfill for older three builds
 if (!THREE.CapsuleGeometry) {
@@ -93,6 +94,23 @@ document.getElementById('start-game-btn')?.addEventListener('click', (e) => {
       menuBtns.insertBefore(b, menuBtns.firstChild?.nextSibling || null);
     }
   })();
+
+
+(function addControlsLegend() {
+  if (document.getElementById('controls-legend')) return;
+  const menu = document.getElementById('main-menu-overlay');
+  if (!menu) return;
+  const el = document.createElement('div');
+  el.id = 'controls-legend';
+  el.style.cssText = 'margin:8px 16px 0;padding:10px 12px;background:rgba(0,0,0,0.65);border:1px solid rgba(255,204,0,0.3);border-radius:10px;color:#ccc;font:11px/1.5 system-ui;max-width:320px;';
+  el.innerHTML = `<div style="color:#ffcc00;font-weight:800;margin-bottom:4px;">CONTROLS</div>
+    ACCEL / BRAKE · Steer ◀ ▶ · HORN<br/>
+    Hold ACCEL to skip intro · Slow near people to pick up<br/>
+    <span style="color:#80deea;">R</span> Radio · <span style="color:#80deea;">C</span> Garage · <span style="color:#80deea;">N</span> End shift · <span style="color:#80deea;">P</span> Pause`;
+  const btns = menu.querySelector('.menu-buttons');
+  if (btns) menu.insertBefore(el, btns);
+  else menu.appendChild(el);
+})();
 
 (function wireMenu() {
   const routeSelect = document.getElementById('route-select');
@@ -271,6 +289,7 @@ async function bootstrap() {
   const seatOccupancy = new KekeSeatOccupancy(kekeGroup, assetManager);
   seatOccupancy.init().catch(() => {});
   const dashHud = new DashHUD();
+  const radar = new ProximityRadar();
   const roadsideLife = new KanoRoadsideLife(scene);
   try { roadsideLife.init(); } catch (e) { console.warn('roadside', e); }
   const missionManager = new MissionManager();
@@ -448,6 +467,7 @@ async function bootstrap() {
     _updateMissionHud(missionManager);
     try { missionBoard.hide(); } catch (e) {}
     dashHud.show();
+    radar.show();
     // hide old mission floating hud overlap
     const oldM = document.getElementById('mission-hud');
     if (oldM) oldM.style.display = 'none';
@@ -580,7 +600,21 @@ async function bootstrap() {
             const fare = fareMatch ? parseInt(fareMatch[1], 10) : 200;
             missionManager.onDropoff(fare);
             _updateMissionHud(missionManager);
-            dashHud.update({
+            // Proximity radar targets
+        const radarTargets = [];
+        try {
+          passengerManager.waiting?.forEach((p) => {
+            if (p.mesh) radarTargets.push({ x: p.mesh.position.x, z: p.mesh.position.z, type: 'passenger' });
+          });
+          fuelStations.stations?.forEach((s) => {
+            radarTargets.push({ x: s.mesh.position.x, z: s.z, type: 'fuel' });
+          });
+        } catch (e) {}
+        radar.update(
+          { x: kekeGroup.position.x, z: kekeGroup.position.z, rotY: kekeGroup.rotation.y },
+          radarTargets
+        );
+        dashHud.update({
               speed: Math.abs(kekeController.velocity) * 3.6,
               cash: passengerManager.dailyEarnings,
               fuel: fuelManager.fuel ?? 100,
@@ -659,6 +693,20 @@ async function bootstrap() {
 
         const speedDisplay = document.getElementById('speed-display');
         if (speedDisplay) speedDisplay.innerText = Math.round(Math.abs(kekeController.velocity) * 3.6);
+        // Proximity radar targets
+        const radarTargets = [];
+        try {
+          passengerManager.waiting?.forEach((p) => {
+            if (p.mesh) radarTargets.push({ x: p.mesh.position.x, z: p.mesh.position.z, type: 'passenger' });
+          });
+          fuelStations.stations?.forEach((s) => {
+            radarTargets.push({ x: s.mesh.position.x, z: s.z, type: 'fuel' });
+          });
+        } catch (e) {}
+        radar.update(
+          { x: kekeGroup.position.x, z: kekeGroup.position.z, rotY: kekeGroup.rotation.y },
+          radarTargets
+        );
         dashHud.update({
           speed: Math.abs(kekeController.velocity) * 3.6,
           cash: passengerManager.dailyEarnings,

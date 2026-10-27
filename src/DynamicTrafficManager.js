@@ -164,8 +164,8 @@ export class DynamicTrafficManager {
     const dt = Math.min(delta, 0.05);
     this.vehicles.forEach((v) => {
       v.mesh.position.z += v.speed * dt;
-      if (horn && Math.abs(v.mesh.position.z - playerZ) < 22) {
-        v.mesh.position.x = THREE.MathUtils.lerp(v.mesh.position.x, v.laneX * 1.55, 0.06);
+      if (horn && Math.abs(v.mesh.position.z - playerZ) < 35) {
+        v.mesh.position.x = THREE.MathUtils.lerp(v.mesh.position.x, v.laneX * 1.85, 0.1);
       } else {
         v.mesh.position.x = THREE.MathUtils.lerp(v.mesh.position.x, v.laneX, 0.03);
       }
