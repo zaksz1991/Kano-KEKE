@@ -38,6 +38,7 @@ import { AchievementSystem } from './AchievementSystem.js';
 import { FirstShiftTutorial } from './FirstShiftTutorial.js';
 import { StreetEventSystem } from './StreetEventSystem.js';
 import { KekeSignalLights } from './KekeSignalLights.js';
+import { KekeHeadlights } from './KekeHeadlights.js';
 
 // CapsuleGeometry polyfill for older three builds
 if (!THREE.CapsuleGeometry) {
@@ -270,6 +271,7 @@ async function bootstrap() {
   // Systems
   const kekeController = new KekePhysicsController(kekeGroup);
   const signalLights = new KekeSignalLights(kekeGroup);
+  const headlights = new KekeHeadlights(kekeGroup);
   if (kekeModel) kekeController.bindWheels(kekeModel);
   // Apply driver/keke bonuses
   const driver = charSelect.getDriver();
@@ -454,6 +456,11 @@ async function bootstrap() {
     if (e.code === 'KeyV') {
       const mode = cameraRig.cycleMode?.() || 'chase';
       showBanner(`📷 Camera: ${mode.toUpperCase()}`);
+    }
+    if (e.code === 'KeyL') {
+      const m = headlights.toggle();
+      const label = m === null ? 'AUTO' : m ? 'ON' : 'OFF';
+      showBanner(`💡 Headlights: ${label}`);
     }
     if (e.code === 'KeyE') {
       passengerManager.acceptDeal((ev) => showBanner(ev));
