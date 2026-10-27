@@ -3,16 +3,18 @@ export class SaveSystem {
 
   static saveGame(data) {
     try {
+      const prev = this.loadGame();
       localStorage.setItem(this.KEY, JSON.stringify({
-        cash: data.cash ?? 1500,
-        savings: data.savings ?? 0,
-        currentLevel: data.currentLevel ?? 1,
-        xp: data.xp ?? 0,
-        highScore: data.highScore ?? 0,
-        unlockedDrivers: data.unlockedDrivers ?? ['ruffneck', 'bello'],
-        unlockedKekes: data.unlockedKekes ?? ['standard_yellow'],
-        totalDrops: data.totalDrops ?? 0,
-        totalEarned: data.totalEarned ?? 0,
+        cash: data.cash ?? prev.cash ?? 1500,
+        savings: data.savings ?? prev.savings ?? 0,
+        currentLevel: data.currentLevel ?? prev.currentLevel ?? 1,
+        xp: data.xp ?? prev.xp ?? 0,
+        highScore: data.highScore ?? prev.highScore ?? 0,
+        unlockedDrivers: data.unlockedDrivers ?? prev.unlockedDrivers ?? ['ruffneck', 'bello'],
+        unlockedKekes: data.unlockedKekes ?? prev.unlockedKekes ?? ['standard_yellow'],
+        totalDrops: data.totalDrops ?? prev.totalDrops ?? 0,
+        totalEarned: data.totalEarned ?? prev.totalEarned ?? 0,
+        lastDailyClaim: data.lastDailyClaim ?? prev.lastDailyClaim ?? null,
         updatedAt: Date.now()
       }));
     } catch (e) {
@@ -34,7 +36,8 @@ export class SaveSystem {
       unlockedDrivers: ['ruffneck', 'bello'],
       unlockedKekes: ['standard_yellow'],
       totalDrops: 0,
-      totalEarned: 0
+      totalEarned: 0,
+      lastDailyClaim: null
     };
   }
 }

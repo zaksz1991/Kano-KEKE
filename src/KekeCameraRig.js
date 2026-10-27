@@ -5,8 +5,8 @@ export class KekeCameraRig {
     this.camera = camera;
     this.target = targetGroup;
     // Close chase – keke fills the frame
-    this.idealOffset = new THREE.Vector3(0, 2.6, -4.8);
-    this.lookAtOffset = new THREE.Vector3(0, 1.1, 5);
+    this.idealOffset = new THREE.Vector3(0, 2.2, -3.6);
+    this.lookAtOffset = new THREE.Vector3(0, 1.0, 4);
     this.currentPos = new THREE.Vector3();
     this.velocity = new THREE.Vector3();
     this.lookAtPos = new THREE.Vector3();
@@ -17,8 +17,8 @@ export class KekeCameraRig {
     this.maxFov = 76;
     this.mode = 'near';
     this.modes = {
-      chase: { offset: new THREE.Vector3(0, 3.2, -6.2), look: new THREE.Vector3(0, 1.2, 7), fov: 60 },
-      near: { offset: new THREE.Vector3(0, 2.6, -4.8), look: new THREE.Vector3(0, 1.1, 5), fov: 64 },
+      chase: { offset: new THREE.Vector3(0, 2.8, -5.0), look: new THREE.Vector3(0, 1.1, 6), fov: 62 },
+      near: { offset: new THREE.Vector3(0, 2.2, -3.6), look: new THREE.Vector3(0, 1.0, 4), fov: 66 },
       hood: { offset: new THREE.Vector3(0, 1.7, -0.2), look: new THREE.Vector3(0, 1.3, 9), fov: 74 }
     };
     this.currentPos.copy(this.target.position).add(

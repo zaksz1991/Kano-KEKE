@@ -85,6 +85,9 @@ window.timeInMinutes = 7 * 60;
 
 // ---------- Early start (works even if bootstrap still loading) ----------
 window.__kanoStartQueued = false;
+window.__kanoClaimDaily = null;
+window.__kanoCash = 1500;
+
 window.__kanoStartShift = null;
 document.getElementById('start-game-btn')?.addEventListener('click', (e) => {
   e.preventDefault();
@@ -101,15 +104,29 @@ document.getElementById('start-game-btn')?.addEventListener('click', (e) => {
 
 // ---------- Early menu UI ----------
 
-  // Daily reward button
+  // Daily reward button – works as soon as handler is ready
   (function() {
     const menuBtns = document.querySelector('.menu-buttons');
     if (menuBtns && !document.getElementById('daily-claim-btn')) {
       const b = document.createElement('button');
       b.id = 'daily-claim-btn';
       b.className = 'btn-menu';
-      b.style.cssText = 'background:linear-gradient(135deg,#00bcd4,#006064);color:#fff;margin-top:6px;font-size:13px;';
+      b.style.cssText = 'background:linear-gradient(135deg,#00bcd4,#006064);color:#fff;margin-top:6px;font-size:13px;width:100%;padding:14px;border:none;border-radius:50px;font-weight:900;cursor:pointer;';
       b.textContent = 'DAILY REWARD';
+      const handler = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof window.__kanoClaimDaily === 'function') window.__kanoClaimDaily();
+        else {
+          // Bootstrap not ready – grant temp and queue
+          window.__kanoCash = (window.__kanoCash || 1500) + 1200;
+          b.textContent = 'CLAIMED +₦1200';
+          showBanner('🎁 Daily +₦1200 (syncing...)');
+          window.__kanoDailyPending = 1200;
+        }
+      };
+      b.addEventListener('click', handler);
+      b.addEventListener('touchend', handler, { passive: false });
       menuBtns.insertBefore(b, menuBtns.firstChild?.nextSibling || null);
     }
   })();
@@ -405,13 +422,35 @@ async function bootstrap() {
 
   setupMobileControls(input, () => audioEngine.playHorn());
 
-  const claimDaily = () => {
+  // Apply pending early claim
+  if (window.__kanoDailyPending) {
+    passengerManager.dailyEarnings += window.__kanoDailyPending;
+    window.__kanoDailyPending = 0;
+  }
+  passengerManager.dailyEarnings = Math.max(passengerManager.dailyEarnings, window.__kanoCash || 0);
+
+  window.__kanoClaimDaily = () => {
     try {
       const r = settlementManager.claimDaily();
+      const btn = document.getElementById('daily-claim-btn');
       if (r && r.ok) {
         showBanner(`🎁 Daily reward +₦${r.amount}!`);
+        window.__kanoCash = passengerManager.dailyEarnings;
         const earn = document.getElementById('earnings');
         if (earn) earn.innerText = passengerManager.dailyEarnings;
+        if (btn) {
+          btn.textContent = `CLAIMED +₦${r.amount}`;
+          btn.style.background = '#2e7d32';
+        }
+        // Menu cash chip
+        let chip = document.getElementById('menu-cash-chip');
+        if (!chip) {
+          chip = document.createElement('div');
+          chip.id = 'menu-cash-chip';
+          chip.style.cssText = 'color:#4caf50;font-weight:900;font-size:16px;margin:8px;';
+          document.querySelector('.menu-buttons')?.prepend(chip);
+        }
+        chip.textContent = `CASH ₦${passengerManager.dailyEarnings}`;
         SaveSystem.saveGame({
           cash: passengerManager.dailyEarnings,
           lastDailyClaim: settlementManager.lastDailyClaim,
@@ -420,25 +459,15 @@ async function bootstrap() {
         });
       } else {
         showBanner('Daily reward already claimed today. Come back tomorrow.');
+        if (btn) btn.textContent = 'ALREADY CLAIMED TODAY';
       }
     } catch (e) {
-      // Fallback direct grant once
       passengerManager.dailyEarnings += 1000;
       showBanner('🎁 Daily reward +₦1000');
       const earn = document.getElementById('earnings');
       if (earn) earn.innerText = passengerManager.dailyEarnings;
     }
   };
-  document.getElementById('daily-claim-btn')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    claimDaily();
-  });
-  // Also bind via touch for mobile
-  document.getElementById('daily-claim-btn')?.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    claimDaily();
-  }, { passive: false });
 
   const mobileEl = document.getElementById('mobile-controls-overlay');
   if (mobileEl) mobileEl.style.display = 'none';
@@ -570,11 +599,11 @@ async function bootstrap() {
     try {
       flow.state = 'DRIVING';
       flow.engineStarted = true;
-      camera.position.set(0, 2.6, -4.8);
-      camera.lookAt(0, 1.1, 5);
+      camera.position.set(0, 2.2, -3.6);
+      camera.lookAt(0, 1.0, 4);
       if (cameraRig?.currentPos) {
-        cameraRig.currentPos.set(0, 2.6, -4.8);
-        cameraRig.lookAtPos.set(0, 1.1, 5);
+        cameraRig.currentPos.set(0, 2.2, -3.6);
+        cameraRig.lookAtPos.set(0, 1.0, 4);
       }
       try { cameraRig.setMode?.('near'); } catch (e) {}
     } catch (e) {}
@@ -588,6 +617,9 @@ async function bootstrap() {
   // Flush queued start from early click
   if (window.__kanoStartQueued) {
     window.__kanoStartQueued = false;
+window.__kanoClaimDaily = null;
+window.__kanoCash = 1500;
+
     try { window.__kanoStartShift(); } catch (e) { console.warn(e); }
   }
 
