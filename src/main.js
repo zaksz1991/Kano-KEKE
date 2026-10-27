@@ -36,6 +36,7 @@ import { PauseMenu } from './PauseMenu.js';
 import { DriverFatigueSystem } from './DriverFatigueSystem.js';
 import { AchievementSystem } from './AchievementSystem.js';
 import { FirstShiftTutorial } from './FirstShiftTutorial.js';
+import { StreetEventSystem } from './StreetEventSystem.js';
 
 // CapsuleGeometry polyfill for older three builds
 if (!THREE.CapsuleGeometry) {
@@ -310,6 +311,7 @@ async function bootstrap() {
 
 
   const fuelManager = new FuelManager(kekeController);
+  const streetEvents = new StreetEventSystem(kekeController, passengerManager, fuelManager);
   const fuelStations = new FuelStationSystem(scene, fuelManager, passengerManager);
   try { fuelStations.init(); } catch (e) { console.warn('fuel stations', e); }
   const policeEngine = new PoliceCheckpointEngine(scene, kekeController, passengerManager);
@@ -760,6 +762,13 @@ async function bootstrap() {
         } catch (err) {}
         audioEngine.updateEngine(kekeController.currentSpeed, kekeController.maxSpeed);
         fatigue.update(delta, kekeController.currentSpeed, (ev) => showBanner(ev));
+        streetEvents.update(delta, (ev) => {
+          showBanner(ev);
+          if (ev.earnings != null) {
+            const earn = document.getElementById('earnings');
+            if (earn) earn.innerText = ev.earnings;
+          }
+        });
         const fatMul = fatigue.getSpeedMul();
         if (fatMul < 1) kekeController.velocity *= 0.985 + fatMul * 0.01;
 
