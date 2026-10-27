@@ -45,6 +45,7 @@ export class PassengerManager {
     this._spawnTimer = 0;
     this._dialogue = null;
     this._dialogueT = 0;
+    this.nearestPrompt = null;
   }
 
   async initModels() {
@@ -159,6 +160,28 @@ export class PassengerManager {
       }
     });
     this.waiting = this.waiting.filter((p) => p.mesh);
+
+    // Nearest waiter prompt
+    this.nearestPrompt = null;
+    let best = 12;
+    for (const p of this.waiting) {
+      if (!p.mesh || p.state !== 'waiting') continue;
+      const dist = p.mesh.position.distanceTo(this.keke.group.position);
+      if (dist < best) {
+        best = dist;
+        this.nearestPrompt = { dist, title: p.title, dest: p.destination, seats: p.seats };
+      }
+    }
+    if (this.nearestPrompt && this.nearestPrompt.dist < 11 && hudCallback && speed > 5) {
+      // Only occasional prompt when speeding past
+      if (!this._lastProx || performance.now() - this._lastProx > 3500) {
+        this._lastProx = performance.now();
+        hudCallback({
+          type: 'NEAR',
+          msg: `👋 ${this.nearestPrompt.title} going to ${this.nearestPrompt.dest} — slow down to pick up`
+        });
+      }
+    }
 
     // Pickup opportunity – slow near waiter
     if (this.onBoard.length < this.capacity && speed < 4.5) {

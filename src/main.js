@@ -29,6 +29,7 @@ import { MissionBoardUI } from './MissionBoardUI.js';
 import { KekeSeatOccupancy } from './KekeSeatOccupancy.js';
 import { DashHUD } from './DashHUD.js';
 import { KanoRoadsideLife } from './KanoRoadsideLife.js';
+import { FuelStationSystem } from './FuelStationSystem.js';
 
 // CapsuleGeometry polyfill for older three builds
 if (!THREE.CapsuleGeometry) {
@@ -281,6 +282,8 @@ async function bootstrap() {
 
 
   const fuelManager = new FuelManager(kekeController);
+  const fuelStations = new FuelStationSystem(scene, fuelManager, passengerManager);
+  try { fuelStations.init(); } catch (e) { console.warn('fuel stations', e); }
   const policeEngine = new PoliceCheckpointEngine(scene, kekeController, passengerManager);
   policeEngine.spawnCheckpoint(200);
   const audioEngine = new KanoAudioEngine();
@@ -607,6 +610,15 @@ async function bootstrap() {
           if (ev.type === 'CRASH' || ev.type === 'WRECKED') voiceBank.speak('crash');
           _updateMissionHud(missionManager);
           if (ev.type === 'WRECKED') _showContinueModal(missionManager, collisionSystem, kekeController);
+        });
+        fuelStations.update(delta, kekeGroup.position, kekeController.currentSpeed, (ev) => {
+          showBanner(ev);
+          if (ev.earnings != null) {
+            const earn = document.getElementById('earnings');
+            if (earn) earn.innerText = ev.earnings;
+          }
+          const bar = document.getElementById('fuel-bar');
+          if (bar) bar.style.width = `${Math.round(fuelManager.fuel)}%`;
         });
         fuelManager.update(delta, (e) => {
           if (e.type === 'FUEL_UPDATE') {
