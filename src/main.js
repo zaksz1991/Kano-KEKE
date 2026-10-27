@@ -388,6 +388,21 @@ async function bootstrap() {
       const mode = cameraRig.cycleMode?.() || 'chase';
       showBanner(`📷 Camera: ${mode.toUpperCase()}`);
     },
+    onQuality: () => {
+      window.__kanoLowQuality = !window.__kanoLowQuality;
+      if (window.__kanoLowQuality) {
+        renderer.setPixelRatio(1);
+        camera.far = 160;
+        trafficManager.maxVehicles = 4;
+        showBanner('Quality: LOW (faster)');
+      } else {
+        renderer.setPixelRatio(Math.min(devicePixelRatio, isMobile ? 1.25 : 2));
+        camera.far = 500;
+        trafficManager.maxVehicles = 6;
+        showBanner('Quality: HIGH');
+      }
+      camera.updateProjectionMatrix();
+    },
     onGarage: () => {
       customizer.openShop(passengerManager.dailyEarnings, (cost) => {
         if (passengerManager.dailyEarnings >= cost) {

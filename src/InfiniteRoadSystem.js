@@ -133,26 +133,26 @@ export class InfiniteRoadSystem {
     // Side world – denser
     for (const side of [-1, 1]) {
       const baseX = side * 12.5;
-      // Compounds / shops
-      for (let i = 0; i < 5; i++) {
-        if (rand() > 0.18) {
+      // Compounds / shops – sparse for mobile FPS
+      for (let i = 0; i < 2; i++) {
+        if (rand() > 0.35) {
           const b = this._makeBuilding(rand, side);
           b.position.set(
             baseX + side * (1.5 + rand() * 5),
             0,
-            -this.chunkLength / 2 + 5 + i * 10 + rand() * 3
+            -this.chunkLength / 2 + 8 + i * 20 + rand() * 3
           );
           group.add(b);
         }
       }
       // Trees
-      for (let i = 0; i < 5; i++) {
-        if (rand() > 0.35) {
+      for (let i = 0; i < 2; i++) {
+        if (rand() > 0.45) {
           const t = this._makeTree(rand);
           t.position.set(
             baseX + side * (0.8 + rand() * 6),
             0,
-            -this.chunkLength / 2 + 3 + i * 10 + rand() * 4
+            -this.chunkLength / 2 + 6 + i * 22 + rand() * 4
           );
           group.add(t);
         }
@@ -164,13 +164,13 @@ export class InfiniteRoadSystem {
         group.add(pole);
       }
       // Market stalls
-      if (rand() > 0.4) {
+      if (rand() > 0.7) {
         const stall = this._makeStall(rand);
         stall.position.set(baseX + side * (0.5 + rand()), 0, (rand() - 0.5) * this.chunkLength * 0.55);
         group.add(stall);
       }
       // Billboards / signs
-      if (rand() > 0.6) {
+      if (rand() > 0.8) {
         const sign = this._makeSign(rand);
         sign.position.set(baseX + side * 2, 0, (rand() - 0.5) * 20);
         group.add(sign);
@@ -234,7 +234,7 @@ export class InfiniteRoadSystem {
       roughness: 0.3
     });
     for (let f = 0; f < floors; f++) {
-      for (let wi = 0; wi < Math.min(3, Math.floor(w / 1.8)); wi++) {
+      for (let wi = 0; wi < Math.min(2, Math.floor(w / 2.2)); wi++) {
         const win = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.9), winMat);
         win.position.set(-w / 2 + 1.2 + wi * 1.6, 1.2 + f * 2.5, d / 2 + 0.02);
         g.add(win);

@@ -2,11 +2,12 @@
  * In-game pause overlay
  */
 export class PauseMenu {
-  constructor({ onResume, onEndShift, onCamera, onGarage }) {
+  constructor({ onResume, onEndShift, onCamera, onGarage, onQuality }) {
     this.onResume = onResume;
     this.onEndShift = onEndShift;
     this.onCamera = onCamera;
     this.onGarage = onGarage;
+    this.onQuality = onQuality;
     this.root = null;
   }
 
@@ -24,6 +25,7 @@ export class PauseMenu {
         <h2 style="margin:0 0 14px;color:#ffcc00;letter-spacing:2px;">PAUSED</h2>
         <button data-act="resume" style="width:100%;margin:5px 0;padding:12px;border:none;border-radius:10px;font-weight:900;background:#ffcc00;color:#000;cursor:pointer;">RESUME</button>
         <button data-act="camera" style="width:100%;margin:5px 0;padding:12px;border:1px solid #00e5ff;border-radius:10px;font-weight:700;background:#1a2a30;color:#00e5ff;cursor:pointer;">CAMERA MODE</button>
+        <button data-act="quality" style="width:100%;margin:5px 0;padding:12px;border:1px solid #81c784;border-radius:10px;font-weight:700;background:#1a2a1a;color:#81c784;cursor:pointer;">QUALITY: TOGGLE</button>
         <button data-act="garage" style="width:100%;margin:5px 0;padding:12px;border:1px solid #ff9800;border-radius:10px;font-weight:700;background:#2a2010;color:#ff9800;cursor:pointer;">GARAGE</button>
         <button data-act="end" style="width:100%;margin:5px 0;padding:12px;border:none;border-radius:10px;font-weight:700;background:#333;color:#fff;cursor:pointer;">END SHIFT</button>
       </div>`;
@@ -34,6 +36,7 @@ export class PauseMenu {
           this.hide();
           this.onResume?.();
         } else if (a === 'camera') this.onCamera?.();
+        else if (a === 'quality') this.onQuality?.();
         else if (a === 'garage') this.onGarage?.();
         else if (a === 'end') {
           this.hide();
