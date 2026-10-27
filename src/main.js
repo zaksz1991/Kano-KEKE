@@ -34,6 +34,7 @@ import { ProximityRadar } from './ProximityRadar.js';
 import { HighScoreBoard } from './HighScoreBoard.js';
 import { PauseMenu } from './PauseMenu.js';
 import { DriverFatigueSystem } from './DriverFatigueSystem.js';
+import { AchievementSystem } from './AchievementSystem.js';
 
 // CapsuleGeometry polyfill for older three builds
 if (!THREE.CapsuleGeometry) {
@@ -294,6 +295,7 @@ async function bootstrap() {
   const dashHud = new DashHUD();
   const radar = new ProximityRadar();
   const fatigue = new DriverFatigueSystem(charSelect.getDriver());
+  const achievements = new AchievementSystem();
   const roadsideLife = new KanoRoadsideLife(scene);
   try { roadsideLife.init(); } catch (e) { console.warn('roadside', e); }
   const missionManager = new MissionManager();
@@ -333,6 +335,7 @@ async function bootstrap() {
     onEndShift: () => {
       paused = false;
       const result = missionManager.settleShift(passengerManager.dailyEarnings, fuelManager.fuel ?? 50);
+      try { achievements.onShiftEnd(result.score, false); } catch (e) {}
       try {
         HighScoreBoard.submit({
           score: result.score,
@@ -452,6 +455,7 @@ async function bootstrap() {
     if (e.code === 'KeyN') {
       // End shift / settle
       const result = missionManager.settleShift(passengerManager.dailyEarnings, fuelManager.fuel ?? 50);
+      try { achievements.onShiftEnd(result.score, false); } catch (e) {}
       try {
         HighScoreBoard.submit({
           score: result.score,
@@ -638,6 +642,7 @@ async function bootstrap() {
       landmarkManager.update(kekeGroup.position.z, (msg) => {
         showBanner(msg);
         missionManager.xp = (missionManager.xp || 0) + 15;
+        try { achievements.onLandmark(); } catch (e) {}
         missionManager.score = (missionManager.score || 0) + 50;
         showBanner(String(msg) + ' · +15 XP');
       });
@@ -664,6 +669,7 @@ async function bootstrap() {
             const fareMatch = String(ev.msg || '').match(/₦(\d+)/);
             const fare = fareMatch ? parseInt(fareMatch[1], 10) : 200;
             missionManager.onDropoff(fare);
+            try { achievements.onDropoff(missionManager.combo, passengerManager.dailyEarnings); } catch (e) {}
             if (missionManager.combo >= 2) {
               showBanner(`🔥 Combo x${missionManager.combo}!`);
               try { audioEngine.playOneShot(520 + missionManager.combo * 40, 0.12, 'square', 0.08); } catch (e) {}
@@ -716,6 +722,7 @@ async function bootstrap() {
         });
         fuelStations.update(delta, kekeGroup.position, kekeController.currentSpeed, (ev) => {
           showBanner(ev);
+          if (ev.type === 'REFUEL') { try { achievements.onRefuel(); } catch (e) {} }
           if (ev.earnings != null) {
             const earn = document.getElementById('earnings');
             if (earn) earn.innerText = ev.earnings;
@@ -754,6 +761,7 @@ async function bootstrap() {
         timeAccum += delta;
         if (timeAccum > 0.5) {
           window.timeInMinutes = (window.timeInMinutes + 1) % 1440;
+          try { achievements.onNight(window.timeInMinutes); } catch (e) {}
           timeAccum = 0;
           const hours = Math.floor(window.timeInMinutes / 60);
           const mins = Math.floor(window.timeInMinutes % 60);
