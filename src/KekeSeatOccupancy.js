@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { makePerson } from './LowPolyLibrary.js';
 
 /**
  * Visual passengers seated in the keke during a trip
@@ -32,13 +31,9 @@ export class KekeSeatOccupancy {
   }
 
   _makeSeated() {
-    if (this.pedModel) {
-      const m = this.pedModel.clone(true);
-      m.scale.setScalar(0.5 + Math.random() * 0.08);
-      return m;
-    }
-    const m = makePerson();
-    m.scale.setScalar(0.55);
+    if (!this.pedModel) return null;
+    const m = this.pedModel.clone(true);
+    m.scale.setScalar(0.5 + Math.random() * 0.08);
     return m;
   }
 
@@ -48,9 +43,10 @@ export class KekeSeatOccupancy {
     // Add
     while (this.seats.length < target) {
       const mesh = this._makeSeated();
+      if (!mesh) break;
       const slot = this.seatSlots[this.seats.length];
       mesh.position.set(slot.x, slot.y, slot.z);
-      mesh.rotation.y = Math.PI; // face forward-ish
+      mesh.rotation.y = Math.PI;
       this.keke.add(mesh);
       this.seats.push(mesh);
     }

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { makeCar, makeOkada, makeBus } from './LowPolyLibrary.js';
 
+/** Traffic – ONLY real .glb models (no box fallbacks) */
 export class DynamicTrafficManager {
   constructor(scene, kekeController, assetManager) {
     this.scene = scene;
@@ -14,35 +14,39 @@ export class DynamicTrafficManager {
   }
 
   async init() {
-    // Preload GLBs first (short race), then spawn
     try {
-      const [car, okada] = await Promise.race([
-        Promise.all([
-          this.assets.loadGLB('/assets/models/traffic_vehicle.glb', { scale: 1.1 }),
-          this.assets.loadGLB('/assets/models/okada.glb', { scale: 1.0 })
-        ]),
-        new Promise((r) => setTimeout(() => r([null, null]), 4000))
+      const [car, okada] = await Promise.all([
+        this.assets.loadGLB('/assets/models/traffic_vehicle.glb', { scale: 1.1 }),
+        this.assets.loadGLB('/assets/models/okada.glb', { scale: 1.0 })
       ]);
       this.carModel = car;
       this.okadaModel = okada;
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Traffic GLB load issue', e);
+    }
+
+    if (!this.carModel && !this.okadaModel) {
+      console.warn('No traffic GLBs – traffic disabled (no box fallbacks)');
+      this.ready = true;
+      return;
+    }
 
     for (let i = 0; i < this.maxVehicles; i++) this._spawn(true);
     this.ready = true;
   }
 
-  _meshFor(kind) {
-    if (kind === 'okada' && this.okadaModel) return this.okadaModel.clone(true);
-    if (kind === 'car' && this.carModel) return this.carModel.clone(true);
-    if (kind === 'okada') return makeOkada();
-    if (kind === 'bus') return makeBus();
-    return makeCar();
+  _meshFor() {
+    const useOkada = this.okadaModel && (!this.carModel || Math.random() > 0.65);
+    if (useOkada) return this.okadaModel.clone(true);
+    if (this.carModel) return this.carModel.clone(true);
+    if (this.okadaModel) return this.okadaModel.clone(true);
+    return null;
   }
 
   _spawn(initial) {
-    const roll = Math.random();
-    const kind = roll > 0.78 ? 'okada' : roll > 0.92 ? 'bus' : 'car';
-    const mesh = this._meshFor(kind);
+    const mesh = this._meshFor();
+    if (!mesh) return;
+
     const lane = Math.random() > 0.5 ? -3.5 : 3.5;
     const playerZ = this.player?.group?.position.z || 0;
     const z = initial ? playerZ + 20 + Math.random() * 200 : playerZ + 140 + Math.random() * 80;
@@ -58,7 +62,7 @@ export class DynamicTrafficManager {
   }
 
   update(delta, horn) {
-    if (!this.ready) return;
+    if (!this.ready || !this.vehicles.length) return;
     const playerZ = this.player.group.position.z;
     const dt = Math.min(delta, 0.05);
     this.vehicles.forEach((v) => {

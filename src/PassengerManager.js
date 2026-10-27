@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { makePerson } from './LowPolyLibrary.js';
 
 /**
  * Full passenger life-sim system:
@@ -62,21 +61,9 @@ export class PassengerManager {
   }
 
   _makePerson(isWaiting = true) {
-    if (this.pedModel) {
-      const mesh = this.pedModel.clone(true);
-      mesh.scale.setScalar(0.9 + Math.random() * 0.2);
-      return mesh;
-    }
-    const mesh = makePerson();
-    if (isWaiting) {
-      // Raise arm for flagging
-      mesh.traverse((n) => {
-        if (n.isMesh && n.position.x > 0.2) {
-          n.rotation.z = -0.9;
-          n.name = 'flagArm';
-        }
-      });
-    }
+    if (!this.pedModel) return null;
+    const mesh = this.pedModel.clone(true);
+    mesh.scale.setScalar(0.9 + Math.random() * 0.2);
     return mesh;
   }
 
@@ -106,6 +93,7 @@ export class PassengerManager {
     if (this.waiting.length >= this.maxWaiting) return;
     const p = this._randomPassenger();
     const mesh = this._makePerson(true);
+    if (!mesh) return;
     const side = Math.random() > 0.5 ? 1 : -1;
     mesh.position.set(side * (7.8 + Math.random() * 1.5), 0, playerZ + 40 + Math.random() * 120);
     mesh.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;

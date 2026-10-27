@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="12" fill="#0a0a0f"/>
+  <rect x="10" y="28" width="36" height="18" rx="3" fill="#ffcc00"/>
+  <rect x="14" y="22" width="28" height="10" rx="2" fill="#1a1a1a"/>
+  <circle cx="18" cy="48" r="6" fill="#222"/>
+  <circle cx="18" cy="48" r="3" fill="#888"/>
+  <circle cx="40" cy="48" r="6" fill="#222"/>
+  <circle cx="40" cy="48" r="3" fill="#888"/>
+  <path d="M46 32h10l4 8H46z" fill="#ff9800"/>
+  <text x="32" y="16" text-anchor="middle" font-size="9" font-family="Arial Black,sans-serif" fill="#00e5ff">KANO</text>
+</svg>

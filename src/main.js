@@ -161,7 +161,7 @@ document.getElementById('start-game-btn')?.addEventListener('click', (e) => {
   charSelect.populateUI();
   // Ensure keke select exists
   if (!document.getElementById('keke-select')) {
-    const panel = document.querySelector('.selection-panel');
+    const panel = document.querySelector('#selection-panel, .selection-panel');
     if (panel) {
       const wrap = document.createElement('div');
       wrap.innerHTML = `<div style="color:#00ffff;font-size:12px;margin-top:8px;">KEKE:</div>`;

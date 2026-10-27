@@ -2,75 +2,199 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Kano Run v2.0 – Professional Keke Life Sim</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0a0a0f" />
+  <meta name="description" content="Kano Run – 3D Keke Driver Life Simulator by Hassan Zakariya" />
+  <title>Kano Run – Keke Life Sim</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="apple-touch-icon" href="/favicon.svg" />
   <style>
-    body, html { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      overflow: hidden; background: #0a0a0f;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      user-select: none; -webkit-tap-highlight-color: transparent;
+    }
     #webgl-canvas { width: 100vw; height: 100vh; display: block; }
-    
+
+    /* ---- START PAGE ---- */
     #main-menu-overlay {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      display: flex; flex-direction: column; justify-content: space-between;
-      align-items: center; padding: 30px 20px; box-sizing: border-box;
-      background: radial-gradient(circle, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.92) 90%);
-      z-index: 100; color: #fff; text-align: center; overflow-y: auto; pointer-events: auto;
+      position: absolute; inset: 0; z-index: 100;
+      display: flex; flex-direction: column;
+      justify-content: space-between; align-items: center;
+      padding: 24px 16px 20px;
+      background:
+        linear-gradient(180deg, rgba(10,10,18,0.55) 0%, rgba(10,10,18,0.92) 100%);
+      color: #fff; text-align: center; overflow-y: auto;
+      pointer-events: auto;
     }
 
-    .title-box { margin-top: 20px; animation: pulseTitle 3s infinite alternate; }
-    .game-title { font-size: 56px; font-weight: 900; letter-spacing: 4px; color: #ffcc00; text-shadow: 0 0 20px rgba(255,204,0,0.8), 4px 4px 0px #000; margin: 0; }
-    .game-subtitle { font-size: 16px; color: #00ffff; letter-spacing: 3px; text-transform: uppercase; margin-top: 5px; }
-
-    .dev-credits-card {
-      background: rgba(15, 15, 20, 0.85); backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 204, 0, 0.4); border-radius: 30px;
-      padding: 6px 20px; font-size: 13px; color: #ddd; margin-top: 8px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.6);
+    .hero {
+      margin-top: 12px;
     }
-    .dev-name { color: #ffcc00; font-weight: bold; text-decoration: none; }
-
-    .selection-panel { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin: 10px 0; background: rgba(0,0,0,0.6); padding: 15px; border-radius: 12px; border: 1px solid #ffcc00; max-width: 600px; }
-    select, button { padding: 10px 16px; background: #222; color: #ffcc00; border: 1px solid #ffcc00; border-radius: 6px; font-weight: bold; cursor: pointer; }
-
-    .menu-buttons { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 20px; width: 280px; }
-    .btn-menu { position: relative; z-index: 110;
-      width: 100%; padding: 16px 32px; background: linear-gradient(135deg, #ffcc00 0%, #ff9800 100%);
-      color: #000; font-size: 18px; font-weight: 900; border: none; border-radius: 50px;
-      cursor: pointer; text-transform: uppercase; letter-spacing: 2px;
-      box-shadow: 0 0 20px rgba(255, 204, 0, 0.5); transition: transform 0.2s, box-shadow 0.2s;
+    .game-title {
+      margin: 0;
+      font-size: clamp(42px, 12vw, 64px);
+      font-weight: 900;
+      letter-spacing: 6px;
+      color: #ffcc00;
+      text-shadow: 0 0 28px rgba(255,204,0,0.55), 3px 3px 0 #000;
+      line-height: 1;
     }
-    .btn-menu:hover { transform: scale(1.05); box-shadow: 0 0 30px rgba(255, 204, 0, 0.9); }
+    .game-subtitle {
+      margin-top: 8px;
+      font-size: 12px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #00e5ff;
+    }
+    .dev-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 14px;
+      padding: 6px 16px;
+      background: rgba(20,20,28,0.85);
+      border: 1px solid rgba(255,204,0,0.35);
+      border-radius: 999px;
+      font-size: 12px; color: #ccc;
+    }
+    .dev-pill a { color: #ffcc00; font-weight: 700; text-decoration: none; }
 
-    .hud-box { position: absolute; color: #fff; text-shadow: 2px 2px 4px #000; pointer-events: none; display: none; z-index: 10; }
-    #top-left-hud { top: 20px; left: 20px; font-family: monospace; font-size: 15px; }
-    #top-right-hud { top: 20px; right: 20px; text-align: right; }
-    .bar-bg { width: 160px; height: 12px; background: rgba(0,0,0,0.6); border: 1px solid #fff; border-radius: 4px; overflow: hidden; margin-top: 4px; }
-    .bar-fill { height: 100%; transition: width 0.3s; }
+    .panel {
+      width: min(360px, 100%);
+      margin: 12px 0;
+      padding: 14px;
+      background: rgba(12,12,20,0.82);
+      border: 1px solid rgba(255,204,0,0.25);
+      border-radius: 16px;
+      backdrop-filter: blur(8px);
+    }
+    .panel-label {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: #00e5ff;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+    .field {
+      margin-bottom: 12px; text-align: left;
+    }
+    .field:last-child { margin-bottom: 0; }
+    select {
+      width: 100%;
+      padding: 12px 14px;
+      background: #1a1a24;
+      color: #ffcc00;
+      border: 1px solid rgba(255,204,0,0.4);
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 14px;
+      outline: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23ffcc00' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+    }
 
-    #notification-banner { transition: opacity 0.35s, transform 0.35s; opacity:0; transform:translateY(-20px); position: absolute; top: 100px; width: 100%; text-align: center; display: block; pointer-events: none; z-index: 20; }
-    #banner-text { background: rgba(0,0,0,0.85); color: #ffcc00; padding: 12px 24px; border-radius: 8px; border: 2px solid #ffcc00; font-weight: bold; font-size: 16px; display: inline-block; }
+    .menu-buttons {
+      width: min(360px, 100%);
+      display: flex; flex-direction: column; gap: 10px;
+      margin-bottom: 8px;
+    }
+    .btn-menu {
+      width: 100%;
+      padding: 16px 24px;
+      border: none;
+      border-radius: 50px;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 0.12s, box-shadow 0.12s;
+    }
+    .btn-menu:active { transform: scale(0.97); }
+    #start-game-btn {
+      background: linear-gradient(135deg, #ffcc00, #ff9800);
+      color: #000;
+      box-shadow: 0 0 24px rgba(255,152,0,0.45);
+    }
+    #daily-claim-btn {
+      background: linear-gradient(135deg, #00bcd4, #006064);
+      color: #fff;
+      font-size: 13px;
+      padding: 12px;
+    }
 
-    #shop-modal { position: absolute; top: 15%; left: 50%; transform: translateX(-50%); width: 360px; background: rgba(15,15,20,0.95); color: #fff; padding: 20px; border-radius: 12px; border: 2px solid #ffcc00; display: none; z-index: 30; }
+    .footer-meta {
+      font-size: 11px;
+      color: #666;
+      margin-top: 4px;
+    }
+    .footer-meta .pill {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      color: #90a4ae;
+    }
 
-    @keyframes pulseTitle { 0% { transform: scale(1); } 100% { transform: scale(1.03); } }
+    /* HUD */
+    .hud-box {
+      position: absolute; z-index: 40;
+      background: rgba(0,0,0,0.65);
+      border-radius: 10px;
+      padding: 10px 12px;
+      color: #fff; font-size: 13px;
+      pointer-events: none;
+      display: none;
+    }
+    #top-left-hud { top: 12px; left: 12px; }
+    #top-right-hud { top: 12px; right: 12px; text-align: right; }
+    .bar-bg { width: 120px; height: 8px; background: #333; border-radius: 4px; overflow: hidden; margin-top: 4px; }
+    .bar-fill { height: 100%; width: 100%; background: #4CAF50; }
+
+    #notification-banner {
+      position: absolute; top: 100px; width: 100%; text-align: center;
+      z-index: 50; pointer-events: none;
+      opacity: 0; transform: translateY(-12px);
+      transition: opacity 0.35s, transform 0.35s;
+    }
+    #banner-text {
+      display: inline-block;
+      background: rgba(0,0,0,0.88);
+      color: #ffcc00;
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: 2px solid #ffcc00;
+      font-weight: 700; font-size: 14px;
+    }
+
+    #shop-modal {
+      position: absolute; top: 15%; left: 50%; transform: translateX(-50%);
+      width: min(360px, 92vw);
+      background: rgba(15,15,20,0.96); color: #fff;
+      padding: 20px; border-radius: 12px;
+      border: 2px solid #ffcc00; display: none; z-index: 60;
+    }
   </style>
 </head>
 <body>
   <canvas id="webgl-canvas"></canvas>
 
-  <!-- Front Page Main Menu -->
   <div id="main-menu-overlay">
-    <div class="title-box">
+    <div class="hero">
       <h1 class="game-title">KANO RUN</h1>
       <div class="game-subtitle">3D Keke Driver Life Simulator</div>
-      <div class="dev-credits-card">
-        Developed & Animated by <a href="https://twitter.com/iamzaksz" target="_blank" class="dev-name">Hassan Zakariya (@iamzaksz)</a>
+      <div class="dev-pill">
+        by <a href="https://twitter.com/iamzaksz" target="_blank" rel="noopener">Hassan Zakariya · @iamzaksz</a>
       </div>
     </div>
 
-    <!-- Character & Route Selection Panel -->
-    <div class="selection-panel">
-      <div>
-        <label style="font-size: 12px; color: #00ffff;">DRIVER:</label><br/>
+    <div class="panel" id="selection-panel">
+      <div class="field">
+        <div class="panel-label">Driver</div>
         <select id="driver-select">
           <option value="ruffneck" selected>RuffNeck — Street King</option>
           <option value="bello">Bello "Maza Bawa"</option>
@@ -78,45 +202,48 @@
           <option value="zainab">Zainab "Kano Queen"</option>
         </select>
       </div>
-      <div>
-        <label style="font-size: 12px; color: #00ffff;">KANO ROUTE (50 Options):</label><br/>
-        <select id="route-select" style="max-width: 250px;"></select>
+      <div class="field">
+        <div class="panel-label">Kano Route</div>
+        <select id="route-select"></select>
+      </div>
+      <div class="field">
+        <div class="panel-label">Keke</div>
+        <select id="keke-select">
+          <option value="standard_yellow">Classic TVS King (Yellow)</option>
+        </select>
       </div>
     </div>
 
     <div class="menu-buttons">
-      <button id="start-game-btn" class="btn-menu">START SHIFT</button>
-      <div style="font-size: 12px; color: #00ffff; background: rgba(0,0,0,0.6); padding: 5px 14px; border-radius: 15px; border: 1px solid rgba(0,255,255,0.3);">
-        🌍 TOTAL SHIFTS: <strong id="global-play-count" style="color:#ffcc00;">14,280</strong>
+      <button id="daily-claim-btn" class="btn-menu" type="button">Daily Reward</button>
+      <button id="start-game-btn" class="btn-menu" type="button">Start Shift</button>
+      <div class="footer-meta">
+        <div class="pill">VERCEL · v2.1 · GLB ASSETS</div>
       </div>
-      <div style="font-size: 10px; color: #888;">VERCEL PRODUCTION v2.0.0 – PRO UPGRADE</div>
     </div>
   </div>
 
-  <!-- HUD Overlay -->
   <div id="top-left-hud" class="hud-box">
     <div>ROUTE: <span id="route-name-display" style="color:#ffcc00;">Sabon Gari</span></div>
     <div>TIME: <span id="clock-display">06:00 AM</span></div>
     <div>SPEED: <span id="speed-display">0</span> km/h</div>
-    <div style="margin-top: 6px;">FUEL (PMS):</div>
-    <div class="bar-bg"><div id="fuel-bar" class="bar-fill" style="width: 100%; background: #4CAF50;"></div></div>
-    <div style="font-size: 11px; color: #ffcc00; margin-top: 6px;">DEV: Hassan Zakariya (@iamzaksz)</div>
+    <div style="margin-top:6px;">FUEL (PMS):</div>
+    <div class="bar-bg"><div id="fuel-bar" class="bar-fill"></div></div>
   </div>
 
   <div id="top-right-hud" class="hud-box">
-    <div style="font-size: 24px; font-weight: bold; color: #4CAF50;">CASH: ₦<span id="earnings">1500</span></div>
-    <div style="font-size: 13px; color: #00ffff; margin-top: 6px;">RADIO [R]: <span id="radio-display">OFF</span></div>
+    <div style="font-size:22px;font-weight:bold;color:#4CAF50;">CASH: ₦<span id="earnings">1500</span></div>
+    <div style="font-size:12px;color:#00ffff;margin-top:6px;">RADIO [R]: <span id="radio-display">OFF</span></div>
   </div>
 
-  <!-- Notification Banner & Shop Modal -->
   <div id="notification-banner"><span id="banner-text">Welcome to Kano Run!</span></div>
 
   <div id="shop-modal">
-    <h3 style="margin-top: 0; color: #ffcc00; text-align: center;">🔧 GARAJIN KEKE SHOP</h3>
-    <button id="buy-neon" style="width:100%; margin-bottom:8px; padding:10px; background:#222; color:#00ffff; border:1px solid #00ffff; border-radius:6px; cursor:pointer;">🚨 Neon Underglow - ₦3,500</button>
-    <button id="buy-subwoofer" style="width:100%; margin-bottom:8px; padding:10px; background:#222; color:#ff9800; border:1px solid #ff9800; border-radius:6px; cursor:pointer;">🔊 Subwoofer System - ₦5,000</button>
-    <button id="buy-bumper" style="width:100%; margin-bottom:8px; padding:10px; background:#222; color:#4CAF50; border:1px solid #4CAF50; border-radius:6px; cursor:pointer;">🛡️ Reinforced Steel Bumper - ₦6,500</button>
-    <button id="close-shop" style="width:100%; padding:8px; background:#444; color:#fff; border:none; border-radius:6px; cursor:pointer;">Close Shop</button>
+    <h3 style="margin-top:0;color:#ffcc00;text-align:center;">Garajin Keke Shop</h3>
+    <button id="buy-neon" style="width:100%;margin-bottom:8px;padding:10px;background:#222;color:#00ffff;border:1px solid #00ffff;border-radius:6px;">Neon Underglow — ₦3,500</button>
+    <button id="buy-subwoofer" style="width:100%;margin-bottom:8px;padding:10px;background:#222;color:#ff9800;border:1px solid #ff9800;border-radius:6px;">Subwoofer — ₦5,000</button>
+    <button id="buy-bumper" style="width:100%;margin-bottom:8px;padding:10px;background:#222;color:#4CAF50;border:1px solid #4CAF50;border-radius:6px;">Steel Bumper — ₦6,500</button>
+    <button id="close-shop" style="width:100%;padding:8px;background:#444;color:#fff;border:none;border-radius:6px;">Close</button>
   </div>
 
   <script type="module" src="/src/main.js"></script>
