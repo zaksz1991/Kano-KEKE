@@ -14,11 +14,33 @@ export class KekeCameraRig {
     this.lookStiffness = 14;
     this.baseFov = 60;
     this.maxFov = 74;
+    this.mode = 'chase'; // chase | near | hood
+    this.modes = {
+      chase: { offset: new THREE.Vector3(0, 3.8, -7.5), look: new THREE.Vector3(0, 1.3, 8), fov: 60 },
+      near: { offset: new THREE.Vector3(0, 2.8, -5.2), look: new THREE.Vector3(0, 1.2, 6), fov: 65 },
+      hood: { offset: new THREE.Vector3(0, 1.9, -0.4), look: new THREE.Vector3(0, 1.4, 10), fov: 72 }
+    };
 
     this.currentPos.copy(this.target.position).add(
       this.idealOffset.clone().applyQuaternion(this.target.quaternion)
     );
     this.camera.position.copy(this.currentPos);
+  }
+
+  setMode(mode) {
+    if (!this.modes[mode]) return this.mode;
+    this.mode = mode;
+    const m = this.modes[mode];
+    this.idealOffset.copy(m.offset);
+    this.lookAtOffset.copy(m.look);
+    this.baseFov = m.fov;
+    return this.mode;
+  }
+
+  cycleMode() {
+    const order = ['chase', 'near', 'hood'];
+    const i = order.indexOf(this.mode);
+    return this.setMode(order[(i + 1) % order.length]);
   }
 
   update(delta, speed = 0) {

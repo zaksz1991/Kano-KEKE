@@ -32,6 +32,7 @@ import { KanoRoadsideLife } from './KanoRoadsideLife.js';
 import { FuelStationSystem } from './FuelStationSystem.js';
 import { ProximityRadar } from './ProximityRadar.js';
 import { HighScoreBoard } from './HighScoreBoard.js';
+import { PauseMenu } from './PauseMenu.js';
 
 // CapsuleGeometry polyfill for older three builds
 if (!THREE.CapsuleGeometry) {
@@ -325,6 +326,40 @@ async function bootstrap() {
   const settlementManager = new DailySettlementManager(passengerManager, fuelManager, kekeController, missionManager);
   settlementManager.loadDaily(saved);
   window.__kanoSettle = (result) => settlementManager.settle(result);
+  const pauseMenu = new PauseMenu({
+    onResume: () => { paused = false; if (flow.state === 'PAUSED') flow.setState('DRIVING'); },
+    onEndShift: () => {
+      paused = false;
+      const result = missionManager.settleShift(passengerManager.dailyEarnings, fuelManager.fuel ?? 50);
+      try {
+        HighScoreBoard.submit({
+          score: result.score,
+          cash: passengerManager.dailyEarnings,
+          driver: charSelect.getDriver()?.name || 'RuffNeck',
+          route: document.getElementById('route-name-display')?.textContent || 'Kano'
+        });
+      } catch (e) {}
+      settlementManager.settle(result);
+    },
+    onCamera: () => {
+      const mode = cameraRig.cycleMode?.() || 'chase';
+      showBanner(`📷 Camera: ${mode.toUpperCase()}`);
+    },
+    onGarage: () => {
+      customizer.openShop(passengerManager.dailyEarnings, (cost) => {
+        if (passengerManager.dailyEarnings >= cost) {
+          passengerManager.dailyEarnings -= cost;
+          const earn = document.getElementById('earnings');
+          if (earn) earn.innerText = passengerManager.dailyEarnings;
+          showBanner(`Purchased (−₦${cost})`);
+          return true;
+        }
+        showBanner('Not enough cash');
+        return false;
+      });
+    }
+  });
+
   window.__kanoBuyContinue = () => {
     const r = missionManager.buyContinue(passengerManager.dailyEarnings, 1500);
     if (!r.ok) { showBanner('Need ₦1,500 for continue'); return false; }
@@ -394,8 +429,20 @@ async function bootstrap() {
       showBanner(`📻 ${name}`);
     }
     if (e.code === 'KeyP' || e.code === 'Escape') {
-      paused = flow.togglePause();
-      showBanner(paused ? '⏸ Paused' : '▶ Resumed');
+      if (pauseMenu.isOpen()) {
+        pauseMenu.hide();
+        paused = false;
+        if (flow.state === 'PAUSED') flow.setState('DRIVING');
+        showBanner('▶ Resumed');
+      } else if (gameStarted) {
+        paused = true;
+        if (flow.state === 'DRIVING') flow.setState('PAUSED');
+        pauseMenu.show();
+      }
+    }
+    if (e.code === 'KeyV') {
+      const mode = cameraRig.cycleMode?.() || 'chase';
+      showBanner(`📷 Camera: ${mode.toUpperCase()}`);
     }
     if (e.code === 'KeyE') {
       passengerManager.acceptDeal((ev) => showBanner(ev));
