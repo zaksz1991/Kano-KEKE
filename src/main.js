@@ -35,6 +35,7 @@ import { HighScoreBoard } from './HighScoreBoard.js';
 import { PauseMenu } from './PauseMenu.js';
 import { DriverFatigueSystem } from './DriverFatigueSystem.js';
 import { AchievementSystem } from './AchievementSystem.js';
+import { FirstShiftTutorial } from './FirstShiftTutorial.js';
 
 // CapsuleGeometry polyfill for older three builds
 if (!THREE.CapsuleGeometry) {
@@ -296,6 +297,7 @@ async function bootstrap() {
   const radar = new ProximityRadar();
   const fatigue = new DriverFatigueSystem(charSelect.getDriver());
   const achievements = new AchievementSystem();
+  const tutorial = new FirstShiftTutorial();
   const roadsideLife = new KanoRoadsideLife(scene);
   try { roadsideLife.init(); } catch (e) { console.warn('roadside', e); }
   const missionManager = new MissionManager();
@@ -532,6 +534,7 @@ async function bootstrap() {
     try { missionBoard.hide(); } catch (e) {}
     dashHud.show();
     radar.show();
+    tutorial.start();
     // hide old mission floating hud overlap
     const oldM = document.getElementById('mission-hud');
     if (oldM) oldM.style.display = 'none';
@@ -659,12 +662,14 @@ async function bootstrap() {
           if (ev.type === 'BOARD') {
             audioEngine.playOneShot(520, 0.12, 'sine', 0.1);
             voiceBank.speak('board');
+            try { tutorial.onBoard(); } catch (e) {}
           }
           if (ev.type === 'NEGOTIATE') voiceBank.speak('negotiate');
           if (ev.type === 'DROP_REQUEST') voiceBank.speak('drop');
           if (ev.type === 'TIP') voiceBank.speak('tip');
           if (ev.type === 'DROPOFF') {
             voiceBank.speak('drop');
+            try { tutorial.onDrop(); } catch (e) {}
             audioEngine.playOneShot(660, 0.15, 'triangle', 0.12);
             const fareMatch = String(ev.msg || '').match(/₦(\d+)/);
             const fare = fareMatch ? parseInt(fareMatch[1], 10) : 200;
@@ -697,6 +702,7 @@ async function bootstrap() {
               seatsMax: passengerManager.capacity,
               lives: missionManager.lives,
               missionsText: missionManager.getHudText() + '\nStamina ' + fatigue.getPercent() + '%',
+          weather: weatherManager.currentWeather || 'CLEAR',
               notice: `+₦${fare}`
             });
             SaveSystem.saveGame({
@@ -795,7 +801,9 @@ async function bootstrap() {
           seatsMax: passengerManager.capacity,
           lives: missionManager.lives,
           route: document.getElementById('route-name-display')?.textContent || 'Kano',
-          missionsText: missionManager.getHudText() + '\nStamina ' + fatigue.getPercent() + '%'
+          missionsText: missionManager.getHudText() + '\nStamina ' + fatigue.getPercent() + '%',
+          weather: weatherManager.currentWeather || 'CLEAR',
+          weather: weatherManager.currentWeather || 'CLEAR'
         });
       }
     } catch (err) {

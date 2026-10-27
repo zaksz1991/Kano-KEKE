@@ -40,7 +40,10 @@ export class DashHUD {
         </div>
       </div>
       <div id="dash-missions" style="margin-top:8px;font-size:11px;color:#ffe082;white-space:pre-line;opacity:0.95;"></div>
-      <div id="dash-notice" style="margin-top:4px;font-size:12px;color:#80cbc4;min-height:16px;"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+        <div id="dash-notice" style="font-size:12px;color:#80cbc4;min-height:16px;"></div>
+        <div id="dash-weather" style="font-size:11px;color:#ffe082;background:rgba(0,0,0,0.4);padding:2px 8px;border-radius:8px;">☀ Clear</div>
+      </div>
       <div id="dash-fare-pop" style="position:absolute;right:16px;top:70px;font-size:22px;font-weight:900;color:#4caf50;opacity:0;transition:opacity 0.3s, transform 0.3s;transform:translateY(8px);">+₦0</div>
     `;
     document.body.appendChild(el);
@@ -64,7 +67,8 @@ export class DashHUD {
     lives = 3,
     route = '',
     missionsText = '',
-    notice = null
+    notice = null,
+    weather = null
   }) {
     if (!this.root) return;
     const spd = document.getElementById('dash-speed');
@@ -81,6 +85,13 @@ export class DashHUD {
     if (livesEl) livesEl.textContent = '❤'.repeat(lives) + '♡'.repeat(Math.max(0, 3 - lives));
     if (routeEl && route) routeEl.textContent = route;
     if (miss && missionsText) miss.textContent = missionsText;
+    if (weather) {
+      const w = document.getElementById('dash-weather');
+      if (w) {
+        const icons = { CLEAR: '☀ Clear', RAIN: '🌧 Rain', HARMATTAN: '🌪 Harmattan', CLOUDY: '☁ Cloudy' };
+        w.textContent = icons[weather] || ('· ' + weather);
+      }
+    }
     if (notice != null) {
       const n = document.getElementById('dash-notice');
       if (n) {
