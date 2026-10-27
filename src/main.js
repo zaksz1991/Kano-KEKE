@@ -303,6 +303,8 @@ async function bootstrap() {
   const fatigue = new DriverFatigueSystem(charSelect.getDriver());
   const achievements = new AchievementSystem();
   const tutorial = new FirstShiftTutorial();
+  let shiftElapsed = 0;
+  let shiftStartCash = 0;
   const roadsideLife = new KanoRoadsideLife(scene);
   try { roadsideLife.init(); } catch (e) { console.warn('roadside', e); }
   const missionManager = new MissionManager();
@@ -546,6 +548,8 @@ async function bootstrap() {
     dashHud.show();
     radar.show();
     tutorial.start();
+    shiftElapsed = 0;
+    shiftStartCash = passengerManager.dailyEarnings;
     // hide old mission floating hud overlap
     const oldM = document.getElementById('mission-hud');
     if (oldM) oldM.style.display = 'none';
@@ -714,6 +718,8 @@ async function bootstrap() {
               lives: missionManager.lives,
               missionsText: missionManager.getHudText() + '\nStamina ' + fatigue.getPercent() + '%',
           weather: weatherManager.currentWeather || 'CLEAR',
+          shiftTime: shiftElapsed,
+          startCash: shiftStartCash,
               notice: `+₦${fare}`
             });
             SaveSystem.saveGame({
@@ -770,6 +776,7 @@ async function bootstrap() {
           }
         } catch (err) {}
         audioEngine.updateEngine(kekeController.currentSpeed, kekeController.maxSpeed);
+        shiftElapsed += delta;
         fatigue.update(delta, kekeController.currentSpeed, (ev) => showBanner(ev));
         streetEvents.update(delta, (ev) => {
           showBanner(ev);
@@ -821,7 +828,13 @@ async function bootstrap() {
           route: document.getElementById('route-name-display')?.textContent || 'Kano',
           missionsText: missionManager.getHudText() + '\nStamina ' + fatigue.getPercent() + '%',
           weather: weatherManager.currentWeather || 'CLEAR',
-          weather: weatherManager.currentWeather || 'CLEAR'
+          shiftTime: shiftElapsed,
+          startCash: shiftStartCash,
+          weather: weatherManager.currentWeather || 'CLEAR',
+          shiftTime: shiftElapsed,
+          startCash: shiftStartCash,
+          shiftTime: shiftElapsed,
+          startCash: shiftStartCash
         });
       }
     } catch (err) {
