@@ -162,6 +162,13 @@ export class GameFlowManager {
     }
   }
 
+  /** Call when player mashes throttle during intro */
+  skipIntro(showBanner) {
+    if (this.state === 'DRIVING' || this.state === 'PAUSED' || this.state === 'MENU') return;
+    this._finishIntro();
+    if (showBanner) showBanner('🚗 Engine on — drive!');
+  }
+
   isDriving() {
     return this.state === 'DRIVING';
   }

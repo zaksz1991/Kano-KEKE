@@ -84,12 +84,17 @@ export class DailySettlementManager {
       .map((x) => `<div style="color:#81c784;">✓ ${x}</div>`)
       .join('') || '<div style="color:#888;">No missions completed</div>';
 
+    const stars = data.rank && data.rank.startsWith('S') ? '★★★★★'
+      : data.rank && data.rank.startsWith('A') ? '★★★★☆'
+      : data.rank && data.rank.startsWith('B') ? '★★★☆☆'
+      : data.rank && data.rank.startsWith('C') ? '★★☆☆☆' : '★☆☆☆☆';
     m.innerHTML = `
       <div style="background:linear-gradient(160deg,#1a1a24,#12121a);border:2px solid #ffcc00;border-radius:18px;padding:22px 20px;max-width:340px;width:100%;color:#fff;font-family:system-ui,sans-serif;box-shadow:0 0 40px rgba(255,200,0,0.15);">
         <div style="text-align:center;font-size:13px;color:#00ffff;letter-spacing:2px;">SHIFT COMPLETE</div>
-        <h2 style="text-align:center;color:#ffcc00;margin:6px 0 14px;font-size:26px;">Daily Settlement</h2>
+        <h2 style="text-align:center;color:#ffcc00;margin:6px 0 8px;font-size:26px;">Daily Settlement</h2>
+        <div style="text-align:center;color:#ffcc00;font-size:20px;letter-spacing:3px;margin-bottom:4px;">${stars}</div>
         ${data.leveled ? '<div style="text-align:center;background:#ff6f00;color:#000;font-weight:900;padding:6px;border-radius:8px;margin-bottom:10px;">LEVEL UP → Lv ' + data.level + '</div>' : ''}
-        <div style="text-align:center;color:#80deea;font-size:14px;margin-bottom:8px;">Rank: ${data.rank || '—'}</div>
+        <div style="text-align:center;color:#80deea;font-size:14px;margin-bottom:8px;">${data.rank || '—'}</div>
         <div style="font-size:14px;line-height:1.7;">
           <div style="display:flex;justify-content:space-between;"><span>Fares collected</span><span style="color:#4caf50;">+₦${data.earnings}</span></div>
           <div style="display:flex;justify-content:space-between;"><span>Mission bonus</span><span style="color:#4caf50;">+₦${data.bonus}</span></div>

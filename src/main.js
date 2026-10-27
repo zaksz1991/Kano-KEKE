@@ -158,6 +158,26 @@ function showBanner(msg) {
   }, 3500);
 }
 
+
+function showFirstRunTips() {
+  if (localStorage.getItem('kano_tips_seen')) return;
+  localStorage.setItem('kano_tips_seen', '1');
+  const tips = [
+    'Hold ACCEL to skip intro & drive',
+    'Slow near roadside people to pick up',
+    'R = Radio · C = Garage · N = End shift',
+    'Brake when passenger says Akwai!'
+  ];
+  let i = 0;
+  const tick = () => {
+    if (i >= tips.length) return;
+    showBanner('💡 ' + tips[i]);
+    i++;
+    setTimeout(tick, 2800);
+  };
+  setTimeout(tick, 900);
+}
+
 // ---------- Bootstrap ----------
 async function bootstrap() {
   showLoading('Loading Kano streets...', 10);
@@ -454,6 +474,7 @@ async function bootstrap() {
   clearTimeout(safety);
   hideLoading();
   showBanner('Select driver & route, then START SHIFT');
+  showFirstRunTips();
 
   // Hide HUDs until start
   ['top-left-hud', 'top-right-hud'].forEach((id) => {
@@ -486,6 +507,12 @@ async function bootstrap() {
     try {
       // Intro / flow
       flow.update(delta, showBanner);
+      // Skip intro if player hits gas
+      if (!flow.isDriving() && flow.state !== 'MENU' && flow.state !== 'PAUSED') {
+        if ((input.throttle || 0) > 0.5 || keys['KeyW'] || keys['ArrowUp']) {
+          flow.skipIntro?.(showBanner);
+        }
+      }
 
       // Force drive if intro stuck > 6s after start
       if (gameStarted && flow.state !== 'DRIVING' && flow.state !== 'PAUSED' && flow.state !== 'MENU') {
