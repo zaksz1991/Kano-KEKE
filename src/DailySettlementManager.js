@@ -16,17 +16,20 @@ export class DailySettlementManager {
 
   canClaimDaily() {
     if (!this.lastDailyClaim) return true;
-    const last = new Date(this.lastDailyClaim);
-    const now = new Date();
-    return last.toDateString() !== now.toDateString();
+    try {
+      const last = new Date(this.lastDailyClaim);
+      const now = new Date();
+      return last.toDateString() !== now.toDateString();
+    } catch (e) {
+      return true;
+    }
   }
 
   claimDaily() {
-    if (!this.canClaimDaily()) return { ok: false, amount: 0 };
-    const streakBonus = 0;
-    const amount = 800 + Math.floor(Math.random() * 700) + streakBonus;
+    if (!this.canClaimDaily()) return { ok: false, amount: 0, reason: 'already' };
+    const amount = 1000 + Math.floor(Math.random() * 500);
     this.lastDailyClaim = Date.now();
-    this.passengers.dailyEarnings += amount;
+    if (this.passengers) this.passengers.dailyEarnings = (this.passengers.dailyEarnings || 0) + amount;
     return { ok: true, amount };
   }
 

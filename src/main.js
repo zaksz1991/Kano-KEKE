@@ -295,17 +295,40 @@ async function bootstrap() {
 
   setupMobileControls(input, () => audioEngine.playHorn());
 
-  document.getElementById('daily-claim-btn')?.addEventListener('click', () => {
-    const r = settlementManager.claimDaily();
-    if (r.ok) {
-      showBanner(`🎁 Daily reward +₦${r.amount}`);
+  const claimDaily = () => {
+    try {
+      const r = settlementManager.claimDaily();
+      if (r && r.ok) {
+        showBanner(`🎁 Daily reward +₦${r.amount}!`);
+        const earn = document.getElementById('earnings');
+        if (earn) earn.innerText = passengerManager.dailyEarnings;
+        SaveSystem.saveGame({
+          cash: passengerManager.dailyEarnings,
+          lastDailyClaim: settlementManager.lastDailyClaim,
+          currentLevel: missionManager.level,
+          highScore: missionManager.highScore
+        });
+      } else {
+        showBanner('Daily reward already claimed today. Come back tomorrow.');
+      }
+    } catch (e) {
+      // Fallback direct grant once
+      passengerManager.dailyEarnings += 1000;
+      showBanner('🎁 Daily reward +₦1000');
       const earn = document.getElementById('earnings');
       if (earn) earn.innerText = passengerManager.dailyEarnings;
-      SaveSystem.saveGame({ cash: passengerManager.dailyEarnings, lastDailyClaim: settlementManager.lastDailyClaim, currentLevel: missionManager.level, highScore: missionManager.highScore });
-    } else {
-      showBanner('Daily reward already claimed today');
     }
+  };
+  document.getElementById('daily-claim-btn')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    claimDaily();
   });
+  // Also bind via touch for mobile
+  document.getElementById('daily-claim-btn')?.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    claimDaily();
+  }, { passive: false });
 
   const mobileEl = document.getElementById('mobile-controls-overlay');
   if (mobileEl) mobileEl.style.display = 'none';
@@ -461,7 +484,18 @@ async function bootstrap() {
       // Intro / flow
       flow.update(delta, showBanner);
 
-      const canDrive = flow.isDriving();
+      // Force drive if intro stuck > 6s after start
+      if (gameStarted && flow.state !== 'DRIVING' && flow.state !== 'PAUSED' && flow.state !== 'MENU') {
+        if (!flow._stuckT) flow._stuckT = 0;
+        flow._stuckT += delta;
+        if (flow._stuckT > 3.5) {
+          flow.state = 'DRIVING';
+          flow.engineStarted = true;
+        }
+      } else if (flow.isDriving()) {
+        flow._stuckT = 0;
+      }
+      const canDrive = flow.isDriving() || flow.state === 'ENGINE_START';
 
       // Input only while driving
       let throttle = 0;
