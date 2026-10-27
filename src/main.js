@@ -31,6 +31,7 @@ import { DashHUD } from './DashHUD.js';
 import { KanoRoadsideLife } from './KanoRoadsideLife.js';
 import { FuelStationSystem } from './FuelStationSystem.js';
 import { ProximityRadar } from './ProximityRadar.js';
+import { HighScoreBoard } from './HighScoreBoard.js';
 
 // CapsuleGeometry polyfill for older three builds
 if (!THREE.CapsuleGeometry) {
@@ -296,6 +297,7 @@ async function bootstrap() {
   missionManager.loadProgress(saved);
   const missionBoard = new MissionBoardUI(missionManager, charSelect);
   try { missionBoard.showPreview(); } catch (e) {}
+  try { HighScoreBoard.renderOnMenu(); } catch (e) {}
 
   const collisionSystem = new KekeCollisionSystem(kekeGroup, kekeController, trafficManager, missionManager);
 
@@ -401,6 +403,15 @@ async function bootstrap() {
     if (e.code === 'KeyN') {
       // End shift / settle
       const result = missionManager.settleShift(passengerManager.dailyEarnings, fuelManager.fuel ?? 50);
+      try {
+        HighScoreBoard.submit({
+          score: result.score,
+          cash: passengerManager.dailyEarnings,
+          driver: charSelect.getDriver()?.name || 'RuffNeck',
+          route: document.getElementById('route-name-display')?.textContent || 'Kano'
+        });
+        HighScoreBoard.renderOnMenu();
+      } catch (e) {}
       settlementManager.settle(result);
       SaveSystem.saveGame({
         cash: passengerManager.dailyEarnings,
@@ -599,6 +610,10 @@ async function bootstrap() {
             const fareMatch = String(ev.msg || '').match(/₦(\d+)/);
             const fare = fareMatch ? parseInt(fareMatch[1], 10) : 200;
             missionManager.onDropoff(fare);
+            if (missionManager.combo >= 2) {
+              showBanner(`🔥 Combo x${missionManager.combo}!`);
+              try { audioEngine.playOneShot(520 + missionManager.combo * 40, 0.12, 'square', 0.08); } catch (e) {}
+            }
             _updateMissionHud(missionManager);
             // Proximity radar targets
         const radarTargets = [];
