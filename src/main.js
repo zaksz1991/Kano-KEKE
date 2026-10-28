@@ -746,6 +746,7 @@ async function bootstrap() {
   // ---------- Loop ----------
   const clock = new THREE.Clock();
   let timeAccum = 0;
+  let atmosAccum = 0;
 
   function animate() {
     requestAnimationFrame(animate);
@@ -820,7 +821,11 @@ async function bootstrap() {
       });
       weatherManager.update(delta, kekeGroup.position, showBanner);
       particleSystem.update(delta, kekeController.currentSpeed, weatherManager.currentWeather || 'CLEAR');
-      updateAtmosphereByTime(scene, renderer, window.timeInMinutes, roadSystem);
+      atmosAccum += delta;
+      if (atmosAccum > 0.5) {
+        atmosAccum = 0;
+        updateAtmosphereByTime(scene, renderer, window.timeInMinutes, roadSystem);
+      }
 
       if (canDrive) {
         passengerManager.update(delta, (ev) => {

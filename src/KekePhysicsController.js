@@ -1,21 +1,28 @@
 import * as THREE from 'three';
 
-/** Stable drive feel – gentle steering, stays on road */
+/**
+ * Arcade-stable keke physics
+ * - Steering is angular rate, not raw spin
+ * - High speed = less turn (understeer)
+ * - Smooth steer input lag (feels like weight)
+ */
 export class KekePhysicsController {
   constructor(kekeGroup) {
     this.group = kekeGroup;
-    this.velocity = 0;
+    this.velocity = 0; // m/s along facing
     this.currentSpeed = 0;
-    this.maxSpeed = 26;
-    this.reverseMax = 8;
-    this.acceleration = 20;
-    this.brakingForce = 28;
-    this.friction = 5.5;
+    this.maxSpeed = 24;
+    this.reverseMax = 6;
+    this.acceleration = 14;
+    this.brakingForce = 22;
+    this.friction = 4.5;
     this.throttleInput = 0;
     this.steerInput = 0;
+    this.steerAngle = 0; // smoothed wheel angle -1..1
+    this.yawRate = 0;
     this.engineRPM = 0;
-    // Soft lane limits (world X)
-    this.roadLimit = 7.2;
+    this.roadLimit = 6.8;
+    this._fwd = new THREE.Vector3();
   }
 
   setInput(throttle, steer) {
@@ -26,46 +33,63 @@ export class KekePhysicsController {
   bindWheels() {}
 
   update(delta) {
-    const dt = Math.min(Math.max(delta || 0.016, 0.001), 0.05);
+    // Hard clamp – prevents freeze spikes after tab switch
+    const dt = Math.min(Math.max(delta || 0.016, 0.001), 0.033);
 
+    // --- Longitudinal ---
     if (this.throttleInput > 0.05) {
-      this.velocity += this.acceleration * this.throttleInput * dt;
+      const load = 1 - Math.min(0.5, this.currentSpeed / Math.max(1, this.maxSpeed));
+      this.velocity += this.acceleration * this.throttleInput * load * dt;
     } else if (this.throttleInput < -0.05) {
-      if (this.velocity > 0.4) {
+      if (this.velocity > 0.5) {
         this.velocity -= this.brakingForce * Math.abs(this.throttleInput) * dt;
       } else {
-        this.velocity += this.acceleration * 0.5 * this.throttleInput * dt;
+        this.velocity += this.acceleration * 0.4 * this.throttleInput * dt;
       }
     } else {
       if (this.velocity > 0) this.velocity = Math.max(0, this.velocity - this.friction * dt);
       else if (this.velocity < 0) this.velocity = Math.min(0, this.velocity + this.friction * dt);
     }
 
-    const max = Math.max(8, this.maxSpeed || 26);
+    const max = Math.max(8, this.maxSpeed || 24);
     this.velocity = Math.max(-this.reverseMax, Math.min(max, this.velocity));
     this.currentSpeed = Math.abs(this.velocity);
 
-    // Gentle steering – stronger at low speed, weaker at high speed
-    if (Math.abs(this.steerInput) > 0.05 && this.currentSpeed > 0.2) {
+    // --- Steering: smooth input, speed-limited yaw ---
+    // Wheel angle lags behind finger (weight)
+    const steerTarget = this.steerInput;
+    this.steerAngle += (steerTarget - this.steerAngle) * Math.min(1, 6 * dt);
+
+    if (this.currentSpeed > 0.35 && Math.abs(this.steerAngle) > 0.02) {
       const sign = this.velocity >= 0 ? 1 : -1;
-      // Was 0.16 * speed (too sharp). Now curve down with speed.
-      const agility = 0.55 / (1 + this.currentSpeed * 0.12);
-      this.group.rotation.y += this.steerInput * sign * agility * this.currentSpeed * 0.045 * dt * 60;
+      // Max turn rate falls off hard with speed (real understeer feel)
+      // At crawl ~1.1 rad/s, at 20 m/s ~0.25 rad/s
+      const maxYaw = 1.05 / (1 + this.currentSpeed * 0.22);
+      const targetYaw = this.steerAngle * sign * maxYaw;
+      // Smooth yaw rate
+      this.yawRate += (targetYaw - this.yawRate) * Math.min(1, 8 * dt);
+      this.group.rotation.y += this.yawRate * dt;
+    } else {
+      this.yawRate *= 0.85;
     }
 
-    const dir = new THREE.Vector3(0, 0, 1).applyQuaternion(this.group.quaternion);
-    this.group.position.addScaledVector(dir, this.velocity * dt);
+    // Light body lean for feedback (visual only)
+    const lean = THREE.MathUtils.clamp(-this.steerAngle * this.currentSpeed * 0.012, -0.12, 0.12);
+    this.group.rotation.z = THREE.MathUtils.lerp(this.group.rotation.z, lean, 0.15);
+
+    // Integrate position
+    this._fwd.set(0, 0, 1).applyQuaternion(this.group.quaternion);
+    this.group.position.addScaledVector(this._fwd, this.velocity * dt);
     this.group.position.y = 0;
 
-    // Soft wall – ease back onto road if drifting off
+    // Soft road edges
     const x = this.group.position.x;
     if (x > this.roadLimit) {
-      this.group.position.x = THREE.MathUtils.lerp(x, this.roadLimit, 0.12);
-      // gentle straighten
-      this.group.rotation.y *= 0.98;
+      this.group.position.x = THREE.MathUtils.lerp(x, this.roadLimit, 0.15);
+      this.yawRate *= 0.5;
     } else if (x < -this.roadLimit) {
-      this.group.position.x = THREE.MathUtils.lerp(x, -this.roadLimit, 0.12);
-      this.group.rotation.y *= 0.98;
+      this.group.position.x = THREE.MathUtils.lerp(x, -this.roadLimit, 0.15);
+      this.yawRate *= 0.5;
     }
 
     this.engineRPM = Math.min(1, this.currentSpeed / max);

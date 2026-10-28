@@ -16,7 +16,7 @@ export class KanoWeatherManager {
     this.weatherTimer = 0;
     this.nextChange = 45 + Math.random() * 50; // first change 1.5–3.5 min
 
-    this.rainCount = 900;
+    this.rainCount = 350;
     this.dustCount = 0;
 
     this._initRain();
