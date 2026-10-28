@@ -92,7 +92,7 @@ export class InfiniteRoadSystem {
 
     // --- Road ---
     const roadMat = new THREE.MeshStandardMaterial({
-      color: 0x3a3a3a,
+      color: 0x2e2e2e,
       roughness: 0.88,
       metalness: 0.08,
       map: this.roadTexture
@@ -108,7 +108,7 @@ export class InfiniteRoadSystem {
     group.userData.roadMesh = road;
 
     // Sidewalks
-    const walkMat = new THREE.MeshStandardMaterial({ color: 0x9e9e9e, roughness: 0.95 });
+    const walkMat = new THREE.MeshStandardMaterial({ color: 0x6e6e6e, roughness: 0.95 });
     for (const x of [-9.5, 9.5]) {
       const walk = new THREE.Mesh(new THREE.PlaneGeometry(3.2, this.chunkLength), walkMat);
       walk.rotation.x = -Math.PI / 2;
@@ -144,18 +144,8 @@ export class InfiniteRoadSystem {
     // Side world – denser
     for (const side of [-1, 1]) {
       const baseX = side * 12.5;
-      // Compounds / shops – sparse for mobile FPS
-      for (let i = 0; i < 2; i++) {
-        if (rand() > 0.35) {
-          const b = this._makeBuilding(rand, side);
-          b.position.set(
-            baseX + side * (1.5 + rand() * 5),
-            0,
-            -this.chunkLength / 2 + 8 + i * 20 + rand() * 3
-          );
-          group.add(b);
-        }
-      }
+      // No box buildings – landmarks/GLB only world
+      // (kept trees/lights minimal for edge of road)
       // Trees
       for (let i = 0; i < 2; i++) {
         if (rand() > 0.45) {
@@ -169,19 +159,19 @@ export class InfiniteRoadSystem {
         }
       }
       // Poles
-      if (rand() > 0.25) {
+      if (rand() > 0.55) {
         const pole = this._makePole();
         pole.position.set(baseX + side * 0.6, 0, (rand() - 0.5) * this.chunkLength * 0.7);
         group.add(pole);
       }
       // Market stalls
-      if (rand() > 0.7) {
+      if (false) {
         const stall = this._makeStall(rand);
         stall.position.set(baseX + side * (0.5 + rand()), 0, (rand() - 0.5) * this.chunkLength * 0.55);
         group.add(stall);
       }
       // Billboards / signs
-      if (rand() > 0.8) {
+      if (false) {
         const sign = this._makeSign(rand);
         sign.position.set(baseX + side * 2, 0, (rand() - 0.5) * 20);
         group.add(sign);
@@ -198,16 +188,6 @@ export class InfiniteRoadSystem {
       }
     }
 
-    // Occasional speed bump
-    if (rand() > 0.7) {
-      const bump = new THREE.Mesh(
-        new THREE.BoxGeometry(14, 0.12, 0.8),
-        new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.7 })
-      );
-      bump.position.set(0, 0.06, (rand() - 0.5) * 20);
-      bump.castShadow = true;
-      group.add(bump);
-    }
 
     return group;
   }

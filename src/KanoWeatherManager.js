@@ -17,7 +17,7 @@ export class KanoWeatherManager {
     this.nextChange = 45 + Math.random() * 50; // first change 1.5–3.5 min
 
     this.rainCount = 900;
-    this.dustCount = 400;
+    this.dustCount = 0;
 
     this._initRain();
     this._initHarmattanDust();
@@ -179,6 +179,6 @@ export class KanoWeatherManager {
     this.weatherTimer = 0;
     this.nextChange = 40 + Math.random() * 40;
     if (this.rainPoints) this.rainPoints.visible = name === 'HEAVY_RAIN';
-    if (this.dustPoints) this.dustPoints.visible = name === 'HARMATTAN_HAZE';
+    if (this.dustPoints) if (this.dustPoints) this.dustPoints.visible = false;
   }
 }

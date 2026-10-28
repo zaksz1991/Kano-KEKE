@@ -8,7 +8,7 @@ export class KanoRoadsideLife {
   constructor(scene) {
     this.scene = scene;
     this.props = [];
-    this.maxProps = 8;
+    this.maxProps = 0;
     this._spawnedUntil = 0;
     this.rng = (seed) => {
       let s = (Math.abs(seed | 0) % 2147483646) + 1;
@@ -20,6 +20,7 @@ export class KanoRoadsideLife {
   }
 
   init() {
+    return; // disabled – GLB landmarks only, no box props
     for (let i = 0; i < 8; i++) {
       this._spawnAt(40 + i * 70);
     }

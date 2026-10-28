@@ -24,7 +24,6 @@ import { PrayerTimeManager } from './PrayerTimeManager.js';
 import { DailySettlementManager } from './DailySettlementManager.js';
 import { MissionManager } from './MissionManager.js';
 import { KekeCollisionSystem } from './KekeCollisionSystem.js';
-import { HausaVoiceBank } from './HausaVoiceBank.js';
 import { MissionBoardUI } from './MissionBoardUI.js';
 import { KekeSeatOccupancy } from './KekeSeatOccupancy.js';
 import { DashHUD } from './DashHUD.js';
@@ -124,21 +123,44 @@ document.getElementById('start-game-btn')?.addEventListener('click', (e) => {
       if (typeof window.__kanoClaimDaily === 'function') {
         window.__kanoClaimDaily();
       } else {
-        // Instant grant before bootstrap finishes
-        const amt = 1200;
-        window.__kanoCash = (window.__kanoCash || 1500) + amt;
-        window.__kanoDailyPending = (window.__kanoDailyPending || 0) + amt;
-        b.textContent = 'CLAIMED +₦' + amt;
-        b.style.background = '#2e7d32';
-        try { showBanner('🎁 Daily reward +₦' + amt); } catch (err) {}
-        let chip = document.getElementById('menu-cash-chip');
-        if (!chip && menuBtns) {
-          chip = document.createElement('div');
-          chip.id = 'menu-cash-chip';
-          chip.style.cssText = 'color:#4caf50;font-weight:900;font-size:16px;margin:6px 0;';
-          menuBtns.prepend(chip);
+        // Before bootstrap: only claim if not already claimed today (localStorage)
+        try {
+          const raw = localStorage.getItem('kano_run_save_v2');
+          const prev = raw ? JSON.parse(raw) : {};
+          if (prev.lastDailyClaim) {
+            const last = new Date(prev.lastDailyClaim);
+            const now = new Date();
+            if (last.toDateString() === now.toDateString()) {
+              b.textContent = 'ALREADY CLAIMED';
+              showBanner('Daily already claimed today');
+              return;
+            }
+          }
+          const amt = 1200;
+          const cash = (prev.cash || window.__kanoCash || 1500) + amt;
+          const claimAt = Date.now();
+          localStorage.setItem('kano_run_save_v2', JSON.stringify({
+            ...prev,
+            cash,
+            lastDailyClaim: claimAt,
+            updatedAt: claimAt
+          }));
+          window.__kanoCash = cash;
+          window.__kanoDailyPending = 0; // already saved
+          b.textContent = 'CLAIMED +₦' + amt;
+          b.style.background = '#2e7d32';
+          showBanner('🎁 Daily reward +₦' + amt);
+          let chip = document.getElementById('menu-cash-chip');
+          if (!chip && menuBtns) {
+            chip = document.createElement('div');
+            chip.id = 'menu-cash-chip';
+            chip.style.cssText = 'color:#4caf50;font-weight:900;font-size:16px;margin:6px 0;';
+            menuBtns.prepend(chip);
+          }
+          if (chip) chip.textContent = 'CASH ₦' + cash;
+        } catch (err) {
+          showBanner('Daily claim failed — try again after load');
         }
-        if (chip) chip.textContent = 'CASH ₦' + window.__kanoCash;
       }
     };
     b.addEventListener('click', handler);
@@ -368,7 +390,6 @@ async function bootstrap() {
   const audioEngine = new KanoAudioEngine();
   audioEngine.setup(camera, kekeGroup);
   audioEngine.enableOnInteraction();
-  const voiceBank = new HausaVoiceBank(audioEngine);
   // Preload speech voices
   if (window.speechSynthesis) speechSynthesis.getVoices();
 
@@ -459,24 +480,19 @@ async function bootstrap() {
     }
   );
 
-  // Apply pending early claim
-  if (window.__kanoDailyPending) {
-    passengerManager.dailyEarnings += window.__kanoDailyPending;
-    window.__kanoDailyPending = 0;
-  }
-  passengerManager.dailyEarnings = Math.max(passengerManager.dailyEarnings, window.__kanoCash || 0);
+  // Sync cash from save / early claim (do not double-grant)
+  passengerManager.dailyEarnings = Math.max(
+    passengerManager.dailyEarnings,
+    saved.cash ?? 0,
+    window.__kanoCash || 0
+  );
+  window.__kanoDailyPending = 0;
 
   window.__kanoClaimDaily = () => {
     const btn = document.getElementById('daily-claim-btn');
     try {
       // If already claimed today, say so — but allow force once per session if save is stuck
-      let r = settlementManager.claimDaily();
-      if (!r.ok && !window.__kanoDailyForced) {
-        // Soft reset stuck claim from bad timezone/save
-        settlementManager.lastDailyClaim = null;
-        r = settlementManager.claimDaily();
-        window.__kanoDailyForced = true;
-      }
+      const r = settlementManager.claimDaily();
       if (r && r.ok) {
         showBanner('🎁 Daily reward +₦' + r.amount + '!');
         window.__kanoCash = passengerManager.dailyEarnings;
@@ -802,14 +818,12 @@ async function bootstrap() {
           if (earn && ev.earnings != null) earn.innerText = ev.earnings;
           if (ev.type === 'BOARD') {
             audioEngine.playOneShot(520, 0.12, 'sine', 0.1);
-            voiceBank.speak('board');
             try { tutorial.onBoard(); } catch (e) {}
           }
-          if (ev.type === 'NEGOTIATE') voiceBank.speak('negotiate');
-          if (ev.type === 'DROP_REQUEST') voiceBank.speak('drop');
-          if (ev.type === 'TIP') voiceBank.speak('tip');
+          if (ev.type === 'NEGOTIATE')
+          if (ev.type === 'DROP_REQUEST')
+          if (ev.type === 'TIP')
           if (ev.type === 'DROPOFF') {
-            voiceBank.speak('drop');
             try { tutorial.onDrop(); } catch (e) {}
             audioEngine.playOneShot(660, 0.15, 'triangle', 0.12);
             const fareMatch = String(ev.msg || '').match(/₦(\d+)/);
@@ -865,7 +879,6 @@ async function bootstrap() {
         });
         policeEngine.update((ev) => {
           showBanner(ev);
-          voiceBank.speak('karota');
           if (ev.type === 'KAROTA_CHASE' || (ev.msg && ev.msg.includes('chase'))) {
             try { audioEngine.playOneShot(880, 0.15, 'square', 0.08); } catch (e) {}
             setTimeout(() => { try { audioEngine.playOneShot(660, 0.2, 'square', 0.07); } catch (e) {} }, 180);
@@ -880,7 +893,6 @@ async function bootstrap() {
         collisionSystem.update(delta, (ev) => {
           showBanner(ev);
           if (ev.type === 'CRASH' || ev.type === 'WRECKED') {
-            voiceBank.speak('crash');
             try { cameraRig.setShake?.(0.35); } catch (e) {}
             try { audioEngine.playOneShot(90, 0.2, 'sawtooth', 0.1); } catch (e) {}
           }
@@ -910,7 +922,7 @@ async function bootstrap() {
         prayerManager.update(window.timeInMinutes, (e) => {
           if (e?.msg) {
             showBanner(e.msg);
-            try { voiceBank.speak('karota');
+            try {
           if (ev.type === 'KAROTA_CHASE' || (ev.msg && ev.msg.includes('chase'))) {
             try { audioEngine.playOneShot(880, 0.15, 'square', 0.08); } catch (e) {}
             setTimeout(() => { try { audioEngine.playOneShot(660, 0.2, 'square', 0.07); } catch (e) {} }, 180);
