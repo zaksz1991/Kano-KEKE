@@ -216,7 +216,10 @@ export class PassengerManager {
     if (speed < 6.5) {
       const dropping = this.onBoard.filter((p) => p.state === 'dropping');
       dropping.forEach((p) => {
-        if (Math.abs(playerZ - p.dropAtZ) < 20) {
+        const dz = Math.abs(playerZ - p.dropAtZ);
+        if (dz < 20) {
+          // Perfect drop = almost stopped + close to mark
+          p._perfectDrop = speed < 2.8 && dz < 10;
           this._completeDropoff(p, hudCallback);
         }
       });
@@ -267,6 +270,14 @@ export class PassengerManager {
 
   _completeDropoff(p, hudCallback) {
     let pay = p.agreedFare || p.baseFare;
+    // Perfect drop bonus
+    if (p._perfectDrop) {
+      const bonus = Math.round(pay * 0.25) + 50;
+      pay += bonus;
+      if (hudCallback) {
+        hudCallback({ type: 'PERFECT_DROP', msg: `✨ Perfect drop! +₦${bonus}` });
+      }
+    }
     // Tip chance
     if (Math.random() < 0.25 * this.tipBonus) {
       const tip = Math.round(pay * (0.1 + Math.random() * 0.2));
