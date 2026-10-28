@@ -8,7 +8,7 @@ export class InfiniteRoadSystem {
     this.scene = scene;
     this.assets = assetManager;
     this.chunkLength = 56;
-    this.visibleChunks = 7;
+    this.visibleChunks = 9;
     this.chunks = [];
     this.roadTexture = null;
 
@@ -46,9 +46,20 @@ export class InfiniteRoadSystem {
     if (chunk.userData.hasRoadTile) return;
     try {
       const tile = this.roadTileModel.clone(true);
-      tile.position.set(0, 0.02, this.chunkLength * 0.5);
-      // Fit roughly along chunk
-      tile.scale.set(1.2, 1, this.chunkLength / 18);
+      tile.position.set(0, 0.04, this.chunkLength * 0.5);
+      tile.scale.set(1.15, 1, this.chunkLength / 18);
+      tile.traverse((n) => {
+        if (n.isMesh && n.material) {
+          const mats = Array.isArray(n.material) ? n.material : [n.material];
+          mats.forEach((m) => {
+            if (!m) return;
+            m.polygonOffset = true;
+            m.polygonOffsetFactor = -1;
+            m.polygonOffsetUnits = -1;
+            m.needsUpdate = true;
+          });
+        }
+      });
       chunk.add(tile);
       chunk.userData.hasRoadTile = true;
     } catch (e) {}
@@ -414,20 +425,19 @@ export class InfiniteRoadSystem {
 
   update(playerZ) {
     this.chunks.forEach((chunk) => {
-      if (chunk.position.z + this.chunkLength < playerZ - this.chunkLength * 1.8) {
+      if (chunk.position.z + this.chunkLength < playerZ - this.chunkLength * 2.2) {
         const maxZ = Math.max(...this.chunks.map((c) => c.position.z));
         chunk.position.z = maxZ + this.chunkLength;
-        chunk.userData.hasRoadTile = false;
-        this._applyRoadTile(chunk);
+        // Do not rebuild tiles – just move chunk (avoids blink / z-fight stack)
       }
     });
   }
 
   setNightMode(isNight) {
+    // Only real street lamp lights – do NOT touch every emissive (causes road blink)
     this.scene.traverse((obj) => {
-      if (obj.name === 'streetLight' && obj.isLight) obj.intensity = isNight ? 3.5 : 0;
-      if (obj.isMesh && obj.material && obj.material.emissive) {
-        obj.material.emissiveIntensity = isNight ? 0.85 : 0.15;
+      if (obj.name === 'streetLight' && obj.isLight) {
+        obj.intensity = isNight ? 3.5 : 0;
       }
     });
   }
