@@ -799,6 +799,7 @@ async function bootstrap() {
 
 function animate() {
     requestAnimationFrame(animate);
+    const frameStart = performance.now();
     const delta = Math.min(clock.getDelta(), 0.05);
 
     if (!gameStarted) {
@@ -839,6 +840,9 @@ function animate() {
       if (canDrive) {
         throttle = input.throttle || 0;
         steer = input.steering || 0;
+        // Deadzone – ignores tiny float noise from touch
+        if (Math.abs(throttle) < 0.08) throttle = 0;
+        if (Math.abs(steer) < 0.12) steer = 0;
         if (keys['KeyW'] || keys['ArrowUp']) throttle = 1;
         if (keys['KeyS'] || keys['ArrowDown']) throttle = -1;
         if (keys['KeyA'] || keys['ArrowLeft']) steer = 1;
@@ -866,7 +870,6 @@ function animate() {
         pedestrianManager.update(delta * 2);
       }
       landmarkManager.update(kekeGroup.position.z, (msg) => {
-        showBanner(msg);
         missionManager.xp = (missionManager.xp || 0) + 15;
         try { achievements.onLandmark(); } catch (e) {}
         missionManager.score = (missionManager.score || 0) + 50;
@@ -890,9 +893,6 @@ function animate() {
             audioEngine.playOneShot(520, 0.12, 'sine', 0.1);
             try { tutorial.onBoard(); } catch (e) {}
           }
-          if (ev.type === 'NEGOTIATE')
-          if (ev.type === 'DROP_REQUEST')
-          if (ev.type === 'TIP')
           if (ev.type === 'DROPOFF') {
             try { tutorial.onDrop(); } catch (e) {}
             audioEngine.playOneShot(660, 0.15, 'triangle', 0.12);

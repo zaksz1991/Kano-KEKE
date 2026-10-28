@@ -1,109 +1,104 @@
 import * as THREE from 'three';
 
 /**
- * Arcade-stable keke physics
- * - Steering is angular rate, not raw spin
- * - High speed = less turn (understeer)
- * - Smooth steer input lag (feels like weight)
+ * Production arcade keke physics (senior pass)
+ * - Smooth throttle response
+ * - Speed-sensitive steering with understeer
+ * - Steer smoothing + yaw damping
+ * - Soft road bounds + light lane assist
  */
 export class KekePhysicsController {
   constructor(kekeGroup) {
     this.group = kekeGroup;
-    this.velocity = 0; // m/s along facing
+    this.velocity = 0;
     this.currentSpeed = 0;
     this.maxSpeed = 24;
     this.reverseMax = 6;
-    this.acceleration = 14;
-    this.brakingForce = 22;
-    this.friction = 4.5;
+    this.acceleration = 13;
+    this.brakingForce = 20;
+    this.coastFriction = 3.8;
     this.throttleInput = 0;
     this.steerInput = 0;
-    this.steerAngle = 0; // smoothed wheel angle -1..1
+    this.steerAngle = 0;
     this.yawRate = 0;
     this.engineRPM = 0;
-    this.roadLimit = 6.8;
+    this.roadLimit = 6.5;
     this.laneAssist = true;
     this._fwd = new THREE.Vector3();
   }
 
   setInput(throttle, steer) {
-    this.throttleInput = Math.max(-1, Math.min(1, Number(throttle) || 0));
-    this.steerInput = Math.max(-1, Math.min(1, Number(steer) || 0));
+    this.throttleInput = THREE.MathUtils.clamp(Number(throttle) || 0, -1, 1);
+    this.steerInput = THREE.MathUtils.clamp(Number(steer) || 0, -1, 1);
   }
 
   bindWheels() {}
 
   update(delta) {
-    // Hard clamp – prevents freeze spikes after tab switch
-    const dt = Math.min(Math.max(delta || 0.016, 0.001), 0.033);
+    const dt = THREE.MathUtils.clamp(delta || 0.016, 0.001, 0.033);
 
-    // --- Longitudinal ---
-    if (this.throttleInput > 0.05) {
-      const load = 1 - Math.min(0.5, this.currentSpeed / Math.max(1, this.maxSpeed));
-      this.velocity += this.acceleration * this.throttleInput * load * dt;
-    } else if (this.throttleInput < -0.05) {
-      if (this.velocity > 0.5) {
-        this.velocity -= this.brakingForce * Math.abs(this.throttleInput) * dt;
+    // Throttle curve – progressive, not binary
+    const throttle = this.throttleInput;
+    if (throttle > 0.05) {
+      const top = Math.max(8, this.maxSpeed);
+      const headroom = 1 - THREE.MathUtils.clamp(this.velocity / top, 0, 1);
+      this.velocity += this.acceleration * throttle * (0.35 + 0.65 * headroom) * dt;
+    } else if (throttle < -0.05) {
+      if (this.velocity > 0.6) {
+        this.velocity -= this.brakingForce * Math.abs(throttle) * dt;
       } else {
-        this.velocity += this.acceleration * 0.4 * this.throttleInput * dt;
+        this.velocity += this.acceleration * 0.38 * throttle * dt;
       }
     } else {
-      if (this.velocity > 0) this.velocity = Math.max(0, this.velocity - this.friction * dt);
-      else if (this.velocity < 0) this.velocity = Math.min(0, this.velocity + this.friction * dt);
+      const f = this.coastFriction * dt;
+      if (this.velocity > 0) this.velocity = Math.max(0, this.velocity - f);
+      else if (this.velocity < 0) this.velocity = Math.min(0, this.velocity + f);
     }
 
     const max = Math.max(8, this.maxSpeed || 24);
-    this.velocity = Math.max(-this.reverseMax, Math.min(max, this.velocity));
+    this.velocity = THREE.MathUtils.clamp(this.velocity, -this.reverseMax, max);
     this.currentSpeed = Math.abs(this.velocity);
 
-    // --- Steering: smooth input, speed-limited yaw ---
-    // Wheel angle lags behind finger (weight)
-    const steerTarget = this.steerInput;
-    this.steerAngle += (steerTarget - this.steerAngle) * Math.min(1, 6 * dt);
+    // Steering: ease toward input, then limited yaw rate
+    const steerLerp = 1 - Math.exp(-7 * dt);
+    this.steerAngle += (this.steerInput - this.steerAngle) * steerLerp;
 
-    if (this.currentSpeed > 0.35 && Math.abs(this.steerAngle) > 0.02) {
-      const sign = this.velocity >= 0 ? 1 : -1;
-      // Max turn rate falls off hard with speed (real understeer feel)
-      // At crawl ~1.1 rad/s, at 20 m/s ~0.25 rad/s
-      const maxYaw = 1.05 / (1 + this.currentSpeed * 0.22);
-      const targetYaw = this.steerAngle * sign * maxYaw;
-      // Smooth yaw rate
-      this.yawRate += (targetYaw - this.yawRate) * Math.min(1, 8 * dt);
+    if (this.currentSpeed > 0.4 && Math.abs(this.steerAngle) > 0.03) {
+      const dirSign = this.velocity >= 0 ? 1 : -1;
+      // Understeer curve: slow = agile, fast = wide arc
+      const maxYaw = 0.95 / (1 + this.currentSpeed * 0.28);
+      const desiredYaw = this.steerAngle * dirSign * maxYaw;
+      this.yawRate += (desiredYaw - this.yawRate) * (1 - Math.exp(-9 * dt));
       this.group.rotation.y += this.yawRate * dt;
     } else {
-      this.yawRate *= 0.85;
+      this.yawRate *= Math.exp(-6 * dt);
     }
 
-    // Light body lean for feedback (visual only)
-    const lean = THREE.MathUtils.clamp(-this.steerAngle * this.currentSpeed * 0.012, -0.12, 0.12);
-    this.group.rotation.z = THREE.MathUtils.lerp(this.group.rotation.z, lean, 0.15);
+    // Subtle body roll
+    const lean = THREE.MathUtils.clamp(-this.steerAngle * this.currentSpeed * 0.01, -0.1, 0.1);
+    this.group.rotation.z += (lean - this.group.rotation.z) * 0.12;
 
-    // Integrate position
     this._fwd.set(0, 0, 1).applyQuaternion(this.group.quaternion);
     this.group.position.addScaledVector(this._fwd, this.velocity * dt);
     this.group.position.y = 0;
 
-    // Soft road edges
+    // Soft walls
     const x = this.group.position.x;
     if (x > this.roadLimit) {
-      this.group.position.x = THREE.MathUtils.lerp(x, this.roadLimit, 0.15);
-      this.yawRate *= 0.5;
+      this.group.position.x = THREE.MathUtils.lerp(x, this.roadLimit, 0.18);
+      this.yawRate *= 0.4;
     } else if (x < -this.roadLimit) {
-      this.group.position.x = THREE.MathUtils.lerp(x, -this.roadLimit, 0.15);
-      this.yawRate *= 0.5;
+      this.group.position.x = THREE.MathUtils.lerp(x, -this.roadLimit, 0.18);
+      this.yawRate *= 0.4;
     }
 
-    // Lane assist – when not steering, ease toward center of current half
-    if (this.laneAssist && Math.abs(this.steerInput) < 0.12 && this.currentSpeed > 1) {
-      const targetLane = x >= 0 ? 2.4 : -2.4;
-      this.group.position.x = THREE.MathUtils.lerp(x, targetLane, 0.02);
-      // gently reduce yaw drift
-      if (Math.abs(this.steerAngle) < 0.15) {
-        this.group.rotation.y *= 0.995;
-        this.yawRate *= 0.92;
-      }
+    // Lane assist only when hands off
+    if (this.laneAssist && Math.abs(this.steerInput) < 0.1 && this.currentSpeed > 1.5) {
+      const lane = x >= 0 ? 2.3 : -2.3;
+      this.group.position.x = THREE.MathUtils.lerp(this.group.position.x, lane, 0.015);
+      this.yawRate *= 0.94;
     }
 
-    this.engineRPM = Math.min(1, this.currentSpeed / max);
+    this.engineRPM = THREE.MathUtils.clamp(this.currentSpeed / max, 0, 1);
   }
 }
