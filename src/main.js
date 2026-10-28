@@ -757,11 +757,13 @@ async function bootstrap() {
     const delta = Math.min(clock.getDelta(), 0.05);
 
     if (!gameStarted) {
-      // Menu orbit
-      const t = clock.elapsedTime;
-      camera.position.set(Math.sin(t * 0.12) * 14, 5.5, Math.cos(t * 0.12) * 14);
-      camera.lookAt(0, 1.2, 0);
-      try { composer.render(); } catch (e) { renderer.render(scene, camera); }
+      // Static menu view – skip most frames to save battery/CPU
+      window.__menuFrame = (window.__menuFrame || 0) + 1;
+      if (window.__menuFrame % 2 === 0) {
+        camera.position.set(8, 5, 12);
+        camera.lookAt(0, 1, 0);
+        try { renderer.render(scene, camera); } catch (e) {}
+      }
       return;
     }
 
@@ -815,7 +817,9 @@ async function bootstrap() {
       roadSystem.update(kekeGroup.position.z);
       try { roadsideLife.update(kekeGroup.position.z); } catch (e) {}
       trafficManager.update(delta, isHornActive);
-      pedestrianManager.update(delta);
+      if ((window.__sysFrame = (window.__sysFrame || 0) + 1) % 2 === 0) {
+        pedestrianManager.update(delta * 2);
+      }
       landmarkManager.update(kekeGroup.position.z, (msg) => {
         showBanner(msg);
         missionManager.xp = (missionManager.xp || 0) + 15;

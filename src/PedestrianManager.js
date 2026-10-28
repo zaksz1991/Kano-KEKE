@@ -8,7 +8,7 @@ export class PedestrianManager {
     this.assets = assetManager;
     this.model = null;
     this.pedestrians = [];
-    this.maxPeds = 8;
+    this.maxPeds = 4;
     this.ready = false;
   }
 
