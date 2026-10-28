@@ -679,7 +679,10 @@ async function bootstrap() {
 
   // Start shift
   window.__kanoStartShift = () => {
+    if (window.__kanoStarting) return;
     if (gameStarted && flow?.state === 'DRIVING') return;
+    window.__kanoStarting = true;
+    setTimeout(() => { window.__kanoStarting = false; }, 1500);
     // Re-read selection
     const ds = document.getElementById('driver-select');
     const ks = document.getElementById('keke-select');
@@ -736,6 +739,11 @@ async function bootstrap() {
       }
     } catch (e) {}
     showBanner('🚗 Drive! Hold ACCEL');
+    if (!localStorage.getItem('kano_drive_tips')) {
+      localStorage.setItem('kano_drive_tips', '1');
+      setTimeout(() => showBanner('◀ ▶ steer · ACCEL gas · BRAKE stop/reverse'), 2200);
+      setTimeout(() => showBanner('Slow near people to pick up · RADIO for stations'), 5000);
+    }
     try { audioEngine.playOneShot(120, 0.3, 'sawtooth', 0.08); } catch (e) {}
   };
 
