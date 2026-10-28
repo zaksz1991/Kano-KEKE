@@ -756,7 +756,20 @@ async function bootstrap() {
   let atmosAccum = 0;
   let hudAccum = 0;
 
-  function animate() {
+  
+  // Pause systems when phone locks or tab hides – prevents freeze on return
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      window.__kanoWasPaused = paused;
+      paused = true;
+      try { audioEngine.engineGain && (audioEngine.engineGain.gain.value = 0); } catch (e) {}
+    } else {
+      paused = window.__kanoWasPaused || false;
+      try { clock.getDelta(); } catch (e) {} // dump long delta
+    }
+  });
+
+function animate() {
     requestAnimationFrame(animate);
     const delta = Math.min(clock.getDelta(), 0.05);
 
