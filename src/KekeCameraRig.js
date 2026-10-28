@@ -1,33 +1,52 @@
 import * as THREE from 'three';
 
 /**
- * Close chase camera – stays tight WHILE driving (not only at spawn)
+ * Balanced third-person chase camera
+ * Not too far (tiny keke mid-road), not too close (funny zoom)
  */
 export class KekeCameraRig {
   constructor(camera, targetGroup) {
     this.camera = camera;
     this.target = targetGroup;
 
-    // Tight follow distances (local space behind keke)
-    this.idealOffset = new THREE.Vector3(0, 2.0, -3.0);
-    this.lookAtOffset = new THREE.Vector3(0, 1.05, 3.5);
+    // Comfortable arcade chase distance
+    this.idealOffset = new THREE.Vector3(0, 3.4, -7.2);
+    this.lookAtOffset = new THREE.Vector3(0, 1.2, 6.5);
     this.currentPos = new THREE.Vector3();
     this.lookAtPos = new THREE.Vector3();
     this.velocity = new THREE.Vector3();
 
-    // Snappy follow so it doesn't lag and leave keke far ahead
-    this.stiffness = 48;
-    this.damping = 14;
-    this.lookStiffness = 22;
-    this.baseFov = 65;
-    this.maxFov = 72;
-    this.mode = 'near';
+    this.stiffness = 22;
+    this.damping = 11;
+    this.lookStiffness = 14;
+    this.baseFov = 58;
+    this.maxFov = 68;
+    this.mode = 'chase';
 
     this.modes = {
-      // z is behind the vehicle (negative local Z)
-      near: { offset: new THREE.Vector3(0, 2.0, -3.0), look: new THREE.Vector3(0, 1.05, 3.5), fov: 66 },
-      chase: { offset: new THREE.Vector3(0, 2.5, -4.2), look: new THREE.Vector3(0, 1.1, 5), fov: 62 },
-      hood: { offset: new THREE.Vector3(0, 1.55, 0.15), look: new THREE.Vector3(0, 1.2, 8), fov: 75 }
+      // Standard arcade – full vehicle + some road ahead
+      chase: {
+        offset: new THREE.Vector3(0, 3.4, -7.2),
+        look: new THREE.Vector3(0, 1.2, 6.5),
+        fov: 58
+      },
+      // Slightly tighter
+      near: {
+        offset: new THREE.Vector3(0, 2.9, -5.6),
+        look: new THREE.Vector3(0, 1.15, 5.5),
+        fov: 60
+      },
+      // Wider cinematic
+      wide: {
+        offset: new THREE.Vector3(0, 4.2, -9.5),
+        look: new THREE.Vector3(0, 1.3, 8),
+        fov: 55
+      },
+      hood: {
+        offset: new THREE.Vector3(0, 1.65, 0.2),
+        look: new THREE.Vector3(0, 1.25, 9),
+        fov: 72
+      }
     };
 
     this._snapToTarget();
@@ -42,6 +61,8 @@ export class KekeCameraRig {
     this.velocity.set(0, 0, 0);
     this.camera.position.copy(this.currentPos);
     this.camera.lookAt(this.lookAtPos);
+    this.camera.fov = this.baseFov;
+    this.camera.updateProjectionMatrix();
   }
 
   setMode(mode) {
@@ -56,7 +77,7 @@ export class KekeCameraRig {
   }
 
   cycleMode() {
-    const order = ['near', 'chase', 'hood'];
+    const order = ['chase', 'near', 'wide', 'hood'];
     const i = order.indexOf(this.mode);
     return this.setMode(order[(i + 1) % order.length]);
   }
@@ -65,28 +86,30 @@ export class KekeCameraRig {
     const dt = Math.min(Math.max(delta, 0.001), 0.05);
     const ratio = THREE.MathUtils.clamp(speed / 28, 0, 1);
 
-    // Stay close while moving – only slight pull-back at high speed
+    // Mild speed pull-back only
     const offset = this.idealOffset.clone();
-    offset.z -= ratio * 0.45; // was 1.2 (too far)
-    offset.y += ratio * 0.2;
+    offset.z -= ratio * 0.9;
+    offset.y += ratio * 0.35;
 
     const desired = new THREE.Vector3()
       .copy(this.target.position)
       .add(offset.applyQuaternion(this.target.quaternion));
 
-    // Blend spring with direct lerp so camera cannot fall far behind
-    const force = desired.clone().sub(this.currentPos).multiplyScalar(this.stiffness);
-    this.velocity.addScaledVector(force, dt);
+    // Smooth spring – no aggressive snap that feels “stuck to bumper”
+    const toDesired = desired.clone().sub(this.currentPos);
+    this.velocity.addScaledVector(toDesired, this.stiffness * dt);
     this.velocity.multiplyScalar(Math.max(0, 1 - this.damping * dt));
     this.currentPos.addScaledVector(this.velocity, dt);
-    // Hard catch-up: if lag > 4m, snap partially every frame
+
+    // Soft catch-up if lag is large (e.g. after spawn)
     const lag = this.currentPos.distanceTo(desired);
-    if (lag > 2.5) {
-      this.currentPos.lerp(desired, 0.35);
-      this.velocity.multiplyScalar(0.5);
-    } else {
-      this.currentPos.lerp(desired, 1 - Math.exp(-10 * dt));
+    if (lag > 12) {
+      this.currentPos.lerp(desired, 0.4);
+      this.velocity.multiplyScalar(0.3);
+    } else if (lag > 5) {
+      this.currentPos.lerp(desired, 1 - Math.exp(-4 * dt));
     }
+
     this.camera.position.copy(this.currentPos);
 
     const lookDesired = new THREE.Vector3()
@@ -95,8 +118,8 @@ export class KekeCameraRig {
     this.lookAtPos.lerp(lookDesired, 1 - Math.exp(-this.lookStiffness * dt));
     this.camera.lookAt(this.lookAtPos);
 
-    const fov = THREE.MathUtils.lerp(this.baseFov, this.maxFov, ratio * 0.6);
-    this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, fov, 1 - Math.exp(-6 * dt));
+    const fov = THREE.MathUtils.lerp(this.baseFov, this.maxFov, ratio * 0.7);
+    this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, fov, 1 - Math.exp(-5 * dt));
     this.camera.updateProjectionMatrix();
   }
 }

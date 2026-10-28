@@ -613,11 +613,11 @@ async function bootstrap() {
       flow.state = 'DRIVING';
       flow.engineStarted = true;
       try {
-        cameraRig.setMode('near');
+        cameraRig.setMode('chase');
         cameraRig._snapToTarget?.();
       } catch (e) {
-        camera.position.set(0, 2.0, -3.0);
-        camera.lookAt(0, 1.0, 3.5);
+        camera.position.set(0, 3.4, -7.2);
+        camera.lookAt(0, 1.2, 6.5);
       }
     } catch (e) {}
     showBanner('🚗 Drive! Hold ACCEL');
@@ -714,7 +714,7 @@ window.__kanoCash = 1500;
         // Backup: if camera somehow drifted far, snap close while moving
         if (kekeController.currentSpeed > 1) {
           const dist = camera.position.distanceTo(kekeGroup.position);
-          if (dist > 8) {
+          if (dist > 16) {
             try { cameraRig._snapToTarget?.(); } catch (e) {}
           }
         }
