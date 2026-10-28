@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { ASSET_MANIFEST } from './AssetManifest.js';
 
 /** Pedestrians – ONLY pedestrian.glb (no box/capsule people) */
 export class PedestrianManager {
@@ -14,7 +15,7 @@ export class PedestrianManager {
 
   async init() {
     try {
-      this.model = await this.assets.loadGLB('/assets/models/pedestrian.glb', { scale: 1.0 });
+      this.model = await this.assets.loadGLB(ASSET_MANIFEST.characters.pedestrian, { scale: 1.0 });
     } catch (e) {
       this.model = null;
     }
