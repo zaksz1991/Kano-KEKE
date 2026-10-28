@@ -446,7 +446,16 @@ async function bootstrap() {
     return true;
   };
 
-  setupMobileControls(input, () => audioEngine.playHorn());
+  setupMobileControls(
+    input,
+    () => audioEngine.playHorn(),
+    () => {
+      const name = audioEngine.toggleRadio();
+      const el = document.getElementById('radio-display');
+      if (el) el.innerText = name;
+      showBanner('📻 ' + name);
+    }
+  );
 
   // Apply pending early claim
   if (window.__kanoDailyPending) {
