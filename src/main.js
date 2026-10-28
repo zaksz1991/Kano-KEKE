@@ -928,7 +928,11 @@ async function bootstrap() {
         } catch (err) {}
         audioEngine.updateEngine(kekeController.currentSpeed, kekeController.maxSpeed);
         shiftElapsed += delta;
-        fatigue.update(delta, kekeController.currentSpeed, (ev) => showBanner(ev));
+        let nearFuel = false;
+        try {
+          nearFuel = fuelStations.stations?.some((s) => s.mesh.position.distanceTo(kekeGroup.position) < 12);
+        } catch (e) {}
+        fatigue.update(delta, kekeController.currentSpeed, (ev) => showBanner(ev), nearFuel);
         streetEvents.update(delta, (ev) => {
           showBanner(ev);
           if (ev.earnings != null) {
