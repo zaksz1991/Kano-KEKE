@@ -67,9 +67,10 @@ if (isMobile) {
   renderer.shadowMap.enabled = false;
   renderer.setPixelRatio(1);
   renderer.setSize(window.innerWidth, window.innerHeight, false);
-  // shorter draw distance
-  camera.far = 220;
+  camera.far = 140;
   camera.updateProjectionMatrix();
+  // Prefer low power
+  window.__kanoLowQuality = true;
 }
 
 // ---------- Shared state ----------
@@ -367,6 +368,7 @@ async function bootstrap() {
   landmarkManager.init().catch(() => {});
 
   const trafficManager = new DynamicTrafficManager(scene, kekeController, assetManager);
+  if (isMobile) trafficManager.maxVehicles = 4;
   trafficManager.init().catch(() => {});
 
   const passengerManager = new PassengerManager(scene, kekeController, assetManager);
@@ -412,8 +414,10 @@ async function bootstrap() {
   pedestrianManager.init().catch(() => {});
   // Dust/exhaust particles OFF – caused grey blob under keke and cost FPS
   const particleSystem = { update() {} };
-  let weatherManager = { update() {}, currentWeather: 'CLEAR' };
-  try { weatherManager = new KanoWeatherManager(scene, kekeController, passengerManager); } catch (e) { console.warn('weather', e); }
+  let weatherManager = { update() {}, currentWeather: 'CLEAR', forceWeather() {} };
+  if (!isMobile) {
+    try { weatherManager = new KanoWeatherManager(scene, kekeController, passengerManager); } catch (e) { console.warn('weather', e); }
+  }
   const customizer = new KekeCustomizer(scene, kekeGroup);
   const prayerManager = new PrayerTimeManager({ stamina: 100, stressLevel: 0 });
   const settlementManager = new DailySettlementManager(passengerManager, fuelManager, kekeController, missionManager);
