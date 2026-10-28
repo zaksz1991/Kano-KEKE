@@ -14,10 +14,10 @@ export class KanoWeatherManager {
 
     this.currentWeather = 'CLEAR';
     this.weatherTimer = 0;
-    this.nextChange = 90 + Math.random() * 120; // first change 1.5–3.5 min
+    this.nextChange = 45 + Math.random() * 50; // first change 1.5–3.5 min
 
-    this.rainCount = 2800;
-    this.dustCount = 1200;
+    this.rainCount = 900;
+    this.dustCount = 400;
 
     this._initRain();
     this._initHarmattanDust();
@@ -170,5 +170,15 @@ export class KanoWeatherManager {
       }
       this.dustGeo.attributes.position.needsUpdate = true;
     }
+  }
+
+  forceWeather(name) {
+    const allowed = ['CLEAR', 'HEAVY_RAIN', 'HARMATTAN_HAZE'];
+    if (!allowed.includes(name)) name = 'CLEAR';
+    this.currentWeather = name;
+    this.weatherTimer = 0;
+    this.nextChange = 40 + Math.random() * 40;
+    if (this.rainPoints) this.rainPoints.visible = name === 'HEAVY_RAIN';
+    if (this.dustPoints) this.dustPoints.visible = name === 'HARMATTAN_HAZE';
   }
 }

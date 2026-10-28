@@ -558,6 +558,13 @@ async function bootstrap() {
       const mode = cameraRig.cycleMode?.() || 'chase';
       showBanner(`📷 Camera: ${mode.toUpperCase()}`);
     }
+    if (e.code === 'KeyY') {
+      const order = ['CLEAR', 'HEAVY_RAIN', 'HARMATTAN_HAZE'];
+      const cur = weatherManager.currentWeather || 'CLEAR';
+      const next = order[(order.indexOf(cur) + 1) % order.length];
+      try { weatherManager.forceWeather?.(next); } catch (err) {}
+      showBanner('🌤 Weather: ' + next.replace('_', ' '));
+    }
     if (e.code === 'KeyT') {
       window.timeInMinutes = (window.timeInMinutes + 60) % 1440;
       const hours = Math.floor(window.timeInMinutes / 60);
