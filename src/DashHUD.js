@@ -60,7 +60,14 @@ export class DashHUD {
     if (this.root) this.root.style.display = 'none';
   }
 
-  update({
+  update(args) {
+    const now = performance.now();
+    if (this._lastHud && now - this._lastHud < 100) return;
+    this._lastHud = now;
+    this._apply(args);
+  }
+
+  _apply({
     speed = 0,
     cash = 0,
     fuel = 100,

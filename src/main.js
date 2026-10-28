@@ -242,18 +242,21 @@ function hideLoading() {
   if (el) { el.style.opacity = '0'; setTimeout(() => el.remove(), 400); }
 }
 function showBanner(msg) {
+  const now = performance.now();
+  if (window.__bannerT && now - window.__bannerT < 400) return; // rate limit
+  window.__bannerT = now;
   const banner = document.getElementById('notification-banner');
   const text = document.getElementById('banner-text');
   if (!banner || !text) return;
-  text.textContent = typeof msg === 'string' ? msg : (msg.msg || '');
+  text.textContent = typeof msg === 'string' ? msg : (msg?.msg || '');
   banner.style.display = 'block';
   banner.style.opacity = '1';
   banner.style.transform = 'translateY(0)';
-  clearTimeout(window._bannerTimer);
-  window._bannerTimer = setTimeout(() => {
+  clearTimeout(window.__bannerHide);
+  window.__bannerHide = setTimeout(() => {
     banner.style.opacity = '0';
-    banner.style.transform = 'translateY(-20px)';
-  }, 3500);
+    banner.style.transform = 'translateY(-12px)';
+  }, 2800);
 }
 
 
@@ -747,6 +750,7 @@ async function bootstrap() {
   const clock = new THREE.Clock();
   let timeAccum = 0;
   let atmosAccum = 0;
+  let hudAccum = 0;
 
   function animate() {
     requestAnimationFrame(animate);
