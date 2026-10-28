@@ -582,10 +582,14 @@ async function bootstrap() {
         pauseMenu.hide();
         paused = false;
         if (flow.state === 'PAUSED') flow.setState('DRIVING');
+        const mc = document.getElementById('mobile-controls-overlay');
+        if (mc) mc.style.display = 'block';
         showBanner('▶ Resumed');
       } else if (gameStarted) {
         paused = true;
         if (flow.state === 'DRIVING') flow.setState('PAUSED');
+        const mc = document.getElementById('mobile-controls-overlay');
+        if (mc) mc.style.display = 'none';
         pauseMenu.show();
       }
     }
@@ -678,9 +682,10 @@ async function bootstrap() {
     const menu = document.getElementById('main-menu-overlay');
     if (menu) menu.style.display = 'none';
     if (mobileEl) mobileEl.style.display = 'block';
+    // Legacy HUD off – DashHUD is the single source of truth
     ['top-left-hud', 'top-right-hud'].forEach((id) => {
       const el = document.getElementById(id);
-      if (el) el.style.display = 'block';
+      if (el) el.style.display = 'none';
     });
     const routeSel = document.getElementById('route-select');
     const routeName = document.getElementById('route-name-display');
