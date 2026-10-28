@@ -116,15 +116,10 @@ export class DashHUD {
         w.textContent = icons[weather] || ('· ' + weather);
       }
     }
-    if (notice != null) {
+    if (notice != null && notice !== '') {
       const n = document.getElementById('dash-notice');
-      if (n) {
-        n.textContent = notice;
-        clearTimeout(this._noticeT);
-        this._noticeT = setTimeout(() => {
-          if (n) n.textContent = '';
-        }, 3200);
-      }
+      if (n) n.textContent = notice;
+      // Fare pop only for cash gain strings – status line stays
       if (String(notice).startsWith('+₦')) {
         const pop = document.getElementById('dash-fare-pop');
         if (pop) {

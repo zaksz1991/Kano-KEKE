@@ -162,11 +162,12 @@ export class PassengerManager {
     }
 
     // Pickup opportunity – slow near waiter
-    if (this.onBoard.length < this.capacity && speed < 7.5) {
+    if (!this._dialogue && this.onBoard.length < this.capacity && speed < 8) {
       for (const p of this.waiting) {
-        if (!p.mesh) continue;
+        if (!p.mesh || p.state !== 'waiting') continue;
+        if (this.onBoard.length + p.seats > this.capacity) continue;
         const dist = p.mesh.position.distanceTo(this.keke.group.position);
-        if (dist < 9.5 && p.state === 'waiting') {
+        if (dist < 10) {
           this._startNegotiation(p, hudCallback);
           break;
         }
@@ -204,7 +205,7 @@ export class PassengerManager {
     if (this._dialogue && this._dialogue.passenger) {
       this._autoAcceptT = (this._autoAcceptT || 0) + (typeof dt !== "undefined" ? dt : delta);
       const p = this._dialogue.passenger;
-      if (p.mesh && p.mesh.position.distanceTo(this.keke.group.position) < 10 && this._autoAcceptT > 1.8) {
+      if (p.mesh && p.mesh.position.distanceTo(this.keke.group.position) < 11 && this._autoAcceptT > 1.1) {
         this.acceptDeal(hudCallback);
         this._autoAcceptT = 0;
       }
@@ -298,6 +299,23 @@ export class PassengerManager {
   }
 
   /** Manual accept during negotiation (optional key) */
+  getHudStatus() {
+    const dropping = this.onBoard.find((p) => p.state === 'dropping');
+    if (dropping) {
+      return `Akwai → ${dropping.destination} (slow to drop)`;
+    }
+    if (this._dialogue?.passenger) {
+      return `Boarding ${this._dialogue.passenger.title}…`;
+    }
+    if (this.nearestPrompt && this.nearestPrompt.dist < 12) {
+      return `👋 ${this.nearestPrompt.title} → ${this.nearestPrompt.dest}`;
+    }
+    if (this.onBoard.length) {
+      return `On board ${this.onBoard.length}/${this.capacity}`;
+    }
+    return `Seats ${this.onBoard.length}/${this.capacity} · look for roadside`;
+  }
+
   acceptDeal(hudCallback) {
     if (this._dialogue && this._dialogue.passenger.state === 'negotiating') {
       this._acceptPassenger(this._dialogue.passenger, this._dialogue.fare, hudCallback);

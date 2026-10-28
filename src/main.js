@@ -936,6 +936,7 @@ function animate() {
           weather: weatherManager.currentWeather || 'CLEAR',
           shiftTime: shiftElapsed,
           startCash: shiftStartCash,
+          notice: passengerManager.getHudStatus?.() || null,
               notice: `+₦${fare}`
             });
             SaveSystem.saveGame({
@@ -1074,9 +1075,11 @@ function animate() {
           weather: weatherManager.currentWeather || 'CLEAR',
           shiftTime: shiftElapsed,
           startCash: shiftStartCash,
+          notice: passengerManager.getHudStatus?.() || null,
           weather: weatherManager.currentWeather || 'CLEAR',
           shiftTime: shiftElapsed,
           startCash: shiftStartCash,
+          notice: passengerManager.getHudStatus?.() || null,
           shiftTime: shiftElapsed,
           startCash: shiftStartCash
         });
