@@ -3,23 +3,18 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 
 /**
- * Resilient Asset Manager
- * - Never crashes the game on missing assets
- * - Optional Draco (disabled if decoder fails)
- * - Progress reporting
+ * Loads YOUR .glb files – fixes textures so models are not pure white
  */
 export class AssetManager {
   constructor() {
     this.gltfLoader = new GLTFLoader();
-
     try {
       const draco = new DRACOLoader();
       draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
       this.gltfLoader.setDRACOLoader(draco);
     } catch (e) {
-      console.warn('[AssetManager] Draco unavailable, continuing without it');
+      console.warn('[AssetManager] Draco unavailable');
     }
-
     this.textureLoader = new THREE.TextureLoader();
     this.cache = new Map();
     this.textures = new Map();
@@ -44,9 +39,6 @@ export class AssetManager {
     }
   }
 
-  /**
-   * Load GLB – resolves null on failure instead of rejecting
-   */
   async loadGLB(path, options = {}) {
     if (this.cache.has(path)) {
       try {
@@ -78,32 +70,50 @@ export class AssetManager {
         (err) => {
           console.warn(`[AssetManager] Missing or failed: ${path}`, err?.message || err);
           this._reportProgress(path);
-          resolve(null); // NEVER reject
+          resolve(null);
         }
       );
     });
   }
 
+  _fixMap(mat, key) {
+    if (!mat) return null;
+    if (mat[key]) return mat[key];
+    return null;
+  }
+
   _prepareScene(scene, options = {}) {
     if (!scene) return;
     const scale = options.scale ?? 1;
-    const castShadow = options.castShadow !== false;
+    const castShadow = options.castShadow === true; // default off for mobile
     const receiveShadow = options.receiveShadow !== false;
 
     scene.traverse((node) => {
-      if (node.isMesh) {
-        node.castShadow = castShadow;
-        node.receiveShadow = receiveShadow;
-        if (node.material) {
-          const mats = Array.isArray(node.material) ? node.material : [node.material];
-          mats.forEach((m) => {
-            if (m) {
-              m.envMapIntensity = m.envMapIntensity ?? 1.2;
-              m.needsUpdate = true;
-            }
-          });
-        }
-      }
+      if (!node.isMesh) return;
+      node.castShadow = castShadow;
+      node.receiveShadow = receiveShadow;
+      if (!node.material) return;
+
+      const mats = Array.isArray(node.material) ? node.material : [node.material];
+      mats.forEach((m) => {
+        if (!m) return;
+        // Color maps must be sRGB or models look washed/white/wrong
+        ['map', 'emissiveMap'].forEach((key) => {
+          const tex = this._fixMap(m, key);
+          if (tex && 'colorSpace' in tex) {
+            tex.colorSpace = THREE.SRGBColorSpace;
+            tex.needsUpdate = true;
+          }
+        });
+        // Data maps stay linear
+        ['normalMap', 'roughnessMap', 'metalnessMap', 'aoMap'].forEach((key) => {
+          const tex = this._fixMap(m, key);
+          if (tex) tex.needsUpdate = true;
+        });
+        if (m.map) m.map.anisotropy = Math.min(4, m.map.anisotropy || 1);
+        m.envMapIntensity = m.envMapIntensity ?? 1.0;
+        m.needsUpdate = true;
+      });
     });
 
     if (scale !== 1) scene.scale.setScalar(scale);
@@ -111,7 +121,6 @@ export class AssetManager {
 
   async loadTexture(path, options = {}) {
     if (this.textures.has(path)) return this.textures.get(path);
-
     return new Promise((resolve) => {
       this.textureLoader.load(
         path,
@@ -129,7 +138,6 @@ export class AssetManager {
         },
         undefined,
         () => {
-          console.warn(`[AssetManager] Texture missing: ${path}`);
           this._reportProgress(path);
           resolve(null);
         }
@@ -137,34 +145,24 @@ export class AssetManager {
     });
   }
 
-  /**
-   * Preload list – never throws. Returns map of path -> object|null
-   */
   async preload(paths) {
     this.totalToLoad = paths.length;
     this.loadedCount = 0;
     const results = {};
-
     await Promise.all(
       paths.map(async (entry) => {
         const path = typeof entry === 'string' ? entry : entry.path;
-        const type = typeof entry === 'string' ? 'glb' : (entry.type || 'glb');
-        const options = typeof entry === 'object' ? (entry.options || {}) : {};
-
+        const type = typeof entry === 'string' ? 'glb' : entry.type || 'glb';
+        const options = typeof entry === 'object' ? entry.options || {} : {};
         try {
-          if (type === 'texture') {
-            results[path] = await this.loadTexture(path, options);
-          } else {
-            results[path] = await this.loadGLB(path, options);
-          }
+          if (type === 'texture') results[path] = await this.loadTexture(path, options);
+          else results[path] = await this.loadGLB(path, options);
         } catch (e) {
-          console.warn(`Optional asset skipped: ${path}`);
           results[path] = null;
           this._reportProgress(path);
         }
       })
     );
-
     return results;
   }
 

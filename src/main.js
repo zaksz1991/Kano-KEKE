@@ -74,6 +74,13 @@ if (isMobile) {
 
 // ---------- Shared state ----------
 const assetManager = new AssetManager();
+  const startBtn = document.getElementById('start-game-btn');
+  if (startBtn) {
+    startBtn.disabled = true;
+    startBtn.style.opacity = '0.5';
+    startBtn.textContent = 'LOADING MODELS...';
+  }
+
 const saved = SaveSystem.loadGame();
 const charSelect = new CharacterSelectionManager();
 const input = { throttle: 0, steering: 0, horn: false };
@@ -331,6 +338,11 @@ async function bootstrap() {
   }
 
   showLoading('Building world...', 70);
+  if (startBtn) {
+    startBtn.disabled = false;
+    startBtn.style.opacity = '1';
+    startBtn.textContent = 'Start Shift';
+  }
 
   // Systems
   const kekeController = new KekePhysicsController(kekeGroup);
