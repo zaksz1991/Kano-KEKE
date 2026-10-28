@@ -45,6 +45,7 @@ export class PassengerManager {
     this._spawnTimer = 0;
     this._dialogue = null;
     this._dialogueT = 0;
+    this._autoAcceptT = 0;
     this.nearestPrompt = null;
   }
 
@@ -121,7 +122,13 @@ export class PassengerManager {
       const arm = p.mesh.getObjectByName?.('flagArm');
       if (arm) arm.rotation.z = -0.7 - Math.abs(Math.sin(p.flagPhase)) * 0.6;
       // bob
-      p.mesh.position.y = Math.abs(Math.sin(p.flagPhase * 0.5)) * 0.03;
+      const near = p.mesh.position.distanceTo(this.keke.group.position) < 14;
+      p.mesh.position.y = Math.abs(Math.sin(p.flagPhase * (near ? 1.2 : 0.5))) * (near ? 0.12 : 0.03);
+      // Pulse scale when close
+      if (near) {
+        const s = 0.95 + Math.abs(Math.sin(p.flagPhase)) * 0.12;
+        p.mesh.scale.setScalar(s);
+      }
       p.patience -= dt;
 
       // Auto-remove far/patient expired
@@ -155,11 +162,11 @@ export class PassengerManager {
     }
 
     // Pickup opportunity – slow near waiter
-    if (this.onBoard.length < this.capacity && speed < 4.5) {
+    if (this.onBoard.length < this.capacity && speed < 7.5) {
       for (const p of this.waiting) {
         if (!p.mesh) continue;
         const dist = p.mesh.position.distanceTo(this.keke.group.position);
-        if (dist < 6.5 && p.state === 'waiting') {
+        if (dist < 9.5 && p.state === 'waiting') {
           this._startNegotiation(p, hudCallback);
           break;
         }
@@ -181,7 +188,7 @@ export class PassengerManager {
         p.dropAtZ = playerZ + 60 + Math.random() * 100;
       }
       // Request drop when near
-      if (p.state === 'boarded' && playerZ >= p.dropAtZ - 15) {
+      if (p.state === 'boarded' && playerZ >= p.dropAtZ - 25) {
         p.state = 'dropping';
         if (hudCallback) {
           hudCallback({
@@ -192,11 +199,24 @@ export class PassengerManager {
       }
     });
 
-    // Complete drop-off when stopped near drop point
-    if (speed < 3) {
+    
+    // Auto-accept deal on mobile if player stays near during negotiation
+    if (this._dialogue && this._dialogue.passenger) {
+      this._autoAcceptT = (this._autoAcceptT || 0) + (typeof dt !== "undefined" ? dt : delta);
+      const p = this._dialogue.passenger;
+      if (p.mesh && p.mesh.position.distanceTo(this.keke.group.position) < 10 && this._autoAcceptT > 1.8) {
+        this.acceptDeal(hudCallback);
+        this._autoAcceptT = 0;
+      }
+    } else {
+      this._autoAcceptT = 0;
+    }
+
+    // Complete drop-off when slowed near drop point
+    if (speed < 6.5) {
       const dropping = this.onBoard.filter((p) => p.state === 'dropping');
       dropping.forEach((p) => {
-        if (Math.abs(playerZ - p.dropAtZ) < 12) {
+        if (Math.abs(playerZ - p.dropAtZ) < 20) {
           this._completeDropoff(p, hudCallback);
         }
       });
