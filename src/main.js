@@ -363,7 +363,7 @@ async function bootstrap() {
   const streetEvents = new StreetEventSystem(kekeController, passengerManager, fuelManager);
   const fuelStations = new FuelStationSystem(scene, fuelManager, passengerManager);
   try { fuelStations.init(); } catch (e) { console.warn('fuel stations', e); }
-  const policeEngine = new PoliceCheckpointEngine(scene, kekeController, passengerManager);
+  const policeEngine = new PoliceCheckpointEngine(scene, kekeController, passengerManager, assetManager);
   policeEngine.spawnCheckpoint(200);
   const audioEngine = new KanoAudioEngine();
   audioEngine.setup(camera, kekeGroup);
@@ -859,6 +859,10 @@ async function bootstrap() {
         policeEngine.update((ev) => {
           showBanner(ev);
           voiceBank.speak('karota');
+          if (ev.type === 'KAROTA_CHASE' || (ev.msg && ev.msg.includes('chase'))) {
+            try { audioEngine.playOneShot(880, 0.15, 'square', 0.08); } catch (e) {}
+            setTimeout(() => { try { audioEngine.playOneShot(660, 0.2, 'square', 0.07); } catch (e) {} }, 180);
+          }
           if (ev.msg && ev.msg.includes('To haka')) missionManager.onCheckpointClear(true);
           _updateMissionHud(missionManager);
         });
@@ -899,7 +903,11 @@ async function bootstrap() {
         prayerManager.update(window.timeInMinutes, (e) => {
           if (e?.msg) {
             showBanner(e.msg);
-            try { voiceBank.speak('karota'); } catch (err) {}
+            try { voiceBank.speak('karota');
+          if (ev.type === 'KAROTA_CHASE' || (ev.msg && ev.msg.includes('chase'))) {
+            try { audioEngine.playOneShot(880, 0.15, 'square', 0.08); } catch (e) {}
+            setTimeout(() => { try { audioEngine.playOneShot(660, 0.2, 'square', 0.07); } catch (e) {} }, 180);
+          } } catch (err) {}
             try { setPrayerAmbient(scene, true); } catch (err) {}
             try { audioEngine.playOneShot(220, 0.4, 'sine', 0.06); } catch (err) {}
           }
