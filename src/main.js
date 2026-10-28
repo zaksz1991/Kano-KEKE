@@ -242,6 +242,19 @@ function hideLoading() {
   const el = document.getElementById('loading-overlay');
   if (el) { el.style.opacity = '0'; setTimeout(() => el.remove(), 400); }
 }
+function saveShiftProgress() {
+  try {
+    if (typeof passengerManager === 'undefined') return;
+    SaveSystem.saveGame({
+      cash: passengerManager.dailyEarnings,
+      currentLevel: missionManager?.level,
+      xp: missionManager?.xp,
+      highScore: missionManager?.highScore,
+      lastDailyClaim: settlementManager?.lastDailyClaim
+    });
+  } catch (e) {}
+}
+
 function showBanner(msg) {
   const now = performance.now();
   if (window.__bannerT && now - window.__bannerT < 400) return; // rate limit
@@ -588,6 +601,7 @@ async function bootstrap() {
       } else if (gameStarted) {
         paused = true;
         if (flow.state === 'DRIVING') flow.setState('PAUSED');
+        try { saveShiftProgress(); } catch (e) {}
         const mc = document.getElementById('mobile-controls-overlay');
         if (mc) mc.style.display = 'none';
         pauseMenu.show();
@@ -767,6 +781,7 @@ async function bootstrap() {
     if (document.hidden) {
       window.__kanoWasPaused = paused;
       paused = true;
+      try { saveShiftProgress(); } catch (e) {}
       try { audioEngine.engineGain && (audioEngine.engineGain.gain.value = 0); } catch (e) {}
     } else {
       paused = window.__kanoWasPaused || false;
