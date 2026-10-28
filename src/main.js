@@ -37,6 +37,7 @@ import { DriverFatigueSystem } from './DriverFatigueSystem.js';
 import { AchievementSystem } from './AchievementSystem.js';
 import { FirstShiftTutorial } from './FirstShiftTutorial.js';
 import { StreetEventSystem } from './StreetEventSystem.js';
+import { NearMissSystem } from './NearMissSystem.js';
 import { KekeSignalLights } from './KekeSignalLights.js';
 import { KekeHeadlights } from './KekeHeadlights.js';
 
@@ -355,6 +356,7 @@ async function bootstrap() {
   try { HighScoreBoard.renderOnMenu(); } catch (e) {}
 
   const collisionSystem = new KekeCollisionSystem(kekeGroup, kekeController, trafficManager, missionManager);
+  const nearMiss = new NearMissSystem(kekeGroup, kekeController, trafficManager, missionManager);
 
 
   const fuelManager = new FuelManager(kekeController);
@@ -859,6 +861,10 @@ async function bootstrap() {
           voiceBank.speak('karota');
           if (ev.msg && ev.msg.includes('To haka')) missionManager.onCheckpointClear(true);
           _updateMissionHud(missionManager);
+        });
+        nearMiss.update(delta, (ev) => {
+          showBanner(ev);
+          try { audioEngine.playOneShot(660, 0.08, 'sine', 0.06); } catch (e) {}
         });
         collisionSystem.update(delta, (ev) => {
           showBanner(ev);
