@@ -852,7 +852,14 @@ async function bootstrap() {
         });
         collisionSystem.update(delta, (ev) => {
           showBanner(ev);
-          if (ev.type === 'CRASH' || ev.type === 'WRECKED') voiceBank.speak('crash');
+          if (ev.type === 'CRASH' || ev.type === 'WRECKED') {
+            voiceBank.speak('crash');
+            try { cameraRig.setShake?.(0.35); } catch (e) {}
+            try { audioEngine.playOneShot(90, 0.2, 'sawtooth', 0.1); } catch (e) {}
+          }
+          if (collisionSystem.shake > 0) {
+            try { cameraRig.setShake?.(collisionSystem.shake * 0.5); } catch (e) {}
+          }
           _updateMissionHud(missionManager);
           if (ev.type === 'WRECKED') _showContinueModal(missionManager, collisionSystem, kekeController);
         });

@@ -49,6 +49,7 @@ export class KekeCameraRig {
       }
     };
 
+    this._shakeAmp = 0;
     this._snapToTarget();
   }
 
@@ -60,6 +61,11 @@ export class KekeCameraRig {
     );
     this.velocity.set(0, 0, 0);
     this.camera.position.copy(this.currentPos);
+    if (this._shakeAmp > 0) {
+      this.camera.position.x += (Math.random() - 0.5) * this._shakeAmp;
+      this.camera.position.y += (Math.random() - 0.5) * this._shakeAmp * 0.6;
+      this._shakeAmp *= 0.9;
+    }
     this.camera.lookAt(this.lookAtPos);
     this.camera.fov = this.baseFov;
     this.camera.updateProjectionMatrix();
@@ -74,6 +80,10 @@ export class KekeCameraRig {
     this.baseFov = m.fov;
     this._snapToTarget();
     return this.mode;
+  }
+
+  setShake(amount) {
+    this._shakeAmp = Math.max(this._shakeAmp || 0, amount);
   }
 
   cycleMode() {
@@ -111,6 +121,11 @@ export class KekeCameraRig {
     }
 
     this.camera.position.copy(this.currentPos);
+    if (this._shakeAmp > 0) {
+      this.camera.position.x += (Math.random() - 0.5) * this._shakeAmp;
+      this.camera.position.y += (Math.random() - 0.5) * this._shakeAmp * 0.6;
+      this._shakeAmp *= 0.9;
+    }
 
     const lookDesired = new THREE.Vector3()
       .copy(this.target.position)
