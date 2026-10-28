@@ -39,10 +39,10 @@ export function setupKanoAtmosphere(scene, renderer) {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   if ('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-  // Night market glow points (dim by default)
-  for (let i = 0; i < 6; i++) {
-    const nl = new THREE.PointLight(0xffa726, 0, 28, 2);
-    nl.position.set((i % 2 === 0 ? -12 : 12), 3.5, 40 + i * 55);
+  // Night market / street glow (on at night)
+  for (let i = 0; i < 10; i++) {
+    const nl = new THREE.PointLight(0xffb74d, 0, 36, 1.8);
+    nl.position.set((i % 2 === 0 ? -11 : 11), 4.0, 25 + i * 40);
     nl.name = 'nightMarketLight';
     scene.add(nl);
   }
@@ -65,16 +65,16 @@ export function updateAtmosphereByTime(scene, renderer, timeInMinutes, roadSyste
   const night = h < 0.12;
 
   if (night) {
-    sun.intensity = 0.35;
-    if (hemi) hemi.intensity = 0.5;
-    if (ambient) ambient.intensity = 0.4;
-    if (fill) fill.intensity = 0.2;
-    scene.background.set(0x1a2233);
+    sun.intensity = 0.25;
+    if (hemi) hemi.intensity = 0.65;
+    if (ambient) ambient.intensity = 0.55;
+    if (fill) fill.intensity = 0.35;
+    scene.background.set(0x121820);
     if (scene.fog) {
-      scene.fog.color.set(0x1a2233);
-      if (scene.fog.near !== undefined) { scene.fog.near = 40; scene.fog.far = 180; }
+      scene.fog.color.set(0x121820);
+      if (scene.fog.near !== undefined) { scene.fog.near = 35; scene.fog.far = 160; }
     }
-    renderer.toneMappingExposure = 1.15;
+    renderer.toneMappingExposure = 1.35;
   } else {
     sun.intensity = 2.5 + h * 2.5;
     if (hemi) hemi.intensity = 1.6 + h * 0.8;
@@ -91,7 +91,7 @@ export function updateAtmosphereByTime(scene, renderer, timeInMinutes, roadSyste
   if (roadSystem?.setNightMode) roadSystem.setNightMode(night);
   scene.traverse((o) => {
     if (o.name === 'nightMarketLight' && o.isLight) {
-      o.intensity = night ? 1.6 : 0;
+      o.intensity = night ? 2.4 : 0;
     }
   });
 }

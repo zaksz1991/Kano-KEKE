@@ -556,6 +556,16 @@ async function bootstrap() {
       const mode = cameraRig.cycleMode?.() || 'chase';
       showBanner(`📷 Camera: ${mode.toUpperCase()}`);
     }
+    if (e.code === 'KeyT') {
+      window.timeInMinutes = (window.timeInMinutes + 60) % 1440;
+      const hours = Math.floor(window.timeInMinutes / 60);
+      const mins = Math.floor(window.timeInMinutes % 60);
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      const h12 = ((hours + 11) % 12) + 1;
+      showBanner(`⏭ Time ${h12}:${mins.toString().padStart(2,'0')} ${ampm}`);
+      const clock = document.getElementById('clock-display');
+      if (clock) clock.textContent = `${h12}:${mins.toString().padStart(2,'0')} ${ampm}`;
+    }
     if (e.code === 'KeyL') {
       const m = headlights.toggle();
       const label = m === null ? 'AUTO' : m ? 'ON' : 'OFF';
@@ -910,8 +920,9 @@ async function bootstrap() {
 
         // Clock
         timeAccum += delta;
-        if (timeAccum > 0.5) {
-          window.timeInMinutes = (window.timeInMinutes + 1) % 1440;
+        // ~2 game minutes per real second while driving
+        if (timeAccum > 0.28) {
+          window.timeInMinutes = (window.timeInMinutes + 2) % 1440;
           try { achievements.onNight(window.timeInMinutes); } catch (e) {}
           timeAccum = 0;
           const hours = Math.floor(window.timeInMinutes / 60);
