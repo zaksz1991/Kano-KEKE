@@ -22,6 +22,7 @@ export class KekePhysicsController {
     this.yawRate = 0;
     this.engineRPM = 0;
     this.roadLimit = 6.8;
+    this.laneAssist = true;
     this._fwd = new THREE.Vector3();
   }
 
@@ -90,6 +91,17 @@ export class KekePhysicsController {
     } else if (x < -this.roadLimit) {
       this.group.position.x = THREE.MathUtils.lerp(x, -this.roadLimit, 0.15);
       this.yawRate *= 0.5;
+    }
+
+    // Lane assist – when not steering, ease toward center of current half
+    if (this.laneAssist && Math.abs(this.steerInput) < 0.12 && this.currentSpeed > 1) {
+      const targetLane = x >= 0 ? 2.4 : -2.4;
+      this.group.position.x = THREE.MathUtils.lerp(x, targetLane, 0.02);
+      // gently reduce yaw drift
+      if (Math.abs(this.steerAngle) < 0.15) {
+        this.group.rotation.y *= 0.995;
+        this.yawRate *= 0.92;
+      }
     }
 
     this.engineRPM = Math.min(1, this.currentSpeed / max);
