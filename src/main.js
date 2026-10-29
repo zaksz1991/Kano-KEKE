@@ -702,6 +702,12 @@ async function bootstrap() {
     passengerManager.tipBonus = d.tipBonus || 1;
 
     gameStarted = true;
+    // Start on right carriageway (Kano dual-road photo)
+    try {
+      kekeGroup.position.x = 3.4;
+      kekeGroup.position.z = 0;
+      kekeGroup.rotation.set(0, 0, 0);
+    } catch (e) {}
     const menu = document.getElementById('main-menu-overlay');
     if (menu) menu.style.display = 'none';
     if (mobileEl) mobileEl.style.display = 'block';

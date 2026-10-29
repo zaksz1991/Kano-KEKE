@@ -198,7 +198,7 @@ export class InfiniteRoadSystem {
 
     // Trees along sides (Kano roadside)
     for (const side of [-1, 1]) {
-      if (rand() > 0.4) {
+      if (rand() > 0.32) {
         const tree = this._makeTree(rand);
         tree.position.set(side * (11.5 + rand() * 2), 0, (rand() - 0.5) * L * 0.6);
         group.add(tree);
@@ -338,7 +338,7 @@ export class InfiniteRoadSystem {
       const foliage = new THREE.Mesh(
         new THREE.SphereGeometry(1.3 + rand() * 0.7 - i * 0.15, 8, 6),
         new THREE.MeshStandardMaterial({
-          color: [0x2e7d32, 0x388e3c, 0x1b5e20, 0x558b2f][Math.floor(rand() * 4)],
+          color: [0x2e7d32, 0x43a047, 0x1b5e20, 0x66bb6a][Math.floor(rand() * 4)],
           roughness: 0.85
         })
       );
