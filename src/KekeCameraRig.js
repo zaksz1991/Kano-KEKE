@@ -19,7 +19,7 @@ export class KekeCameraRig {
     this.damping = 12;
     this.lookStiffness = 12;
     this.baseFov = 58;
-    this.maxFov = 66;
+    this.maxFov = 62;
     this.mode = 'chase';
 
     this._yawQ = new THREE.Quaternion();
@@ -125,7 +125,7 @@ export class KekeCameraRig {
     this.lookAtPos.lerp(lookDesired, 1 - Math.exp(-this.lookStiffness * dt));
     this.camera.lookAt(this.lookAtPos);
 
-    const fov = THREE.MathUtils.lerp(this.baseFov, this.maxFov, ratio * 0.6);
+    const fov = THREE.MathUtils.lerp(this.baseFov, this.maxFov, ratio * 0.35);
     this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, fov, 1 - Math.exp(-4 * dt));
     this.camera.updateProjectionMatrix();
   }
