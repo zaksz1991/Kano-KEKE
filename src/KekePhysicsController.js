@@ -20,7 +20,7 @@ export class KekePhysicsController {
     this.steerInput = 0;
     this.lateral = 0; // smoothed lateral velocity
     this.engineRPM = 0;
-    this.roadLimit = 7.0;
+    this.roadLimit = 7.8;
     this.laneAssist = false; // off – was fighting the player
   }
 
@@ -59,7 +59,8 @@ export class KekePhysicsController {
     const latMax = 22 / (1 + this.currentSpeed * 0.025);
     const targetLat = this.steerInput * latMax;
     // Fast lerp toward stick (was 8 – too soft)
-    this.lateral += (targetLat - this.lateral) * Math.min(1, 16 * dt);
+    this.lateral += (targetLat - this.lateral) * Math.min(1, 20 * dt);
+    if (Math.abs(this.steerInput) > 0.9) this.lateral = targetLat * 0.85 + this.lateral * 0.15;
 
     this.group.position.x += this.lateral * dt;
     this.group.position.z += this.velocity * dt;
