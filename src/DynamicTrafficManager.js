@@ -117,8 +117,10 @@ export class DynamicTrafficManager {
     const dt = Math.min(delta, 0.05);
     this.vehicles.forEach((v) => {
       v.mesh.position.z += v.speed * dt;
-      if (horn && Math.abs(v.mesh.position.z - playerZ) < 28) {
-        v.mesh.position.x = THREE.MathUtils.lerp(v.mesh.position.x, v.laneX + (v.opposite ? -1.3 : 1.3), 0.08);
+      if (horn && Math.abs(v.mesh.position.z - playerZ) < 35) {
+        // Horn: okadas swerve hard, cars drift out
+        const push = (v.kind === 'okada' ? 2.2 : 1.4) * (v.opposite ? -1 : 1);
+        v.mesh.position.x = THREE.MathUtils.lerp(v.mesh.position.x, v.laneX + push, 0.14);
       } else {
         v.mesh.position.x = THREE.MathUtils.lerp(v.mesh.position.x, v.laneX, 0.04);
       }
