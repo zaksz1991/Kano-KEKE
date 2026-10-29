@@ -72,10 +72,20 @@ export class DynamicTrafficManager {
 
   _meshFor() {
     if (!this.templates.length) return null;
-    const t = this.templates[Math.floor(Math.random() * this.templates.length)];
-    const mesh = t.mesh.clone(true);
-    if (t.kind === 'car' || t.kind === 'van' || t.kind === 'bus') this._tint(mesh);
-    return { mesh, kind: t.kind };
+    // Kano roads are okada-heavy (photo ref)
+    const okadas = this.templates.filter((x) => x.kind === 'okada');
+    const cars = this.templates.filter((x) => x.kind !== 'okada');
+    let pick;
+    if (okadas.length && Math.random() < 0.62) {
+      pick = okadas[Math.floor(Math.random() * okadas.length)];
+    } else if (cars.length) {
+      pick = cars[Math.floor(Math.random() * cars.length)];
+    } else {
+      pick = this.templates[Math.floor(Math.random() * this.templates.length)];
+    }
+    const mesh = pick.mesh.clone(true);
+    if (pick.kind === 'car' || pick.kind === 'van' || pick.kind === 'bus') this._tint(mesh);
+    return { mesh, kind: pick.kind };
   }
 
   _spawn(initial) {

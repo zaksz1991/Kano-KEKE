@@ -196,6 +196,11 @@ export class InfiniteRoadSystem {
         pole.position.set(side * 11.2, 0, (rand() - 0.5) * L * 0.5);
         group.add(pole);
       }
+      if (rand() > 0.55) {
+        const pl = this._makePowerLine(side);
+        pl.position.set(side * 12.0, 0, (rand() - 0.5) * L * 0.5);
+        group.add(pl);
+      }
     }
 
     // Sparse facade strip (photo: peach/pink low-rise shops) – max 1 per side
@@ -461,6 +466,18 @@ export class InfiniteRoadSystem {
     light.position.set(0, 7.8, 0);
     light.name = 'streetLight';
     g.add(light);
+    return g;
+  }
+
+  _makePowerLine(side) {
+    const g = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ color: 0x455a64, metalness: 0.4, roughness: 0.5 });
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 6.5, 5), mat);
+    pole.position.y = 3.25;
+    g.add(pole);
+    const cross = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.06, 0.06), mat);
+    cross.position.set(0, 6.2, 0);
+    g.add(cross);
     return g;
   }
 
