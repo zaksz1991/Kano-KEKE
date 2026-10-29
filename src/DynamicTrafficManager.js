@@ -97,7 +97,12 @@ export class DynamicTrafficManager {
       ? (Math.random() > 0.5 ? -5.2 : -2.8)
       : (Math.random() > 0.5 ? 2.8 : 5.2);
     const playerZ = this.player?.group?.position.z || 0;
-    const z = initial ? playerZ + 30 + Math.random() * 160 : playerZ + 130 + Math.random() * 80;
+    const z = initial ? playerZ + 55 + Math.random() * 150 : playerZ + 140 + Math.random() * 90;
+    // Keep clear of player lane at spawn
+    const px = this.player?.group?.position.x || 0;
+    if (Math.abs(lane - px) < 2.0) {
+      lane = px >= 0 ? px + 2.8 : px - 2.8;
+    }
     mesh.position.set(lane, 0, z);
     mesh.rotation.y = opposite ? Math.PI : 0;
     this.scene.add(mesh);
@@ -139,7 +144,7 @@ export class DynamicTrafficManager {
         v.opposite = opposite;
         v.laneX = opposite ? (Math.random() > 0.5 ? -5.2 : -2.8) : (Math.random() > 0.5 ? 2.8 : 5.2);
         v.speed = opposite ? -(8 + Math.random() * 7) : (7 + Math.random() * 9);
-        v.mesh.position.set(v.laneX, 0, playerZ + 140 + Math.random() * 70);
+        v.mesh.position.set(v.laneX, 0, playerZ + 150 + Math.random() * 80);
         v.mesh.rotation.y = opposite ? Math.PI : 0;
         v.mesh.visible = true;
       }
