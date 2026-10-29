@@ -54,9 +54,15 @@ const canvas = document.getElementById('webgl-canvas') || document.createElement
 if (!canvas.id) { canvas.id = 'webgl-canvas'; document.body.prepend(canvas); }
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 500);
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+const _isMob = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) || window.innerWidth < 900;
+const renderer = new THREE.WebGLRenderer({
+  canvas,
+  antialias: !_isMob,
+  powerPreference: 'high-performance',
+  stencil: false
+});
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(_isMob ? 1 : Math.min(window.devicePixelRatio, 1.75));
 renderer.toneMappingExposure = 1.65;
 setupKanoAtmosphere(scene, renderer);
 const isMobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) || window.innerWidth < 900;
@@ -814,7 +820,7 @@ function animate() {
     }
 
     if (paused || flow.state === 'PAUSED') {
-      try { composer.render(); } catch (e) { renderer.render(scene, camera); }
+      if (typeof isMobile !== 'undefined' && isMobile) renderer.render(scene, camera); else { try { composer.render(); } catch (e) { renderer.render(scene, camera); } }
       return;
     }
 
@@ -864,7 +870,7 @@ function animate() {
 
       // World systems always tick during/after intro
       roadSystem.update(kekeGroup.position.z);
-      try { roadsideLife.update(kekeGroup.position.z); } catch (e) {}
+      // roadsideLife disabled for FPS
       trafficManager.update(delta, isHornActive);
       if ((window.__sysFrame = (window.__sysFrame || 0) + 1) % 2 === 0) {
         pedestrianManager.update(delta * 2);
@@ -876,7 +882,7 @@ function animate() {
         showBanner(String(msg) + ' · +15 XP');
       });
       weatherManager.update(delta, kekeGroup.position, showBanner);
-      particleSystem.update(delta, kekeController.currentSpeed, weatherManager.currentWeather || 'CLEAR');
+      // particles off
       atmosAccum += delta;
       if (atmosAccum > 0.5) {
         atmosAccum = 0;
@@ -1088,7 +1094,7 @@ function animate() {
       console.warn('frame', err);
     }
 
-    try { composer.render(); } catch (e) { renderer.render(scene, camera); }
+    if (typeof isMobile !== 'undefined' && isMobile) renderer.render(scene, camera); else { try { composer.render(); } catch (e) { renderer.render(scene, camera); } }
   }
 
   animate();

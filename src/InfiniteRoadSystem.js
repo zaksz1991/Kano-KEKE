@@ -7,8 +7,8 @@ export class InfiniteRoadSystem {
   constructor(scene, assetManager) {
     this.scene = scene;
     this.assets = assetManager;
-    this.chunkLength = 56;
-    this.visibleChunks = 9;
+    this.chunkLength = 64;
+    this.visibleChunks = 6;
     this.chunks = [];
     this.roadTexture = null;
 
@@ -147,8 +147,8 @@ export class InfiniteRoadSystem {
       // No box buildings – landmarks/GLB only world
       // (kept trees/lights minimal for edge of road)
       // Trees
-      for (let i = 0; i < 2; i++) {
-        if (rand() > 0.45) {
+      for (let i = 0; i < 1; i++) {
+        if (rand() > 0.55) {
           const t = this._makeTree(rand);
           t.position.set(
             baseX + side * (0.8 + rand() * 6),

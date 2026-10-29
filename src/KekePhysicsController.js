@@ -1,11 +1,7 @@
 import * as THREE from 'three';
 
 /**
- * Production arcade keke physics (senior pass)
- * - Smooth throttle response
- * - Speed-sensitive steering with understeer
- * - Steer smoothing + yaw damping
- * - Soft road bounds + light lane assist
+ * Fast, stable keke physics – NO body tilt (was causing weird lean + cost)
  */
 export class KekePhysicsController {
   constructor(kekeGroup) {
@@ -37,18 +33,14 @@ export class KekePhysicsController {
   update(delta) {
     const dt = THREE.MathUtils.clamp(delta || 0.016, 0.001, 0.033);
 
-    // Throttle curve – progressive, not binary
     const throttle = this.throttleInput;
     if (throttle > 0.05) {
       const top = Math.max(8, this.maxSpeed);
       const headroom = 1 - THREE.MathUtils.clamp(this.velocity / top, 0, 1);
       this.velocity += this.acceleration * throttle * (0.35 + 0.65 * headroom) * dt;
     } else if (throttle < -0.05) {
-      if (this.velocity > 0.6) {
-        this.velocity -= this.brakingForce * Math.abs(throttle) * dt;
-      } else {
-        this.velocity += this.acceleration * 0.38 * throttle * dt;
-      }
+      if (this.velocity > 0.6) this.velocity -= this.brakingForce * Math.abs(throttle) * dt;
+      else this.velocity += this.acceleration * 0.38 * throttle * dt;
     } else {
       const f = this.coastFriction * dt;
       if (this.velocity > 0) this.velocity = Math.max(0, this.velocity - f);
@@ -59,14 +51,12 @@ export class KekePhysicsController {
     this.velocity = THREE.MathUtils.clamp(this.velocity, -this.reverseMax, max);
     this.currentSpeed = Math.abs(this.velocity);
 
-    // Steering: ease toward input, then limited yaw rate
     const steerLerp = 1 - Math.exp(-7 * dt);
     this.steerAngle += (this.steerInput - this.steerAngle) * steerLerp;
 
     if (this.currentSpeed > 0.4 && Math.abs(this.steerAngle) > 0.03) {
       const dirSign = this.velocity >= 0 ? 1 : -1;
-      // Understeer curve: slow = agile, fast = wide arc
-      const maxYaw = 0.95 / (1 + this.currentSpeed * 0.28);
+      const maxYaw = 0.9 / (1 + this.currentSpeed * 0.3);
       const desiredYaw = this.steerAngle * dirSign * maxYaw;
       this.yawRate += (desiredYaw - this.yawRate) * (1 - Math.exp(-9 * dt));
       this.group.rotation.y += this.yawRate * dt;
@@ -74,15 +64,14 @@ export class KekePhysicsController {
       this.yawRate *= Math.exp(-6 * dt);
     }
 
-    // Subtle body roll
-    const lean = THREE.MathUtils.clamp(-this.steerAngle * this.currentSpeed * 0.01, -0.1, 0.1);
-    this.group.rotation.z += (lean - this.group.rotation.z) * 0.12;
+    // NO roll/tilt – keep chassis upright (fixes “tilting” look + saves math)
+    this.group.rotation.z = 0;
+    this.group.rotation.x = 0;
 
     this._fwd.set(0, 0, 1).applyQuaternion(this.group.quaternion);
     this.group.position.addScaledVector(this._fwd, this.velocity * dt);
     this.group.position.y = 0;
 
-    // Soft walls
     const x = this.group.position.x;
     if (x > this.roadLimit) {
       this.group.position.x = THREE.MathUtils.lerp(x, this.roadLimit, 0.18);
@@ -92,7 +81,6 @@ export class KekePhysicsController {
       this.yawRate *= 0.4;
     }
 
-    // Lane assist only when hands off
     if (this.laneAssist && Math.abs(this.steerInput) < 0.1 && this.currentSpeed > 1.5) {
       const lane = x >= 0 ? 2.3 : -2.3;
       this.group.position.x = THREE.MathUtils.lerp(this.group.position.x, lane, 0.015);
