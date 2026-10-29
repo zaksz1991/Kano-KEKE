@@ -131,10 +131,10 @@ export class InfiniteRoadSystem {
     // Black-white painted curb on median
     const curbW = new THREE.MeshBasicMaterial({ color: 0xf5f5f5 });
     const curbB = new THREE.MeshBasicMaterial({ color: 0x111111 });
-    for (let z = -L / 2 + 1; z < L / 2; z += 2.2) {
-      const mat = Math.floor((z + L) / 2.2) % 2 === 0 ? curbW : curbB;
+    for (let z = -L / 2 + 2; z < L / 2; z += 4.4) {
+      const mat = Math.floor((z + L) / 4.4) % 2 === 0 ? curbW : curbB;
       for (const x of [-0.85, 0.85]) {
-        const c = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.22, 2.0), mat);
+        const c = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.22, 4.0), mat);
         c.position.set(x, 0.12, z);
         group.add(c);
       }
@@ -175,13 +175,13 @@ export class InfiniteRoadSystem {
       group.add(walk);
     }
 
-    // Outer black/white kerb (photo: painted roadside edge)
+    // Outer black/white kerb – longer segments (fewer draw calls)
     const kW = new THREE.MeshBasicMaterial({ color: 0xf5f5f5 });
     const kB = new THREE.MeshBasicMaterial({ color: 0x111111 });
     for (const side of [-1, 1]) {
-      for (let z = -L / 2 + 0.8; z < L / 2; z += 1.8) {
-        const mat = Math.floor((z + L) / 1.8) % 2 === 0 ? kW : kB;
-        const kerb = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.2, 1.6), mat);
+      for (let z = -L / 2 + 1.5; z < L / 2; z += 4.0) {
+        const mat = Math.floor((z + L) / 4.0) % 2 === 0 ? kW : kB;
+        const kerb = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.2, 3.6), mat);
         kerb.position.set(side * 8.55, 0.1, z);
         group.add(kerb);
       }
