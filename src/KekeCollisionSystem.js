@@ -1,7 +1,5 @@
-import * as THREE from 'three';
-
 /**
- * Traffic collision – impact, knockback, camera shake flag
+ * Fair dual-road collisions – okadas smaller hit, cars larger
  */
 export class KekeCollisionSystem {
   constructor(kekeGroup, kekeController, trafficManager, missionManager) {
@@ -11,7 +9,7 @@ export class KekeCollisionSystem {
     this.missions = missionManager;
     this.cooldown = 0;
     this.engineHealth = 100;
-    this.shake = 0; // camera reads this
+    this.shake = 0;
   }
 
   update(delta, hudCallback) {
@@ -27,23 +25,24 @@ export class KekeCollisionSystem {
       if (!v.mesh || v.mesh.visible === false) continue;
       const dx = v.mesh.position.x - px;
       const dz = v.mesh.position.z - pz;
-      // Tight lane hit box – not full GLB bounds
-      if (Math.abs(dx) > 2.2 || Math.abs(dz) > 3.5) continue;
+
+      // Kind-based hit size (okada smaller – fair threading)
+      const latMax = v.kind === 'okada' ? 1.55 : v.kind === 'bus' ? 2.6 : 2.0;
+      const depthMax = v.kind === 'okada' ? 2.6 : 3.4;
+      if (Math.abs(dx) > latMax || Math.abs(dz) > depthMax) continue;
       const dist = Math.hypot(dx, dz);
-      if (dist > 3.2) continue;
+      if (dist > latMax + 0.8) continue;
 
-      this.cooldown = 1.6;
-      this.shake = 0.55 + Math.min(0.45, speed / 40);
+      this.cooldown = 1.5;
+      this.shake = 0.45 + Math.min(0.4, speed / 45);
 
-      // Bounce back proportional to speed
-      const bounce = Math.max(4, speed * 0.45);
-      this.controller.velocity = -Math.sign(this.controller.velocity || 1) * bounce * 0.35;
-      if (Math.abs(this.controller.velocity) < 2) this.controller.velocity = -3;
+      const bounce = Math.max(3, speed * 0.4);
+      this.controller.velocity = -Math.sign(this.controller.velocity || 1) * bounce * 0.32;
+      if (Math.abs(this.controller.velocity) < 1.5) this.controller.velocity = -2.5;
 
-      // Nudge sideways away from other vehicle
-      this.keke.position.x -= Math.sign(dx || 1) * 0.8;
+      this.keke.position.x -= Math.sign(dx || 1) * 0.7;
 
-      const dmg = 8 + Math.min(25, speed * 0.8);
+      const dmg = 7 + Math.min(22, speed * 0.75);
       this.engineHealth = Math.max(0, this.engineHealth - dmg);
       this.missions?.onCrash();
 
@@ -55,8 +54,7 @@ export class KekeCollisionSystem {
         });
       }
 
-      // Push traffic aside
-      v.mesh.position.x += Math.sign(v.mesh.position.x - px || 1) * 1.5;
+      v.mesh.position.x += Math.sign(v.mesh.position.x - px || 1) * 1.4;
 
       if (this.engineHealth <= 0 || lives <= 0) {
         this.controller.velocity = 0;
