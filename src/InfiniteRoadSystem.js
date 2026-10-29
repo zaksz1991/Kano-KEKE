@@ -198,6 +198,47 @@ export class InfiniteRoadSystem {
       }
     }
 
+    // Sparse facade strip (photo: peach/pink low-rise shops) – max 1 per side
+    const facadeColors = [0xe8c4a8, 0xf5d0c0, 0xd4b896, 0xc9a66b, 0xe0d5c5];
+    for (const side of [-1, 1]) {
+      if (rand() > 0.45) {
+        const h = 2.8 + rand() * 2.2;
+        const w = 4 + rand() * 5;
+        const wall = new THREE.Mesh(
+          new THREE.BoxGeometry(w, h, 2.2),
+          new THREE.MeshStandardMaterial({
+            color: facadeColors[Math.floor(rand() * facadeColors.length)],
+            roughness: 0.92
+          })
+        );
+        wall.position.set(side * (13.5 + rand()), h / 2, (rand() - 0.5) * L * 0.4);
+        group.add(wall);
+        // Simple dark window strip
+        const win = new THREE.Mesh(
+          new THREE.PlaneGeometry(w * 0.7, 0.7),
+          new THREE.MeshStandardMaterial({ color: 0x1a237e, roughness: 0.4 })
+        );
+        win.position.set(side * (13.5 + rand() - side * 1.12), 1.6, (rand() - 0.5) * L * 0.4);
+        win.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
+        group.add(win);
+      }
+    }
+    // Occasional minaret cue (left side, rare)
+    if (rand() > 0.88) {
+      const minaret = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.35, 0.45, 7, 8),
+        new THREE.MeshStandardMaterial({ color: 0xf0e6d8, roughness: 0.9 })
+      );
+      minaret.position.set(-15 - rand() * 2, 3.5, (rand() - 0.5) * 20);
+      group.add(minaret);
+      const top = new THREE.Mesh(
+        new THREE.ConeGeometry(0.55, 1.2, 8),
+        new THREE.MeshStandardMaterial({ color: 0xc9a66b, roughness: 0.7 })
+      );
+      top.position.set(minaret.position.x, 7.6, minaret.position.z);
+      group.add(top);
+    }
+
     return group;
   }
 
