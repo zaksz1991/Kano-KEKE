@@ -10,7 +10,7 @@ export class DynamicTrafficManager {
     this.player = kekeController;
     this.assets = assetManager;
     this.vehicles = [];
-    this.maxVehicles = 4;
+    this.maxVehicles = 5;
     this.templates = [];
     this.ready = false;
     this.tints = [
@@ -142,7 +142,15 @@ export class DynamicTrafficManager {
       if (v.mesh.position.z < playerZ - 50 || v.mesh.position.z > playerZ + 280) {
         const opposite = Math.random() < 0.05;
         v.opposite = opposite;
-        v.laneX = opposite ? (Math.random() > 0.5 ? -5.2 : -2.8) : (Math.random() > 0.5 ? 2.8 : 5.2);
+        const px = this.player.group.position.x;
+        if (opposite) {
+          v.laneX = px >= 0 ? (Math.random() > 0.5 ? -5.2 : -2.8) : (Math.random() > 0.5 ? 2.8 : 5.2);
+        } else {
+          // Prefer player's carriageway for interaction
+          v.laneX = px >= 0
+            ? (Math.random() > 0.35 ? 2.8 + Math.random() * 2.5 : -3.5)
+            : (Math.random() > 0.35 ? -2.8 - Math.random() * 2.5 : 3.5);
+        }
         v.speed = opposite ? -(8 + Math.random() * 7) : (7 + Math.random() * 9);
         v.mesh.position.set(v.laneX, 0, playerZ + 150 + Math.random() * 80);
         v.mesh.rotation.y = opposite ? Math.PI : 0;
