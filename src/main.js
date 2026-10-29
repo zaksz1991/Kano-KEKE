@@ -95,7 +95,7 @@ const keys = {};
 let gameStarted = false;
 let isHornActive = false;
 let paused = false;
-window.timeInMinutes = 7 * 60;
+window.timeInMinutes = 10 * 60 + 30; // 10:30 AM – bright Kano day like photo
 
 // ---------- Early start (works even if bootstrap still loading) ----------
 window.__kanoStartQueued = false;
