@@ -65,7 +65,7 @@ export class PassengerManager {
   _makePerson(isWaiting = true) {
     if (!this.pedModel) return null;
     const mesh = this.pedModel.clone(true);
-    mesh.scale.setScalar(0.9 + Math.random() * 0.2);
+    mesh.scale.setScalar(1.15 + Math.random() * 0.2);
     return mesh;
   }
 
@@ -96,8 +96,9 @@ export class PassengerManager {
     const p = this._randomPassenger();
     const mesh = this._makePerson(true);
     if (!mesh) return;
-    const side = Math.random() > 0.5 ? 1 : -1;
-    mesh.position.set(side * (10.0 + Math.random() * 1.2), 0, playerZ + 35 + Math.random() * 100);
+    const px = this.keke.group.position.x;
+    const side = px >= 0 ? (Math.random() > 0.25 ? 1 : -1) : (Math.random() > 0.25 ? -1 : 1);
+    mesh.position.set(side * (9.5 + Math.random() * 1.5), 0, playerZ + 25 + Math.random() * 90);
     mesh.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
     this.scene.add(mesh);
     p.mesh = mesh;
@@ -111,7 +112,7 @@ export class PassengerManager {
 
     // Spawn waiters
     this._spawnTimer += dt;
-    if (this._spawnTimer > 3.5) {
+    if (this._spawnTimer > 2.2) {
       this._spawnTimer = 0;
       this._spawnWaiter(playerZ);
     }
