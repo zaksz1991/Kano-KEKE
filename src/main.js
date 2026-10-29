@@ -395,7 +395,7 @@ async function bootstrap() {
   passengerManager.capacity = kekeDef.capacity || 3;
   passengerManager.negotiationBonus = driver.negotiationBonus || 1;
   passengerManager.tipBonus = driver.tipBonus || 1;
-  passengerManager.initModels().catch(() => {});
+  await passengerManager.initModels().catch(() => {});
   const seatOccupancy = new KekeSeatOccupancy(kekeGroup, assetManager);
   seatOccupancy.init().catch(() => {});
   const dashHud = new DashHUD();
@@ -430,7 +430,7 @@ async function bootstrap() {
   if (window.speechSynthesis) speechSynthesis.getVoices();
 
   const pedestrianManager = new PedestrianManager(scene, kekeController, assetManager);
-  pedestrianManager.init().catch(() => {});
+  await pedestrianManager.init().catch(() => {});
   // Dust/exhaust particles OFF – caused grey blob under keke and cost FPS
   const particleSystem = { update() {} };
   let weatherManager = { update() {}, currentWeather: 'CLEAR', forceWeather() {} };

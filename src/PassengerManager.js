@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { ASSET_MANIFEST } from './AssetManifest.js';
 
 /**
  * Full passenger life-sim system:
@@ -35,7 +36,7 @@ export class PassengerManager {
     this.capacity = 3;
     this.onBoard = [];
     this.waiting = [];
-    this.maxWaiting = 10;
+    this.maxWaiting = 8;
 
     this.combo = 0;
     this.score = 0;
@@ -52,7 +53,7 @@ export class PassengerManager {
   async initModels() {
     if (!this.assets) return;
     try {
-      this.pedModel = await this.assets.loadGLB('/assets/models/pedestrian.glb', {
+      this.pedModel = await this.assets.loadGLB(ASSET_MANIFEST.characters.pedestrian || '/assets/models/pedestrian.glb', {
         scale: 1.0,
         castShadow: true
       });
@@ -96,7 +97,7 @@ export class PassengerManager {
     const mesh = this._makePerson(true);
     if (!mesh) return;
     const side = Math.random() > 0.5 ? 1 : -1;
-    mesh.position.set(side * (7.8 + Math.random() * 1.5), 0, playerZ + 40 + Math.random() * 120);
+    mesh.position.set(side * (10.0 + Math.random() * 1.2), 0, playerZ + 35 + Math.random() * 100);
     mesh.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
     this.scene.add(mesh);
     p.mesh = mesh;

@@ -9,7 +9,7 @@ export class PedestrianManager {
     this.assets = assetManager;
     this.model = null;
     this.pedestrians = [];
-    this.maxPeds = 3;
+    this.maxPeds = 6;
     this.ready = false;
   }
 
@@ -35,7 +35,7 @@ export class PedestrianManager {
     const side = Math.random() > 0.5 ? 1 : -1;
     const playerZ = this.player?.group?.position.z || 0;
     const z = initial ? playerZ + 15 + Math.random() * 180 : playerZ + 120 + Math.random() * 60;
-    mesh.position.set(side * (8 + Math.random() * 2), 0, z);
+    mesh.position.set(side * (10.2 + Math.random() * 1.5), 0, z); // sidewalk
     mesh.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
     this.scene.add(mesh);
     this.pedestrians.push({ mesh, side, speed: 0.6 + Math.random() * 0.8, z });

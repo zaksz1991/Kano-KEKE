@@ -92,7 +92,7 @@ export class DynamicTrafficManager {
     const picked = this._meshFor();
     if (!picked) return;
     const { mesh, kind } = picked;
-    const opposite = Math.random() < 0.15;
+    const opposite = Math.random() < 0.06; // mostly same direction
     const lane = opposite
       ? (Math.random() > 0.5 ? -5.2 : -2.8)
       : (Math.random() > 0.5 ? 2.8 : 5.2);
@@ -140,7 +140,7 @@ export class DynamicTrafficManager {
       const dist = Math.abs(v.mesh.position.z - playerZ);
       v.mesh.visible = dist < 160;
       if (v.mesh.position.z < playerZ - 50 || v.mesh.position.z > playerZ + 280) {
-        const opposite = Math.random() < 0.12;
+        const opposite = Math.random() < 0.05;
         v.opposite = opposite;
         v.laneX = opposite ? (Math.random() > 0.5 ? -5.2 : -2.8) : (Math.random() > 0.5 ? 2.8 : 5.2);
         v.speed = opposite ? -(8 + Math.random() * 7) : (7 + Math.random() * 9);

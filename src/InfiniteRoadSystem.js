@@ -128,16 +128,12 @@ export class InfiniteRoadSystem {
         group.add(g);
       }
     }
-    // Black-white painted curb on median
-    const curbW = new THREE.MeshBasicMaterial({ color: 0xf5f5f5 });
-    const curbB = new THREE.MeshBasicMaterial({ color: 0x111111 });
-    for (let z = -L / 2 + 2; z < L / 2; z += 4.4) {
-      const mat = Math.floor((z + L) / 4.4) % 2 === 0 ? curbW : curbB;
-      for (const x of [-0.85, 0.85]) {
-        const c = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.22, 4.0), mat);
-        c.position.set(x, 0.12, z);
-        group.add(c);
-      }
+    // Solid median edge – white continuous (no stripe blink)
+    const curbW = new THREE.MeshBasicMaterial({ color: 0xf0f0f0 });
+    for (const x of [-0.85, 0.85]) {
+      const c = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.2, L * 0.95), curbW);
+      c.position.set(x, 0.12, 0);
+      group.add(c);
     }
 
     // Yellow continuous lines next to median
@@ -175,16 +171,12 @@ export class InfiniteRoadSystem {
       group.add(walk);
     }
 
-    // Outer black/white kerb – longer segments (fewer draw calls)
-    const kW = new THREE.MeshBasicMaterial({ color: 0xf5f5f5 });
-    const kB = new THREE.MeshBasicMaterial({ color: 0x111111 });
+    // Solid outer kerbs – no alternating colours (stops blink on chunk move)
+    const kerbMat = new THREE.MeshBasicMaterial({ color: 0x1a1a1a });
     for (const side of [-1, 1]) {
-      for (let z = -L / 2 + 1.5; z < L / 2; z += 4.0) {
-        const mat = Math.floor((z + L) / 4.0) % 2 === 0 ? kW : kB;
-        const kerb = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.2, 3.6), mat);
-        kerb.position.set(side * 8.55, 0.1, z);
-        group.add(kerb);
-      }
+      const kerb = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.18, L * 0.98), kerbMat);
+      kerb.position.set(side * 8.55, 0.09, 0);
+      group.add(kerb);
     }
 
     // Solar street lights down the median (photo style)

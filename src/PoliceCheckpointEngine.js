@@ -1,7 +1,9 @@
 import * as THREE from 'three';
 
 /**
- * KAROTA checkpoint – barrier, cones, stop/fine/pass, chase if you run it
+ * KAROTA – fair checkpoints (no random driving fines)
+ * - Drive through slowly = usually waved on
+ * - Only chase if you blast through at high speed
  */
 export class PoliceCheckpointEngine {
   constructor(scene, kekeController, passengerManager, assetManager = null) {
@@ -11,15 +13,17 @@ export class PoliceCheckpointEngine {
     this.assets = assetManager;
     this.officerModel = null;
     this.checkpoints = [];
-    this.active = null;
     this.chase = null;
-    this._spawnedUntil = 180;
-    this._warned = new Set();
+    this._spawnedUntil = 400; // first checkpoint further away
+    this._warned = new WeakSet();
 
     if (this.assets) {
-      this.assets.loadGLB('/assets/models/pedestrian.glb', { scale: 1 }).then((m) => {
-        this.officerModel = m;
-      }).catch(() => {});
+      this.assets
+        .loadGLB('/assets/models/pedestrian.glb', { scale: 1 })
+        .then((m) => {
+          this.officerModel = m;
+        })
+        .catch(() => {});
     }
   }
 
@@ -27,166 +31,134 @@ export class PoliceCheckpointEngine {
     const g = new THREE.Group();
     g.position.z = z;
 
-    // Booth
     const booth = new THREE.Mesh(
       new THREE.BoxGeometry(2.2, 2.4, 2.2),
       new THREE.MeshStandardMaterial({ color: 0x37474f, roughness: 0.8 })
     );
-    booth.position.set(-8.5, 1.2, 0);
+    booth.position.set(-9.5, 1.2, 0);
     g.add(booth);
 
-    // Barrier arm (yellow/black stripes feel)
     const arm = new THREE.Mesh(
-      new THREE.BoxGeometry(8, 0.18, 0.4),
-      new THREE.MeshStandardMaterial({ color: 0xffc107, roughness: 0.45, metalness: 0.2 })
+      new THREE.BoxGeometry(6, 0.18, 0.35),
+      new THREE.MeshStandardMaterial({ color: 0xffc107, roughness: 0.45 })
     );
-    arm.position.set(-3.5, 1.15, 0);
+    arm.position.set(-5, 1.15, 0);
     arm.name = 'barrierArm';
     g.add(arm);
 
-    // Cones
-    for (const x of [-6, -3, 0, 3, 6]) {
+    for (const x of [-7, -4, 4, 7]) {
       const cone = new THREE.Mesh(
-        new THREE.ConeGeometry(0.28, 0.85, 8),
+        new THREE.ConeGeometry(0.28, 0.85, 6),
         new THREE.MeshStandardMaterial({ color: 0xff6f00, roughness: 0.65 })
       );
-      cone.position.set(x, 0.42, 3);
+      cone.position.set(x, 0.42, 2.5);
       g.add(cone);
     }
 
-    // Officer – GLB if ready
     if (this.officerModel) {
       const officer = this.officerModel.clone(true);
-      officer.scale.setScalar(1.05);
-      officer.position.set(-6.5, 0, 1.5);
+      officer.scale.setScalar(1.0);
+      officer.position.set(-7.5, 0, 1.2);
       officer.rotation.y = Math.PI / 2;
-      g.add(officer);
-    } else {
-      const officer = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.28, 0.32, 1.6, 8),
-        new THREE.MeshStandardMaterial({ color: 0x1b5e20, roughness: 0.7 })
-      );
-      officer.position.set(-6.5, 0.9, 1.5);
       g.add(officer);
     }
 
-    // STOP sign board
-    const sign = new THREE.Mesh(
-      new THREE.BoxGeometry(1.6, 0.8, 0.08),
-      new THREE.MeshStandardMaterial({ color: 0xc62828, emissive: 0x8b0000, emissiveIntensity: 0.3 })
-    );
-    sign.position.set(-8.5, 2.9, 1.2);
-    g.add(sign);
-
-    // Ground marker strip
     const strip = new THREE.Mesh(
-      new THREE.PlaneGeometry(14, 1.2),
-      new THREE.MeshStandardMaterial({ color: 0xffeb3b, transparent: true, opacity: 0.55 })
+      new THREE.PlaneGeometry(12, 0.9),
+      new THREE.MeshBasicMaterial({ color: 0xffeb3b, transparent: true, opacity: 0.45 })
     );
     strip.rotation.x = -Math.PI / 2;
     strip.position.set(0, 0.04, 0);
     g.add(strip);
 
     this.scene.add(g);
-    this.checkpoints.push({ z, group: g, cleared: false, arm, open: false });
+    this.checkpoints.push({ z, group: g, cleared: false, arm });
   }
 
   _raiseBarrier(cp) {
     if (!cp.arm || cp.open) return;
     cp.open = true;
-    // Animate up by rotating
     cp.arm.rotation.z = -Math.PI / 2;
-    cp.arm.position.y = 3.2;
+    cp.arm.position.y = 3.0;
   }
 
   _resolveStop(cp, hudCallback) {
-    const roll = Math.random();
+    if (cp.cleared) return;
     cp.cleared = true;
     this._raiseBarrier(cp);
-    this.active = null;
-
-    if (roll < 0.45) {
-      // Wave through
-      if (hudCallback) hudCallback({ msg: '🟢 KAROTA: To haka — wuce. Drive safe.' });
-    } else if (roll < 0.8) {
-      const fine = 300 + Math.floor(Math.random() * 700);
+    // Mostly fair – wave through
+    const roll = Math.random();
+    if (roll < 0.75) {
+      if (hudCallback) hudCallback({ msg: '🟢 KAROTA: Toh — wuce. Drive safe.' });
+    } else if (roll < 0.92) {
+      const fine = 200 + Math.floor(Math.random() * 300);
       this.passengers.dailyEarnings = Math.max(0, this.passengers.dailyEarnings - fine);
       if (hudCallback) {
-        hudCallback({
-          msg: `🟡 Papers check — settlement ₦${fine}`,
-          earnings: this.passengers.dailyEarnings
-        });
+        hudCallback({ msg: `🟡 Small settlement ₦${fine}`, earnings: this.passengers.dailyEarnings });
       }
     } else {
-      const fine = 800 + Math.floor(Math.random() * 1200);
+      const fine = 500 + Math.floor(Math.random() * 500);
       this.passengers.dailyEarnings = Math.max(0, this.passengers.dailyEarnings - fine);
       if (hudCallback) {
-        hudCallback({
-          msg: `🔴 Light fine ₦${fine}. Next time slow earlier.`,
-          earnings: this.passengers.dailyEarnings
-        });
+        hudCallback({ msg: `🔴 Fine ₦${fine}`, earnings: this.passengers.dailyEarnings });
       }
     }
   }
 
-  update(hudCallback) {
+  update(hudCallback, delta = 0.016) {
     const playerZ = this.keke.group.position.z;
     const speed = this.keke.currentSpeed || 0;
+    const dt = Math.min(delta || 0.016, 0.05);
 
-    if (playerZ > this._spawnedUntil - 100) {
-      const nextZ = this._spawnedUntil + 260 + Math.random() * 140;
+    // Rare checkpoints
+    if (playerZ > this._spawnedUntil - 120) {
+      const nextZ = this._spawnedUntil + 450 + Math.random() * 200;
       this.spawnCheckpoint(nextZ);
       this._spawnedUntil = nextZ;
     }
 
-    // Chase after running checkpoint
     if (this.chase) {
-      this.chase.t += 0.016;
-      this.keke.maxSpeed = Math.min(this.keke.maxSpeed, 11);
-      if (this.chase.t > 11) {
-        const fine = 2000 + Math.floor(Math.random() * 2500);
-        this.passengers.dailyEarnings = Math.max(0, this.passengers.dailyEarnings - fine);
-        if (hudCallback) {
-          hudCallback({
-            msg: `🚓 Caught! Fine ₦${fine}`,
-            earnings: this.passengers.dailyEarnings
-          });
-        }
+      this.chase.t += dt;
+      this.keke.maxSpeed = Math.min(this.keke.maxSpeed, 14);
+      // Escape if you keep moving long enough without "caught" instant
+      if (this.chase.t > 8) {
         this.chase = null;
         this.keke.maxSpeed = Math.max(this.keke.maxSpeed, 24);
+        if (hudCallback) hudCallback({ msg: '🟢 You lost KAROTA — slow next time.' });
       }
       return;
     }
 
     for (const cp of this.checkpoints) {
       if (cp.cleared) {
-        // LOD hide far
-        if (cp.group) cp.group.visible = Math.abs(cp.z - playerZ) < 180;
+        if (cp.group) cp.group.visible = Math.abs(cp.z - playerZ) < 160;
         continue;
       }
       if (cp.group) cp.group.visible = Math.abs(cp.z - playerZ) < 200;
 
       const dist = cp.z - playerZ;
 
-      if (dist < 55 && dist > 8 && !this._warned.has(cp)) {
+      if (dist < 50 && dist > 10 && !this._warned.has(cp)) {
         this._warned.add(cp);
-        if (hudCallback) hudCallback({ msg: '🚧 KAROTA checkpoint ahead — slow down!', type: 'KAROTA_AHEAD' });
+        if (hudCallback) hudCallback({ msg: '🚧 KAROTA ahead — slow down or stop', type: 'KAROTA_AHEAD' });
       }
 
-      if (dist < 10 && dist > -6) {
-        if (speed > 7) {
-          // Ran it
+      // In checkpoint zone
+      if (dist < 8 && dist > -5) {
+        if (speed > 14) {
+          // Only high-speed blast = chase (not normal driving)
           cp.cleared = true;
-          this.active = null;
           this.chase = { t: 0 };
-          if (hudCallback) hudCallback({ msg: '🚨 You ran the checkpoint! KAROTA chase!', type: 'KAROTA_CHASE' });
-        } else if (speed < 3) {
+          if (hudCallback) hudCallback({ msg: '🚨 Ran KAROTA at high speed!', type: 'KAROTA_CHASE' });
+        } else if (speed < 2.5) {
           this._resolveStop(cp, hudCallback);
-        } else if (hudCallback && dist < 6) {
-          // nudge
-          if (!cp._nudge || performance.now() - cp._nudge > 2500) {
-            cp._nudge = performance.now();
-            hudCallback({ msg: '🛑 Stop at the barrier for KAROTA' });
+        } else {
+          // Moderate speed: free pass – no fine
+          if (!cp._passed) {
+            cp._passed = true;
+            cp.cleared = true;
+            this._raiseBarrier(cp);
+            if (hudCallback) hudCallback({ msg: '🟢 KAROTA waved you on' });
           }
         }
       }
