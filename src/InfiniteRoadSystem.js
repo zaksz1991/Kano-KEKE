@@ -89,105 +89,114 @@ export class InfiniteRoadSystem {
     const group = new THREE.Group();
     group.position.z = zBase;
     const rand = this.rng(Math.floor(zBase * 17.13 + 91));
+    const L = this.chunkLength;
 
-    // --- Road ---
-    const roadMat = new THREE.MeshStandardMaterial({
-      color: 0x2e2e2e,
-      roughness: 0.88,
-      metalness: 0.08,
-      map: this.roadTexture
+    // === Kano dual carriageway (photo ref: median, yellow lines, black asphalt) ===
+    const asphalt = new THREE.MeshStandardMaterial({
+      color: 0x2a2a2a,
+      roughness: 0.92,
+      metalness: 0.04,
+      map: this.roadTexture || null
     });
     if (this.roadTexture) {
-      roadMat.map = this.roadTexture;
-      roadMat.map.repeat.set(2, this.chunkLength / 8);
-    }
-    const road = new THREE.Mesh(new THREE.PlaneGeometry(16, this.chunkLength, 1, 4), roadMat);
-    road.rotation.x = -Math.PI / 2;
-    road.receiveShadow = true;
-    group.add(road);
-    group.userData.roadMesh = road;
-
-    // Sidewalks
-    const walkMat = new THREE.MeshStandardMaterial({ color: 0x6e6e6e, roughness: 0.95 });
-    for (const x of [-9.5, 9.5]) {
-      const walk = new THREE.Mesh(new THREE.PlaneGeometry(3.2, this.chunkLength), walkMat);
-      walk.rotation.x = -Math.PI / 2;
-      walk.position.set(x, 0.04, 0);
-      walk.receiveShadow = true;
-      group.add(walk);
+      asphalt.map = this.roadTexture;
+      asphalt.map.repeat.set(1.5, L / 10);
     }
 
-    // Lane markings
+    // Two carriageways (left / right of median)
+    for (const x of [-4.6, 4.6]) {
+      const lane = new THREE.Mesh(new THREE.PlaneGeometry(7.2, L, 1, 2), asphalt.clone());
+      lane.rotation.x = -Math.PI / 2;
+      lane.position.set(x, 0, 0);
+      lane.receiveShadow = true;
+      group.add(lane);
+      if (x > 0) group.userData.roadMesh = lane;
+    }
+
+    // Central median island
+    const medianMat = new THREE.MeshStandardMaterial({ color: 0x6b5b3a, roughness: 1 });
+    const median = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.18, L * 0.92), medianMat);
+    median.position.set(0, 0.1, 0);
+    group.add(median);
+    // Sparse dry grass on median
+    const grassMat = new THREE.MeshStandardMaterial({ color: 0x7a8f4a, roughness: 1 });
+    for (let z = -L / 2 + 4; z < L / 2; z += 10) {
+      if (rand() > 0.35) {
+        const g = new THREE.Mesh(new THREE.SphereGeometry(0.35 + rand() * 0.25, 5, 4), grassMat);
+        g.position.set((rand() - 0.5) * 0.4, 0.28, z);
+        g.scale.y = 0.5;
+        group.add(g);
+      }
+    }
+    // Black-white painted curb on median
+    const curbW = new THREE.MeshBasicMaterial({ color: 0xf5f5f5 });
+    const curbB = new THREE.MeshBasicMaterial({ color: 0x111111 });
+    for (let z = -L / 2 + 1; z < L / 2; z += 2.2) {
+      const mat = Math.floor((z + L) / 2.2) % 2 === 0 ? curbW : curbB;
+      for (const x of [-0.85, 0.85]) {
+        const c = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.22, 2.0), mat);
+        c.position.set(x, 0.12, z);
+        group.add(c);
+      }
+    }
+
+    // Yellow continuous lines next to median
     const yellow = new THREE.MeshBasicMaterial({ color: 0xffc107 });
-    const white = new THREE.MeshBasicMaterial({ color: 0xf5f5f5 });
-    for (let z = -this.chunkLength / 2 + 2; z < this.chunkLength / 2; z += 7) {
-      const dash = new THREE.Mesh(new THREE.PlaneGeometry(0.32, 3.2), yellow);
-      dash.rotation.x = -Math.PI / 2;
-      dash.position.set(0, 0.03, z);
-      group.add(dash);
+    for (const x of [-1.15, 1.15]) {
+      const yline = new THREE.Mesh(new THREE.PlaneGeometry(0.14, L * 0.95), yellow);
+      yline.rotation.x = -Math.PI / 2;
+      yline.position.set(x, 0.035, 0);
+      group.add(yline);
     }
-    for (const x of [-7.2, 7.2]) {
-      const edge = new THREE.Mesh(new THREE.PlaneGeometry(0.18, this.chunkLength), white);
+
+    // White dashed lane marks on each carriageway
+    const white = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    for (const laneX of [-4.6, 4.6]) {
+      for (let z = -L / 2 + 2; z < L / 2; z += 6.5) {
+        const dash = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 2.8), white);
+        dash.rotation.x = -Math.PI / 2;
+        dash.position.set(laneX, 0.035, z);
+        group.add(dash);
+      }
+      // Outer edge solid white
+      const edgeX = laneX > 0 ? 8.1 : -8.1;
+      const edge = new THREE.Mesh(new THREE.PlaneGeometry(0.16, L), white);
       edge.rotation.x = -Math.PI / 2;
-      edge.position.set(x, 0.025, 0);
+      edge.position.set(edgeX, 0.03, 0);
       group.add(edge);
     }
 
-    // Gutters / drainage
-    const gutterMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 1 });
-    for (const x of [-8.1, 8.1]) {
-      const g = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.15, this.chunkLength), gutterMat);
-      g.position.set(x, 0.05, 0);
-      group.add(g);
+    // Sidewalks / shoulders
+    const walkMat = new THREE.MeshStandardMaterial({ color: 0x8a8580, roughness: 0.96 });
+    for (const x of [-10.2, 10.2]) {
+      const walk = new THREE.Mesh(new THREE.PlaneGeometry(2.8, L), walkMat);
+      walk.rotation.x = -Math.PI / 2;
+      walk.position.set(x, 0.05, 0);
+      group.add(walk);
     }
 
-    // Side world – denser
-    for (const side of [-1, 1]) {
-      const baseX = side * 12.5;
-      // No box buildings – landmarks/GLB only world
-      // (kept trees/lights minimal for edge of road)
-      // Trees
-      for (let i = 0; i < 1; i++) {
-        if (rand() > 0.55) {
-          const t = this._makeTree(rand);
-          t.position.set(
-            baseX + side * (0.8 + rand() * 6),
-            0,
-            -this.chunkLength / 2 + 6 + i * 22 + rand() * 4
-          );
-          group.add(t);
-        }
-      }
-      // Poles
-      if (rand() > 0.55) {
-        const pole = this._makePole();
-        pole.position.set(baseX + side * 0.6, 0, (rand() - 0.5) * this.chunkLength * 0.7);
-        group.add(pole);
-      }
-      // Market stalls
-      if (false) {
-        const stall = this._makeStall(rand);
-        stall.position.set(baseX + side * (0.5 + rand()), 0, (rand() - 0.5) * this.chunkLength * 0.55);
-        group.add(stall);
-      }
-      // Billboards / signs
-      if (false) {
-        const sign = this._makeSign(rand);
-        sign.position.set(baseX + side * 2, 0, (rand() - 0.5) * 20);
-        group.add(sign);
-      }
-    }
-
-    // Street lights – off road
+    // Solar street lights down the median (photo style)
     for (let i = 0; i < 2; i++) {
-      if (rand() > 0.3) {
+      if (rand() > 0.25) {
         const light = this._makeStreetLight();
-        const side = rand() > 0.5 ? 1 : -1;
-        light.position.set(side * (8.2 + rand()), 0, -this.chunkLength / 2 + 12 + i * 22);
+        light.position.set(0, 0, -L / 2 + 14 + i * 28 + rand() * 4);
         group.add(light);
       }
     }
 
+    // Trees along sides (Kano roadside)
+    for (const side of [-1, 1]) {
+      if (rand() > 0.4) {
+        const tree = this._makeTree(rand);
+        tree.position.set(side * (11.5 + rand() * 2), 0, (rand() - 0.5) * L * 0.6);
+        group.add(tree);
+      }
+      if (rand() > 0.5) {
+        const pole = this._makePole();
+        pole.position.set(side * 11.2, 0, (rand() - 0.5) * L * 0.5);
+        group.add(pole);
+      }
+    }
 
     return group;
   }
@@ -376,28 +385,39 @@ export class InfiniteRoadSystem {
   }
 
   _makeStreetLight() {
+    // Solar dual-head pole matching Kano dual carriageway photo
     const g = new THREE.Group();
     const pole = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.07, 0.09, 7, 6),
+      new THREE.CylinderGeometry(0.08, 0.11, 8.5, 6),
       new THREE.MeshStandardMaterial({ color: 0x263238, metalness: 0.55, roughness: 0.4 })
     );
-    pole.position.y = 3.5;
-    pole.castShadow = true;
+    pole.position.y = 4.25;
     g.add(pole);
+    // Cross arm
     const arm = new THREE.Mesh(
-      new THREE.BoxGeometry(1.4, 0.08, 0.08),
+      new THREE.BoxGeometry(3.2, 0.08, 0.08),
       new THREE.MeshStandardMaterial({ color: 0x37474f, metalness: 0.5 })
     );
-    arm.position.set(0.6, 6.8, 0);
+    arm.position.set(0, 8.2, 0);
     g.add(arm);
-    const head = new THREE.Mesh(
-      new THREE.BoxGeometry(0.55, 0.18, 0.35),
-      new THREE.MeshStandardMaterial({ color: 0x546e7a, emissive: 0xffe0b2, emissiveIntensity: 0.2 })
-    );
-    head.position.set(1.1, 6.7, 0);
-    g.add(head);
-    const light = new THREE.PointLight(0xffe0b2, 0, 22, 2);
-    light.position.set(1.1, 6.5, 0);
+    // Two lamp heads
+    for (const x of [-1.4, 1.4]) {
+      const head = new THREE.Mesh(
+        new THREE.BoxGeometry(0.55, 0.12, 0.35),
+        new THREE.MeshStandardMaterial({ color: 0x546e7a, emissive: 0xffe0b2, emissiveIntensity: 0.15 })
+      );
+      head.position.set(x, 8.05, 0);
+      g.add(head);
+      // Solar panel flat on top
+      const panel = new THREE.Mesh(
+        new THREE.BoxGeometry(0.5, 0.04, 0.4),
+        new THREE.MeshStandardMaterial({ color: 0x1a237e, metalness: 0.6, roughness: 0.3 })
+      );
+      panel.position.set(x, 8.2, 0);
+      g.add(panel);
+    }
+    const light = new THREE.PointLight(0xffe0b2, 0, 26, 2);
+    light.position.set(0, 7.8, 0);
     light.name = 'streetLight';
     g.add(light);
     return g;

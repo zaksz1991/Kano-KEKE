@@ -84,8 +84,8 @@ export class DynamicTrafficManager {
     const { mesh, kind } = picked;
     const opposite = Math.random() < 0.15;
     const lane = opposite
-      ? (Math.random() > 0.5 ? -3.5 : -2.2)
-      : (Math.random() > 0.5 ? 2.2 : 3.5);
+      ? (Math.random() > 0.5 ? -5.2 : -2.8)
+      : (Math.random() > 0.5 ? 2.8 : 5.2);
     const playerZ = this.player?.group?.position.z || 0;
     const z = initial ? playerZ + 30 + Math.random() * 160 : playerZ + 130 + Math.random() * 80;
     mesh.position.set(lane, 0, z);
@@ -117,7 +117,7 @@ export class DynamicTrafficManager {
       if (v.mesh.position.z < playerZ - 50 || v.mesh.position.z > playerZ + 280) {
         const opposite = Math.random() < 0.12;
         v.opposite = opposite;
-        v.laneX = opposite ? (Math.random() > 0.5 ? -3.5 : -2.2) : (Math.random() > 0.5 ? 2.2 : 3.5);
+        v.laneX = opposite ? (Math.random() > 0.5 ? -5.2 : -2.8) : (Math.random() > 0.5 ? 2.8 : 5.2);
         v.speed = opposite ? -(8 + Math.random() * 7) : (7 + Math.random() * 9);
         v.mesh.position.set(v.laneX, 0, playerZ + 140 + Math.random() * 70);
         v.mesh.rotation.y = opposite ? Math.PI : 0;
