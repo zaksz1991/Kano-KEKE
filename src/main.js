@@ -855,8 +855,8 @@ function animate() {
         throttle = input.throttle || 0;
         steer = input.steering || 0;
         // Deadzone – ignores tiny float noise from touch
-        if (Math.abs(throttle) < 0.08) throttle = 0;
-        if (Math.abs(steer) < 0.12) steer = 0;
+        if (Math.abs(throttle) < 0.06) throttle = 0;
+        if (Math.abs(steer) < 0.06) steer = 0;
         if (keys['KeyW'] || keys['ArrowUp']) throttle = 1;
         if (keys['KeyS'] || keys['ArrowDown']) throttle = -1;
         if (keys['KeyA'] || keys['ArrowLeft']) steer = 1;

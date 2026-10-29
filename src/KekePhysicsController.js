@@ -55,11 +55,11 @@ export class KekePhysicsController {
     this.velocity = THREE.MathUtils.clamp(this.velocity, -this.reverseMax, Math.max(8, this.maxSpeed));
     this.currentSpeed = Math.abs(this.velocity);
 
-    // --- Lateral steer (X) – responsive, not yaw spin ---
-    // Higher speed = slightly less lateral authority
-    const latMax = 14 / (1 + this.currentSpeed * 0.04);
+    // --- Lateral steer (X) – snappy response ---
+    const latMax = 22 / (1 + this.currentSpeed * 0.025);
     const targetLat = this.steerInput * latMax;
-    this.lateral += (targetLat - this.lateral) * Math.min(1, 8 * dt);
+    // Fast lerp toward stick (was 8 – too soft)
+    this.lateral += (targetLat - this.lateral) * Math.min(1, 16 * dt);
 
     this.group.position.x += this.lateral * dt;
     this.group.position.z += this.velocity * dt;
