@@ -5,7 +5,7 @@ export function setupKanoAtmosphere(scene, renderer) {
   const mobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) || window.innerWidth < 900;
 
   scene.background = new THREE.Color(0x87b7e8);
-  scene.fog = new THREE.Fog(0xb8d4f0, mobile ? 50 : 90, mobile ? 140 : 260);
+  scene.fog = new THREE.Fog(0xb8d4f0, mobile ? 60 : 110, mobile ? 160 : 300);
 
   const sun = new THREE.DirectionalLight(0xfff6e0, mobile ? 2.8 : 3.8);
   sun.position.set(50, 80, 30);
@@ -92,8 +92,8 @@ export function updateAtmosphereByTime(scene, renderer, timeInMinutes, roadSyste
     scene.background.set(warm);
     if (scene.fog) {
       scene.fog.color.set(warm);
-      scene.fog.near = mobile ? 40 : 70;
-      scene.fog.far = mobile ? 120 : 220;
+      scene.fog.near = mobile ? 55 : 100;
+      scene.fog.far = mobile ? 150 : 280;
     }
     renderer.toneMappingExposure = 1.35 + h * 0.2;
   }
