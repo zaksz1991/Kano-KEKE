@@ -191,12 +191,12 @@ export class PassengerManager {
         p.dropAtZ = playerZ + 60 + Math.random() * 100;
       }
       // Request drop when near
-      if (p.state === 'boarded' && playerZ >= p.dropAtZ - 25) {
+      if (p.state === 'boarded' && playerZ >= p.dropAtZ - 35) {
         p.state = 'dropping';
         if (hudCallback) {
           hudCallback({
             type: 'DROP_REQUEST',
-            msg: `${p.title}: Akwai! Ina so in sauka — ${p.destination}.`
+            msg: `🛑 Akwai! ${p.title} wants out → ${p.destination} (SLOW DOWN)`
           });
         }
       }
@@ -216,11 +216,11 @@ export class PassengerManager {
     }
 
     // Complete drop-off when slowed near drop point
-    if (speed < 6.5) {
+    if (speed < 8) {
       const dropping = this.onBoard.filter((p) => p.state === 'dropping');
       dropping.forEach((p) => {
         const dz = Math.abs(playerZ - p.dropAtZ);
-        if (dz < 20) {
+        if (dz < 28) {
           // Perfect drop = almost stopped + close to mark
           p._perfectDrop = speed < 2.8 && dz < 10;
           this._completeDropoff(p, hudCallback);
