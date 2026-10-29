@@ -46,7 +46,7 @@ export class InfiniteRoadSystem {
     if (chunk.userData.hasRoadTile) return;
     try {
       const tile = this.roadTileModel.clone(true);
-      tile.position.set(0, 0.04, this.chunkLength * 0.5);
+      tile.position.set(0, 0.06, this.chunkLength * 0.5);
       tile.scale.set(1.15, 1, this.chunkLength / 18);
       tile.traverse((n) => {
         if (n.isMesh && n.material) {
@@ -120,11 +120,11 @@ export class InfiniteRoadSystem {
     group.add(median);
     // Sparse dry grass on median
     const grassMat = new THREE.MeshStandardMaterial({ color: 0x7a8f4a, roughness: 1 });
-    for (let z = -L / 2 + 4; z < L / 2; z += 10) {
-      if (rand() > 0.35) {
-        const g = new THREE.Mesh(new THREE.SphereGeometry(0.35 + rand() * 0.25, 5, 4), grassMat);
-        g.position.set((rand() - 0.5) * 0.4, 0.28, z);
-        g.scale.y = 0.5;
+    for (let z = -L / 2 + 8; z < L / 2; z += 18) {
+      if (rand() > 0.5) {
+        const g = new THREE.Mesh(new THREE.SphereGeometry(0.4 + rand() * 0.2, 4, 3), grassMat);
+        g.position.set((rand() - 0.5) * 0.35, 0.28, z);
+        g.scale.y = 0.45;
         group.add(g);
       }
     }
