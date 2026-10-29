@@ -15,8 +15,8 @@ export class KekeCameraRig {
     this.velocity = new THREE.Vector3();
     this._shakeAmp = 0;
 
-    this.stiffness = 18;
-    this.damping = 10;
+    this.stiffness = 24;
+    this.damping = 12;
     this.lookStiffness = 12;
     this.baseFov = 58;
     this.maxFov = 66;

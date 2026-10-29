@@ -13,8 +13,8 @@ export class KekePhysicsController {
     this.currentSpeed = 0;
     this.maxSpeed = 24;
     this.reverseMax = 7;
-    this.acceleration = 16;
-    this.brakingForce = 24;
+    this.acceleration = 18;
+    this.brakingForce = 32;
     this.coastFriction = 5;
     this.throttleInput = 0;
     this.steerInput = 0;
