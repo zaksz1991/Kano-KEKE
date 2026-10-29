@@ -93,7 +93,7 @@ export class InfiniteRoadSystem {
 
     // === Kano dual carriageway (photo ref: median, yellow lines, black asphalt) ===
     const asphalt = new THREE.MeshStandardMaterial({
-      color: 0x2a2a2a,
+      color: 0x242424,
       roughness: 0.92,
       metalness: 0.04,
       map: this.roadTexture || null
@@ -173,6 +173,18 @@ export class InfiniteRoadSystem {
       walk.rotation.x = -Math.PI / 2;
       walk.position.set(x, 0.05, 0);
       group.add(walk);
+    }
+
+    // Outer black/white kerb (photo: painted roadside edge)
+    const kW = new THREE.MeshBasicMaterial({ color: 0xf5f5f5 });
+    const kB = new THREE.MeshBasicMaterial({ color: 0x111111 });
+    for (const side of [-1, 1]) {
+      for (let z = -L / 2 + 0.8; z < L / 2; z += 1.8) {
+        const mat = Math.floor((z + L) / 1.8) % 2 === 0 ? kW : kB;
+        const kerb = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.2, 1.6), mat);
+        kerb.position.set(side * 8.55, 0.1, z);
+        group.add(kerb);
+      }
     }
 
     // Solar street lights down the median (photo style)
