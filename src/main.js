@@ -807,6 +807,8 @@ function animate() {
     requestAnimationFrame(animate);
     const frameStart = performance.now();
     const delta = Math.min(clock.getDelta(), 0.05);
+    // Adaptive: if last frame was heavy, skip secondary systems this frame
+    const adaptiveSkip = (window.__lastFrameMs || 0) > 28;
 
     if (!gameStarted) {
       // Static menu view – skip most frames to save battery/CPU
@@ -868,25 +870,27 @@ function animate() {
         }
       }
 
-      // World systems always tick during/after intro
+      // Core world – always
       roadSystem.update(kekeGroup.position.z);
-      // roadsideLife disabled for FPS
       trafficManager.update(delta, isHornActive);
-      if ((window.__sysFrame = (window.__sysFrame || 0) + 1) % 2 === 0) {
-        pedestrianManager.update(delta * 2);
-      }
-      landmarkManager.update(kekeGroup.position.z, (msg) => {
-        missionManager.xp = (missionManager.xp || 0) + 15;
-        try { achievements.onLandmark(); } catch (e) {}
-        missionManager.score = (missionManager.score || 0) + 50;
-        showBanner(String(msg) + ' · +15 XP');
-      });
-      weatherManager.update(delta, kekeGroup.position, showBanner);
-      // particles off
-      atmosAccum += delta;
-      if (atmosAccum > 0.5) {
-        atmosAccum = 0;
-        updateAtmosphereByTime(scene, renderer, window.timeInMinutes, roadSystem);
+
+      // Secondary – skip when last frame was slow
+      if (!adaptiveSkip) {
+        if ((window.__sysFrame = (window.__sysFrame || 0) + 1) % 2 === 0) {
+          pedestrianManager.update(delta * 2);
+        }
+        landmarkManager.update(kekeGroup.position.z, (msg) => {
+          missionManager.xp = (missionManager.xp || 0) + 15;
+          try { achievements.onLandmark(); } catch (e) {}
+          missionManager.score = (missionManager.score || 0) + 50;
+          showBanner(String(msg) + ' · +15 XP');
+        });
+        weatherManager.update(delta, kekeGroup.position, showBanner);
+        atmosAccum += delta;
+        if (atmosAccum > 0.5) {
+          atmosAccum = 0;
+          updateAtmosphereByTime(scene, renderer, window.timeInMinutes, roadSystem);
+        }
       }
 
       if (canDrive) {
@@ -1095,6 +1099,7 @@ function animate() {
     }
 
     if (typeof isMobile !== 'undefined' && isMobile) renderer.render(scene, camera); else { try { composer.render(); } catch (e) { renderer.render(scene, camera); } }
+    window.__lastFrameMs = performance.now() - frameStart;
   }
 
   animate();
