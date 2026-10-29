@@ -1,8 +1,7 @@
 import * as THREE from 'three';
 
 /**
- * Chase camera locked to vehicle position + yaw only
- * Ignores body lean so camera does not wobble every frame
+ * Stable chase camera – no drift when parked, shake is one-shot
  */
 export class KekeCameraRig {
   constructor(camera, targetGroup) {
@@ -36,7 +35,6 @@ export class KekeCameraRig {
     this._snapToTarget();
   }
 
-  /** Yaw-only quaternion – ignores roll/lean */
   _yawQuat() {
     this._euler.set(0, this.target.rotation.y, 0);
     this._yawQ.setFromEuler(this._euler);
@@ -45,10 +43,10 @@ export class KekeCameraRig {
 
   _snapToTarget() {
     const q = this._yawQuat();
-    const offset = this.idealOffset.clone().applyQuaternion(q);
-    this.currentPos.copy(this.target.position).add(offset);
+    this.currentPos.copy(this.target.position).add(this.idealOffset.clone().applyQuaternion(q));
     this.lookAtPos.copy(this.target.position).add(this.lookAtOffset.clone().applyQuaternion(q));
     this.velocity.set(0, 0, 0);
+    this._shakeAmp = 0;
     this.camera.position.copy(this.currentPos);
     this.camera.lookAt(this.lookAtPos);
     this.camera.fov = this.baseFov;
@@ -68,46 +66,62 @@ export class KekeCameraRig {
 
   cycleMode() {
     const order = ['chase', 'near', 'wide', 'hood'];
-    const i = order.indexOf(this.mode);
-    return this.setMode(order[(i + 1) % order.length]);
+    return this.setMode(order[(order.indexOf(this.mode) + 1) % order.length]);
   }
 
   setShake(amount) {
-    this._shakeAmp = Math.max(this._shakeAmp || 0, amount);
+    // Only raise shake, never called every frame with decaying value
+    if (amount > this._shakeAmp) this._shakeAmp = amount;
   }
 
   update(delta, speed = 0) {
     const dt = Math.min(Math.max(delta, 0.001), 0.05);
-    const ratio = THREE.MathUtils.clamp(speed / 28, 0, 1);
     const q = this._yawQuat();
 
+    // Parked: lock camera, kill residual spring + shake
+    if (speed < 0.4) {
+      this._shakeAmp = 0;
+      this.velocity.set(0, 0, 0);
+      const desired = this.target.position.clone().add(this.idealOffset.clone().applyQuaternion(q));
+      this.currentPos.lerp(desired, 0.25);
+      this.camera.position.copy(this.currentPos);
+      const lookDesired = this.target.position.clone().add(this.lookAtOffset.clone().applyQuaternion(q));
+      this.lookAtPos.lerp(lookDesired, 0.3);
+      this.camera.lookAt(this.lookAtPos);
+      this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, this.baseFov, 0.1);
+      this.camera.updateProjectionMatrix();
+      return;
+    }
+
+    const ratio = THREE.MathUtils.clamp(speed / 28, 0, 1);
     const offset = this.idealOffset.clone();
     offset.z -= ratio * 0.8;
     offset.y += ratio * 0.3;
     offset.applyQuaternion(q);
 
     const desired = this.target.position.clone().add(offset);
-    const toDesired = desired.sub(this.currentPos);
+    const toDesired = desired.clone().sub(this.currentPos);
     this.velocity.addScaledVector(toDesired, this.stiffness * dt);
     this.velocity.multiplyScalar(Math.max(0, 1 - this.damping * dt));
     this.currentPos.addScaledVector(this.velocity, dt);
 
-    const lag = this.currentPos.distanceTo(desired);
-    if (lag > 12) {
+    if (this.currentPos.distanceTo(desired) > 12) {
       this.currentPos.lerp(desired, 0.35);
       this.velocity.multiplyScalar(0.3);
     }
 
     this.camera.position.copy(this.currentPos);
-    if (this._shakeAmp > 0.01) {
+
+    // One-shot shake decay
+    if (this._shakeAmp > 0.02) {
       this.camera.position.x += (Math.random() - 0.5) * this._shakeAmp;
-      this.camera.position.y += (Math.random() - 0.5) * this._shakeAmp * 0.5;
-      this._shakeAmp *= 0.88;
+      this.camera.position.y += (Math.random() - 0.5) * this._shakeAmp * 0.4;
+      this._shakeAmp *= 0.82;
+    } else {
+      this._shakeAmp = 0;
     }
 
-    const lookDesired = this.target.position
-      .clone()
-      .add(this.lookAtOffset.clone().applyQuaternion(q));
+    const lookDesired = this.target.position.clone().add(this.lookAtOffset.clone().applyQuaternion(q));
     this.lookAtPos.lerp(lookDesired, 1 - Math.exp(-this.lookStiffness * dt));
     this.camera.lookAt(this.lookAtPos);
 

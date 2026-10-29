@@ -117,6 +117,14 @@ export class DynamicTrafficManager {
     const dt = Math.min(delta, 0.05);
     this.vehicles.forEach((v) => {
       v.mesh.position.z += v.speed * dt;
+      // Avoid stopped player – change lane early
+      const pz = this.player.group.position.z;
+      const px = this.player.group.position.x;
+      const pSpeed = this.player.currentSpeed || 0;
+      if (pSpeed < 1.5 && Math.abs(v.mesh.position.z - pz) < 18 && Math.abs(v.mesh.position.x - px) < 3.5) {
+        const away = Math.sign(v.mesh.position.x - px || 1) * 2.5;
+        v.laneX = px + away;
+      }
       if (horn && Math.abs(v.mesh.position.z - playerZ) < 35) {
         // Horn: okadas swerve hard, cars drift out
         const push = (v.kind === 'okada' ? 2.2 : 1.4) * (v.opposite ? -1 : 1);
