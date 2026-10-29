@@ -23,7 +23,23 @@ export class DynamicTrafficManager {
     const loads = (ASSET_MANIFEST.traffic || []).map(async (c) => {
       try {
         const mesh = await this.assets.loadGLB(c.path, { scale: c.scale || 1 });
-        if (mesh) return { mesh, kind: c.kind || 'car' };
+        if (mesh) {
+          // Flatten expensive material features for FPS
+          mesh.traverse((n) => {
+            if (!n.isMesh || !n.material) return;
+            const mats = Array.isArray(n.material) ? n.material : [n.material];
+            mats.forEach((m) => {
+              if (!m) return;
+              m.flatShading = true;
+              if (m.envMap) m.envMap = null;
+              m.metalness = Math.min(m.metalness || 0, 0.35);
+              m.needsUpdate = true;
+            });
+            n.castShadow = false;
+            n.receiveShadow = false;
+          });
+          return { mesh, kind: c.kind || 'car' };
+        }
       } catch (e) {}
       return null;
     });

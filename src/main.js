@@ -946,8 +946,7 @@ function animate() {
           weather: weatherManager.currentWeather || 'CLEAR',
           shiftTime: shiftElapsed,
           startCash: shiftStartCash,
-          notice: passengerManager.getHudStatus?.() || null,
-              notice: `+₦${fare}`
+          notice: (typeof fare !== 'undefined' && fare) ? `+₦${fare}` : (passengerManager.getHudStatus?.() || null)
             });
             SaveSystem.saveGame({
               cash: passengerManager.dailyEarnings,
@@ -1085,13 +1084,7 @@ function animate() {
           weather: weatherManager.currentWeather || 'CLEAR',
           shiftTime: shiftElapsed,
           startCash: shiftStartCash,
-          notice: passengerManager.getHudStatus?.() || null,
-          weather: weatherManager.currentWeather || 'CLEAR',
-          shiftTime: shiftElapsed,
-          startCash: shiftStartCash,
-          notice: passengerManager.getHudStatus?.() || null,
-          shiftTime: shiftElapsed,
-          startCash: shiftStartCash
+          notice: passengerManager.getHudStatus?.() || null
         });
       }
     } catch (err) {
