@@ -31,6 +31,7 @@ export class InfiniteRoadSystem {
     } catch (e) {}
     try {
       this.billboardTex2 = await this.assets.loadTexture('/assets/models/textures/kano_ref/road_aerial.jpg', {});
+      this.billboardTex3 = await this.assets.loadTexture('/assets/models/textures/kano_ref/road_wet.jpg', {});
     } catch (e) { this.billboardTex2 = null; }
 
     for (let i = 0; i < this.visibleChunks; i++) {
@@ -256,7 +257,8 @@ export class InfiniteRoadSystem {
     }
 
     // Photo billboard (real Kano ref) – sparse
-    const btex = (rand() > 0.5 && this.billboardTex2) ? this.billboardTex2 : this.billboardTex;
+    const pool = [this.billboardTex, this.billboardTex2, this.billboardTex3].filter(Boolean);
+    const btex = pool.length ? pool[Math.floor(rand() * pool.length)] : null;
     if (btex && rand() > 0.65) {
       const side = rand() > 0.5 ? 1 : -1;
       const board = new THREE.Mesh(
