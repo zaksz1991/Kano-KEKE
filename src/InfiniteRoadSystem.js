@@ -29,6 +29,9 @@ export class InfiniteRoadSystem {
     try {
       this.billboardTex = await this.assets.loadTexture('/assets/models/textures/kano_ref/road_dual.jpg', {});
     } catch (e) {}
+    try {
+      this.billboardTex2 = await this.assets.loadTexture('/assets/models/textures/kano_ref/road_aerial.jpg', {});
+    } catch (e) { this.billboardTex2 = null; }
 
     for (let i = 0; i < this.visibleChunks; i++) {
       const chunk = this._createChunk(i * this.chunkLength);
@@ -253,13 +256,14 @@ export class InfiniteRoadSystem {
     }
 
     // Photo billboard (real Kano ref) – sparse
-    if (this.billboardTex && rand() > 0.72) {
+    const btex = (rand() > 0.5 && this.billboardTex2) ? this.billboardTex2 : this.billboardTex;
+    if (btex && rand() > 0.65) {
       const side = rand() > 0.5 ? 1 : -1;
       const board = new THREE.Mesh(
-        new THREE.PlaneGeometry(6.5, 3.6),
-        new THREE.MeshBasicMaterial({ map: this.billboardTex, side: THREE.DoubleSide })
+        new THREE.PlaneGeometry(7.2, 4.0),
+        new THREE.MeshBasicMaterial({ map: btex, side: THREE.DoubleSide })
       );
-      board.position.set(side * 16, 2.2, (rand() - 0.5) * L * 0.3);
+      board.position.set(side * 16.5, 2.4, (rand() - 0.5) * L * 0.3);
       board.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
       group.add(board);
     }
