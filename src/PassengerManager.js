@@ -75,7 +75,7 @@ export class PassengerManager {
     const title = titles[Math.floor(Math.random() * titles.length)];
     const dest = DESTINATIONS[Math.floor(Math.random() * DESTINATIONS.length)];
     const seats = Math.random() > 0.82 ? 2 : 1;
-    const baseFare = 150 + Math.floor(Math.random() * 350) + (seats > 1 ? 100 : 0);
+    const baseFare = 200 + Math.floor(Math.random() * 400) + (seats > 1 ? 120 : 0);
     return {
       title,
       gender: female ? 'female' : 'male',
@@ -176,12 +176,12 @@ export class PassengerManager {
     }
 
     // Pickup opportunity – slow near waiter
-    if (!this._dialogue && this.onBoard.length < this.capacity && speed < 8) {
+    if (!this._dialogue && this.onBoard.length < this.capacity && speed < 9) {
       for (const p of this.waiting) {
         if (!p.mesh || p.state !== 'waiting') continue;
         if (this.onBoard.length + p.seats > this.capacity) continue;
         const dist = p.mesh.position.distanceTo(this.keke.group.position);
-        if (dist < 10) {
+        if (dist < 12) {
           this._startNegotiation(p, hudCallback);
           break;
         }
@@ -228,7 +228,7 @@ export class PassengerManager {
     }
 
     // Complete drop-off when slowed near drop point
-    if (speed < 8) {
+    if (speed < 9) {
       const dropping = this.onBoard.filter((p) => p.state === 'dropping');
       dropping.forEach((p) => {
         const dz = Math.abs(playerZ - p.dropAtZ);
