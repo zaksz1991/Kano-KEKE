@@ -10,7 +10,7 @@ export class DynamicTrafficManager {
     this.player = kekeController;
     this.assets = assetManager;
     this.vehicles = [];
-    this.maxVehicles = 5;
+    this.maxVehicles = 6;
     this.templates = [];
     this.ready = false;
     // Kano street palette from photos – yellow keke, silver, white, dark
