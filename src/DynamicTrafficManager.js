@@ -13,9 +13,10 @@ export class DynamicTrafficManager {
     this.maxVehicles = 5;
     this.templates = [];
     this.ready = false;
+    // Kano street palette from photos – yellow keke, silver, white, dark
     this.tints = [
-      0xe53935, 0x1e88e5, 0x43a047, 0xffb300, 0x6d4c41,
-      0x8e24aa, 0x00897b, 0xf4511e, 0x3949ab, 0xc0ca33
+      0xffc107, 0xffb300, 0xf9a825, 0xffeb3b, 0xe0e0e0,
+      0xbdbdbd, 0x212121, 0x1565c0, 0xc62828, 0xffffff
     ];
   }
 
@@ -76,7 +77,7 @@ export class DynamicTrafficManager {
     const okadas = this.templates.filter((x) => x.kind === 'okada');
     const cars = this.templates.filter((x) => x.kind !== 'okada');
     let pick;
-    if (okadas.length && Math.random() < 0.62) {
+    if (okadas.length && Math.random() < 0.55) {
       pick = okadas[Math.floor(Math.random() * okadas.length)];
     } else if (cars.length) {
       pick = cars[Math.floor(Math.random() * cars.length)];

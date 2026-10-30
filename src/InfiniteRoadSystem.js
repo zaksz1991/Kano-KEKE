@@ -1,49 +1,47 @@
 import * as THREE from 'three';
 
 /**
- * Dense Kano street world – textured road, varied compounds, market life
+ * Kano dual carriageway – matched to real reference photos:
+ * median, yellow edge lines, white dashes, B/W kerbs, side barriers, solar lights
  */
 export class InfiniteRoadSystem {
   constructor(scene, assetManager) {
     this.scene = scene;
     this.assets = assetManager;
-    this.chunkLength = 64;
+    this.chunkLength = 72;
     this.visibleChunks = 6;
     this.chunks = [];
     this.roadTexture = null;
+    this.roadTileModel = null;
+  }
 
-    this.rng = (seed) => {
-      let s = (Math.abs(seed | 0) % 2147483646) + 1;
-      return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
+  rng(seed) {
+    let s = seed % 2147483647;
+    if (s <= 0) s += 2147483646;
+    return () => {
+      s = (s * 16807) % 2147483647;
+      return (s - 1) / 2147483646;
     };
   }
 
   async init() {
     for (let i = 0; i < this.visibleChunks; i++) {
       const chunk = this._createChunk(i * this.chunkLength);
-      this.chunks.push(chunk);
       this.scene.add(chunk);
+      this.chunks.push(chunk);
     }
-    this._loadTexture();
-    this._tryRoadTile();
-  }
-
-  async _tryRoadTile() {
+    await this._loadTexture();
     try {
-      const model = await this.assets.loadGLB('/assets/models/environment/road_tile.glb', {
+      this.roadTileModel = await this.assets.loadGLB('/assets/models/environment/road_tile.glb', {
         scale: 1,
-        castShadow: false,
-        receiveShadow: true
+        castShadow: false
       });
-      if (!model) return;
-      this.roadTileModel = model;
       this.chunks.forEach((chunk) => this._applyRoadTile(chunk));
     } catch (e) {}
   }
 
   _applyRoadTile(chunk) {
-    if (!this.roadTileModel || !chunk) return;
-    if (chunk.userData.hasRoadTile) return;
+    if (!this.roadTileModel || !chunk || chunk.userData.hasRoadTile) return;
     try {
       const tile = this.roadTileModel.clone(true);
       tile.position.set(0, 0.06, this.chunkLength * 0.5);
@@ -56,7 +54,6 @@ export class InfiniteRoadSystem {
             m.polygonOffset = true;
             m.polygonOffsetFactor = -1;
             m.polygonOffsetUnits = -1;
-            m.needsUpdate = true;
           });
         }
       });
@@ -70,17 +67,19 @@ export class InfiniteRoadSystem {
       const tex = await this.assets.loadTexture('/assets/models/textures/road_diffuse.jpg', {
         wrapS: THREE.RepeatWrapping,
         wrapT: THREE.RepeatWrapping,
-        anisotropy: 8
+        anisotropy: 4
       });
       if (!tex) return;
       this.roadTexture = tex;
       this.chunks.forEach((chunk) => {
-        const road = chunk.userData.roadMesh;
-        if (road?.material) {
-          road.material.map = tex;
-          road.material.map.repeat.set(2, this.chunkLength / 8);
-          road.material.needsUpdate = true;
-        }
+        const roads = chunk.userData.roadMeshes || [];
+        roads.forEach((road) => {
+          if (road?.material) {
+            road.material.map = tex;
+            road.material.map.repeat.set(1.2, this.chunkLength / 12);
+            road.material.needsUpdate = true;
+          }
+        });
       });
     } catch (e) {}
   }
@@ -90,252 +89,236 @@ export class InfiniteRoadSystem {
     group.position.z = zBase;
     const rand = this.rng(Math.floor(zBase * 17.13 + 91));
     const L = this.chunkLength;
+    group.userData.roadMeshes = [];
 
-    // === Kano dual carriageway (photo ref: median, yellow lines, black asphalt) ===
+    // Ground / dusty shoulder (Kano sand-tan outside road)
+    const groundMat = new THREE.MeshStandardMaterial({ color: 0xc4a574, roughness: 1 });
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(48, L), groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.02;
+    group.add(ground);
+
+    // Asphalt – dual carriageway (photo: dark grey)
     const asphalt = new THREE.MeshStandardMaterial({
-      color: 0x242424,
-      roughness: 0.92,
-      metalness: 0.04,
+      color: 0x3a3a3a,
+      roughness: 0.9,
+      metalness: 0.05,
       map: this.roadTexture || null
     });
-    if (this.roadTexture) {
-      asphalt.map = this.roadTexture;
-      asphalt.map.repeat.set(1.5, L / 10);
-    }
 
-    // Two carriageways (left / right of median)
-    for (const x of [-4.6, 4.6]) {
-      const lane = new THREE.Mesh(new THREE.PlaneGeometry(7.2, L, 1, 2), asphalt.clone());
+    for (const x of [-4.8, 4.8]) {
+      const lane = new THREE.Mesh(new THREE.PlaneGeometry(8.2, L, 1, 2), asphalt.clone());
+      if (this.roadTexture) {
+        lane.material.map = this.roadTexture;
+        lane.material.map.repeat.set(1.2, L / 12);
+      }
       lane.rotation.x = -Math.PI / 2;
-      lane.position.set(x, 0, 0);
-      lane.receiveShadow = true;
+      lane.position.set(x, 0.01, 0);
       group.add(lane);
-      if (x > 0) group.userData.roadMesh = lane;
+      group.userData.roadMeshes.push(lane);
     }
 
-    // Central median island
-    const medianMat = new THREE.MeshStandardMaterial({ color: 0x6b5b3a, roughness: 1 });
-    const median = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.18, L * 0.92), medianMat);
-    median.position.set(0, 0.1, 0);
+    // Central median with grass (photo: planted strip + yellow borders)
+    const median = new THREE.Mesh(
+      new THREE.BoxGeometry(1.5, 0.16, L * 0.96),
+      new THREE.MeshStandardMaterial({ color: 0x5d4e37, roughness: 1 })
+    );
+    median.position.set(0, 0.09, 0);
     group.add(median);
-    // Sparse dry grass on median
-    const grassMat = new THREE.MeshStandardMaterial({ color: 0x7a8f4a, roughness: 1 });
-    for (let z = -L / 2 + 8; z < L / 2; z += 18) {
-      if (rand() > 0.5) {
-        const g = new THREE.Mesh(new THREE.SphereGeometry(0.4 + rand() * 0.2, 4, 3), grassMat);
-        g.position.set((rand() - 0.5) * 0.35, 0.28, z);
-        g.scale.y = 0.45;
-        group.add(g);
+
+    const grassMat = new THREE.MeshStandardMaterial({ color: 0x4caf50, roughness: 1 });
+    for (let z = -L / 2 + 6; z < L / 2; z += 14) {
+      if (rand() > 0.4) {
+        const bush = new THREE.Mesh(new THREE.SphereGeometry(0.35, 4, 3), grassMat);
+        bush.position.set((rand() - 0.5) * 0.3, 0.28, z);
+        bush.scale.y = 0.5;
+        group.add(bush);
       }
     }
-    // Solid median edge – white continuous (no stripe blink)
-    const curbW = new THREE.MeshBasicMaterial({ color: 0xf0f0f0 });
-    for (const x of [-0.85, 0.85]) {
-      const c = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.2, L * 0.95), curbW);
-      c.position.set(x, 0.12, 0);
-      group.add(c);
-    }
 
-    // Yellow continuous lines next to median
+    // Continuous yellow lines along median (photo)
     const yellow = new THREE.MeshBasicMaterial({ color: 0xffc107 });
-    for (const x of [-1.15, 1.15]) {
-      const yline = new THREE.Mesh(new THREE.PlaneGeometry(0.14, L * 0.95), yellow);
-      yline.rotation.x = -Math.PI / 2;
-      yline.position.set(x, 0.035, 0);
-      group.add(yline);
+    for (const x of [-0.95, 0.95]) {
+      const yl = new THREE.Mesh(new THREE.PlaneGeometry(0.12, L * 0.96), yellow);
+      yl.rotation.x = -Math.PI / 2;
+      yl.position.set(x, 0.04, 0);
+      group.add(yl);
+    }
+    // Outer yellow lines
+    for (const x of [-8.7, 8.7]) {
+      const yl = new THREE.Mesh(new THREE.PlaneGeometry(0.12, L * 0.96), yellow);
+      yl.rotation.x = -Math.PI / 2;
+      yl.position.set(x, 0.04, 0);
+      group.add(yl);
     }
 
-    // White dashed lane marks on each carriageway
+    // White dashed lane marks (photo)
     const white = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    for (const laneX of [-4.6, 4.6]) {
-      for (let z = -L / 2 + 2; z < L / 2; z += 6.5) {
-        const dash = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 2.8), white);
+    for (const laneX of [-4.8, 4.8]) {
+      for (let z = -L / 2 + 2; z < L / 2; z += 7) {
+        const dash = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 3.0), white);
         dash.rotation.x = -Math.PI / 2;
-        dash.position.set(laneX, 0.035, z);
+        dash.position.set(laneX, 0.04, z);
         group.add(dash);
       }
-      // Outer edge solid white
-      const edgeX = laneX > 0 ? 8.1 : -8.1;
-      const edge = new THREE.Mesh(new THREE.PlaneGeometry(0.16, L), white);
-      edge.rotation.x = -Math.PI / 2;
-      edge.position.set(edgeX, 0.03, 0);
-      group.add(edge);
     }
 
-    // Sidewalks / shoulders
-    const walkMat = new THREE.MeshStandardMaterial({ color: 0x8a8580, roughness: 0.96 });
-    for (const x of [-10.2, 10.2]) {
-      const walk = new THREE.Mesh(new THREE.PlaneGeometry(2.8, L), walkMat);
+    // Black/white kerb blocks (photo style – longer segments, less flicker)
+    const kW = new THREE.MeshBasicMaterial({ color: 0xf5f5f5 });
+    const kB = new THREE.MeshBasicMaterial({ color: 0x111111 });
+    for (const side of [-1, 1]) {
+      // Outer kerb
+      for (let z = -L / 2 + 1.2; z < L / 2; z += 3.2) {
+        const mat = Math.floor((z + L) / 3.2) % 2 === 0 ? kW : kB;
+        const kerb = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.18, 2.9), mat);
+        kerb.position.set(side * 9.0, 0.1, z);
+        group.add(kerb);
+      }
+      // Median kerb
+      for (let z = -L / 2 + 1.2; z < L / 2; z += 3.2) {
+        const mat = Math.floor((z + L) / 3.2) % 2 === 0 ? kW : kB;
+        const kerb = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.16, 2.9), mat);
+        kerb.position.set(side * 0.78, 0.12, z);
+        group.add(kerb);
+      }
+    }
+
+    // Green barrier walls (flyover photo style) – occasional
+    if (rand() > 0.55) {
+      const wallMat = new THREE.MeshStandardMaterial({ color: 0x9e9e9e, roughness: 0.85 });
+      const greenTop = new THREE.MeshStandardMaterial({ color: 0x2e7d32, roughness: 0.7 });
+      for (const side of [-1, 1]) {
+        const wall = new THREE.Mesh(new THREE.BoxGeometry(0.35, 1.4, L * 0.5), wallMat);
+        wall.position.set(side * 10.5, 0.7, (rand() - 0.5) * 20);
+        group.add(wall);
+        const top = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.2, L * 0.5), greenTop);
+        top.position.set(side * 10.5, 1.5, wall.position.z);
+        group.add(top);
+      }
+    }
+
+    // Sidewalks
+    const walkMat = new THREE.MeshStandardMaterial({ color: 0xbcaaa4, roughness: 0.95 });
+    for (const x of [-11.2, 11.2]) {
+      const walk = new THREE.Mesh(new THREE.PlaneGeometry(2.6, L), walkMat);
       walk.rotation.x = -Math.PI / 2;
       walk.position.set(x, 0.05, 0);
       group.add(walk);
     }
 
-    // Solid outer kerbs – no alternating colours (stops blink on chunk move)
-    const kerbMat = new THREE.MeshBasicMaterial({ color: 0x1a1a1a });
-    for (const side of [-1, 1]) {
-      const kerb = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.18, L * 0.98), kerbMat);
-      kerb.position.set(side * 8.55, 0.09, 0);
-      group.add(kerb);
-    }
-
-    // Solar street lights down the median (photo style)
+    // Solar street lights on median (photo)
     for (let i = 0; i < 2; i++) {
-      if (rand() > 0.25) {
-        const light = this._makeStreetLight();
-        light.position.set(0, 0, -L / 2 + 14 + i * 28 + rand() * 4);
-        group.add(light);
+      if (rand() > 0.2) {
+        group.add(this._makeStreetLight(0, -L / 2 + 16 + i * 32 + rand() * 4));
       }
     }
 
-    // Trees along sides (Kano roadside)
+    // Roadside trees
     for (const side of [-1, 1]) {
-      if (rand() > 0.32) {
+      if (rand() > 0.3) {
         const tree = this._makeTree(rand);
-        tree.position.set(side * (11.5 + rand() * 2), 0, (rand() - 0.5) * L * 0.6);
+        tree.position.set(side * (12.5 + rand() * 2), 0, (rand() - 0.5) * L * 0.5);
         group.add(tree);
       }
-      if (rand() > 0.5) {
-        const pole = this._makePole();
-        pole.position.set(side * 11.2, 0, (rand() - 0.5) * L * 0.5);
-        group.add(pole);
-      }
-      if (rand() > 0.55) {
-        const pl = this._makePowerLine(side);
-        pl.position.set(side * 12.0, 0, (rand() - 0.5) * L * 0.5);
-        group.add(pl);
+    }
+
+    // Colorful Kano facades (photo: pink, blue, yellow, red shops)
+    const facadeColors = [0xe8a090, 0x90caf9, 0xffe082, 0xef9a9a, 0xa5d6a7, 0xffcc80, 0xce93d8, 0x80cbc4];
+    for (const side of [-1, 1]) {
+      if (rand() > 0.35) {
+        const h = 3.2 + rand() * 3.5;
+        const w = 5 + rand() * 6;
+        const wall = new THREE.Mesh(
+          new THREE.BoxGeometry(w, h, 2.4),
+          new THREE.MeshStandardMaterial({
+            color: facadeColors[Math.floor(rand() * facadeColors.length)],
+            roughness: 0.9
+          })
+        );
+        wall.position.set(side * (14 + rand() * 2), h / 2, (rand() - 0.5) * L * 0.35);
+        group.add(wall);
+        // Roof strip
+        const roof = new THREE.Mesh(
+          new THREE.BoxGeometry(w + 0.3, 0.25, 2.7),
+          new THREE.MeshStandardMaterial({ color: 0xc62828, roughness: 0.8 })
+        );
+        roof.position.set(wall.position.x, h + 0.1, wall.position.z);
+        group.add(roof);
       }
     }
 
-    // Sparse facade strip (photo: peach/pink low-rise shops) – max 1 per side
-    const facadeColors = [0xe8c4a8, 0xf5d0c0, 0xd4b896, 0xc9a66b, 0xe0d5c5];
-    for (const side of [-1, 1]) {
-      if (rand() > 0.45) {
-        const h = 2.8 + rand() * 2.2;
-        const w = 4 + rand() * 5;
-        const wall = new THREE.Mesh(
-          new THREE.BoxGeometry(w, h, 2.2),
-          new THREE.MeshStandardMaterial({
-            color: facadeColors[Math.floor(rand() * facadeColors.length)],
-            roughness: 0.92
-          })
-        );
-        wall.position.set(side * (13.5 + rand()), h / 2, (rand() - 0.5) * L * 0.4);
-        group.add(wall);
-        // Simple dark window strip
-        const win = new THREE.Mesh(
-          new THREE.PlaneGeometry(w * 0.7, 0.7),
-          new THREE.MeshStandardMaterial({ color: 0x1a237e, roughness: 0.4 })
-        );
-        win.position.set(side * (13.5 + rand() - side * 1.12), 1.6, (rand() - 0.5) * L * 0.4);
-        win.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
-        group.add(win);
-      }
-    }
-    // Occasional minaret cue (left side, rare)
-    if (rand() > 0.88) {
+    // Rare minaret
+    if (rand() > 0.9) {
       const minaret = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.35, 0.45, 7, 8),
-        new THREE.MeshStandardMaterial({ color: 0xf0e6d8, roughness: 0.9 })
+        new THREE.CylinderGeometry(0.4, 0.5, 8, 8),
+        new THREE.MeshStandardMaterial({ color: 0xf5f0e6, roughness: 0.9 })
       );
-      minaret.position.set(-15 - rand() * 2, 3.5, (rand() - 0.5) * 20);
+      minaret.position.set(-16 - rand() * 2, 4, (rand() - 0.5) * 15);
       group.add(minaret);
-      const top = new THREE.Mesh(
-        new THREE.ConeGeometry(0.55, 1.2, 8),
-        new THREE.MeshStandardMaterial({ color: 0xc9a66b, roughness: 0.7 })
+      const dome = new THREE.Mesh(
+        new THREE.SphereGeometry(0.7, 8, 6),
+        new THREE.MeshStandardMaterial({ color: 0xc9a66b })
       );
-      top.position.set(minaret.position.x, 7.6, minaret.position.z);
-      group.add(top);
+      dome.position.set(minaret.position.x, 8.3, minaret.position.z);
+      group.add(dome);
     }
 
     return group;
   }
 
-  _makeBuilding(rand, side) {
+  _makeStreetLight(x, z) {
     const g = new THREE.Group();
-    const w = 3.5 + rand() * 6;
-    const d = 3 + rand() * 5;
-    const floors = 1 + Math.floor(rand() * 3);
-    const h = floors * (2.6 + rand() * 0.4);
-    const palette = [0xd4b896, 0xc9a66b, 0xe8d5b5, 0xa1887f, 0xbcaaa4, 0xffcc80, 0x90caf9, 0xce93d8, 0x80cbc4];
-    const wall = new THREE.Mesh(
-      new THREE.BoxGeometry(w, h, d),
-      new THREE.MeshStandardMaterial({ color: palette[Math.floor(rand() * palette.length)], roughness: 0.9 })
+    g.position.set(x, 0, z);
+    const pole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.07, 0.1, 9, 6),
+      new THREE.MeshStandardMaterial({ color: 0x263238, metalness: 0.5, roughness: 0.4 })
     );
-    wall.position.y = h / 2;
-    wall.castShadow = true;
-    wall.receiveShadow = true;
-    g.add(wall);
-
-    // Roof
-    const roof = new THREE.Mesh(
-      new THREE.BoxGeometry(w + 0.5, 0.28, d + 0.5),
-      new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.85 })
+    pole.position.y = 4.5;
+    g.add(pole);
+    const arm = new THREE.Mesh(
+      new THREE.BoxGeometry(2.8, 0.07, 0.07),
+      new THREE.MeshStandardMaterial({ color: 0x37474f })
     );
-    roof.position.y = h + 0.12;
-    roof.castShadow = true;
-    g.add(roof);
-
-    // Windows
-    const winMat = new THREE.MeshStandardMaterial({
-      color: 0x1a237e,
-      emissive: 0x0d47a1,
-      emissiveIntensity: 0.15,
-      roughness: 0.3
-    });
-    for (let f = 0; f < floors; f++) {
-      for (let wi = 0; wi < Math.min(2, Math.floor(w / 2.2)); wi++) {
-        const win = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.9), winMat);
-        win.position.set(-w / 2 + 1.2 + wi * 1.6, 1.2 + f * 2.5, d / 2 + 0.02);
-        g.add(win);
-      }
-    }
-
-    // Door
-    const door = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.0, 1.8),
-      new THREE.MeshStandardMaterial({ color: 0x4e342e, roughness: 0.8 })
-    );
-    door.position.set(0, 0.9, d / 2 + 0.03);
-    g.add(door);
-
-    // Awning for shops
-    if (rand() > 0.45) {
-      const awning = new THREE.Mesh(
-        new THREE.BoxGeometry(w * 0.9, 0.08, 1.2),
-        new THREE.MeshStandardMaterial({
-          color: [0xc62828, 0x1565c0, 0x2e7d32, 0xf9a825][Math.floor(rand() * 4)],
-          roughness: 0.7
-        })
+    arm.position.set(0, 8.8, 0);
+    g.add(arm);
+    for (const lx of [-1.2, 1.2]) {
+      const head = new THREE.Mesh(
+        new THREE.BoxGeometry(0.5, 0.1, 0.3),
+        new THREE.MeshStandardMaterial({ color: 0x546e7a, emissive: 0xffe0b2, emissiveIntensity: 0.2 })
       );
-      awning.position.set(0, 2.3, d / 2 + 0.5);
-      g.add(awning);
+      head.position.set(lx, 8.65, 0);
+      g.add(head);
+      const panel = new THREE.Mesh(
+        new THREE.BoxGeometry(0.45, 0.04, 0.35),
+        new THREE.MeshStandardMaterial({ color: 0x1a237e, metalness: 0.6 })
+      );
+      panel.position.set(lx, 8.85, 0);
+      g.add(panel);
     }
-
-    g.rotation.y = side > 0 ? (rand() - 0.5) * 0.15 : Math.PI + (rand() - 0.5) * 0.15;
+    const light = new THREE.PointLight(0xffe0b2, 0, 28, 2);
+    light.position.set(0, 8.4, 0);
+    light.name = 'streetLight';
+    g.add(light);
     return g;
   }
 
   _makeTree(rand) {
     const g = new THREE.Group();
     const trunk = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.15 + rand() * 0.1, 0.25 + rand() * 0.1, 2.4 + rand(), 7),
-      new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.9 })
+      new THREE.CylinderGeometry(0.12, 0.18, 2.2, 5),
+      new THREE.MeshStandardMaterial({ color: 0x5d4037 })
     );
-    trunk.position.y = 1.2;
-    trunk.castShadow = true;
+    trunk.position.y = 1.1;
     g.add(trunk);
-    const layers = 2 + Math.floor(rand() * 2);
-    for (let i = 0; i < layers; i++) {
+    for (let i = 0; i < 3; i++) {
       const foliage = new THREE.Mesh(
-        new THREE.SphereGeometry(1.3 + rand() * 0.7 - i * 0.15, 8, 6),
+        new THREE.SphereGeometry(0.9 - i * 0.15, 6, 5),
         new THREE.MeshStandardMaterial({
           color: [0x2e7d32, 0x43a047, 0x1b5e20, 0x66bb6a][Math.floor(rand() * 4)],
-          roughness: 0.85
+          roughness: 1
         })
       );
-      foliage.position.y = 2.6 + i * 0.7 + rand() * 0.3;
-      foliage.castShadow = true;
+      foliage.position.y = 2.6 + i * 0.55 + rand() * 0.2;
       g.add(foliage);
     }
     return g;
@@ -344,145 +327,16 @@ export class InfiniteRoadSystem {
   _makePole() {
     const g = new THREE.Group();
     const pole = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.08, 0.1, 8, 6),
-      new THREE.MeshStandardMaterial({ color: 0x455a64, metalness: 0.5, roughness: 0.5 })
+      new THREE.CylinderGeometry(0.06, 0.08, 5.5, 5),
+      new THREE.MeshStandardMaterial({ color: 0x455a64 })
     );
-    pole.position.y = 4;
-    pole.castShadow = true;
+    pole.position.y = 2.75;
     g.add(pole);
-    const arm = new THREE.Mesh(
-      new THREE.BoxGeometry(2.4, 0.07, 0.07),
-      new THREE.MeshStandardMaterial({ color: 0x546e7a, metalness: 0.6 })
-    );
-    arm.position.y = 7.6;
-    g.add(arm);
-    // wires suggestion
-    const wire = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.015, 0.015, 3, 4),
-      new THREE.MeshBasicMaterial({ color: 0x212121 })
-    );
-    wire.rotation.z = Math.PI / 2;
-    wire.position.set(1.2, 7.55, 0);
-    g.add(wire);
     return g;
   }
 
-  _makeStall(rand) {
-    const g = new THREE.Group();
-    const table = new THREE.Mesh(
-      new THREE.BoxGeometry(2.6, 0.12, 1.5),
-      new THREE.MeshStandardMaterial({ color: 0x6d4c41, roughness: 0.85 })
-    );
-    table.position.y = 0.95;
-    table.castShadow = true;
-    g.add(table);
-    // Legs
-    for (const [x, z] of [[-1.1, -0.5], [1.1, -0.5], [-1.1, 0.5], [1.1, 0.5]]) {
-      const leg = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.05, 0.05, 0.95, 5),
-        new THREE.MeshStandardMaterial({ color: 0x5d4037 })
-      );
-      leg.position.set(x, 0.47, z);
-      g.add(leg);
-    }
-    for (const x of [-1.1, 1.1]) {
-      const p = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.05, 0.05, 2.4, 5),
-        new THREE.MeshStandardMaterial({ color: 0x5d4037 })
-      );
-      p.position.set(x, 1.2, 0);
-      g.add(p);
-    }
-    const colors = [0xc62828, 0x1565c0, 0xf9a825, 0x6a1b9a, 0x00838f];
-    const canopy = new THREE.Mesh(
-      new THREE.BoxGeometry(2.8, 0.06, 1.7),
-      new THREE.MeshStandardMaterial({ color: colors[Math.floor(rand() * colors.length)], roughness: 0.65 })
-    );
-    canopy.position.y = 2.35;
-    canopy.castShadow = true;
-    g.add(canopy);
-    // Goods on table
-    for (let i = 0; i < 3; i++) {
-      const box = new THREE.Mesh(
-        new THREE.BoxGeometry(0.35, 0.25, 0.35),
-        new THREE.MeshStandardMaterial({ color: colors[Math.floor(rand() * colors.length)] })
-      );
-      box.position.set(-0.7 + i * 0.7, 1.15, 0);
-      g.add(box);
-    }
-    return g;
-  }
-
-  _makeSign(rand) {
-    const g = new THREE.Group();
-    const post = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.06, 0.08, 3.5, 5),
-      new THREE.MeshStandardMaterial({ color: 0x37474f })
-    );
-    post.position.y = 1.75;
-    g.add(post);
-    const board = new THREE.Mesh(
-      new THREE.BoxGeometry(2.2, 1.2, 0.1),
-      new THREE.MeshStandardMaterial({
-        color: [0xc62828, 0x1565c0, 0x2e7d32, 0xf57f17][Math.floor(rand() * 4)],
-        roughness: 0.6
-      })
-    );
-    board.position.y = 3.2;
-    board.castShadow = true;
-    g.add(board);
-    return g;
-  }
-
-  _makeStreetLight() {
-    // Solar dual-head pole matching Kano dual carriageway photo
-    const g = new THREE.Group();
-    const pole = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.08, 0.11, 8.5, 6),
-      new THREE.MeshStandardMaterial({ color: 0x263238, metalness: 0.55, roughness: 0.4 })
-    );
-    pole.position.y = 4.25;
-    g.add(pole);
-    // Cross arm
-    const arm = new THREE.Mesh(
-      new THREE.BoxGeometry(3.2, 0.08, 0.08),
-      new THREE.MeshStandardMaterial({ color: 0x37474f, metalness: 0.5 })
-    );
-    arm.position.set(0, 8.2, 0);
-    g.add(arm);
-    // Two lamp heads
-    for (const x of [-1.4, 1.4]) {
-      const head = new THREE.Mesh(
-        new THREE.BoxGeometry(0.55, 0.12, 0.35),
-        new THREE.MeshStandardMaterial({ color: 0x546e7a, emissive: 0xffe0b2, emissiveIntensity: 0.15 })
-      );
-      head.position.set(x, 8.05, 0);
-      g.add(head);
-      // Solar panel flat on top
-      const panel = new THREE.Mesh(
-        new THREE.BoxGeometry(0.5, 0.04, 0.4),
-        new THREE.MeshStandardMaterial({ color: 0x1a237e, metalness: 0.6, roughness: 0.3 })
-      );
-      panel.position.set(x, 8.2, 0);
-      g.add(panel);
-    }
-    const light = new THREE.PointLight(0xffe0b2, 0, 26, 2);
-    light.position.set(0, 7.8, 0);
-    light.name = 'streetLight';
-    g.add(light);
-    return g;
-  }
-
-  _makePowerLine(side) {
-    const g = new THREE.Group();
-    const mat = new THREE.MeshStandardMaterial({ color: 0x455a64, metalness: 0.4, roughness: 0.5 });
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 6.5, 5), mat);
-    pole.position.y = 3.25;
-    g.add(pole);
-    const cross = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.06, 0.06), mat);
-    cross.position.set(0, 6.2, 0);
-    g.add(cross);
-    return g;
+  _makePowerLine() {
+    return this._makePole();
   }
 
   update(playerZ) {
@@ -490,16 +344,14 @@ export class InfiniteRoadSystem {
       if (chunk.position.z + this.chunkLength < playerZ - this.chunkLength * 2.2) {
         const maxZ = Math.max(...this.chunks.map((c) => c.position.z));
         chunk.position.z = maxZ + this.chunkLength;
-        // Do not rebuild tiles – just move chunk (avoids blink / z-fight stack)
       }
     });
   }
 
   setNightMode(isNight) {
-    // Only real street lamp lights – do NOT touch every emissive (causes road blink)
     this.scene.traverse((obj) => {
       if (obj.name === 'streetLight' && obj.isLight) {
-        obj.intensity = isNight ? 3.5 : 0;
+        obj.intensity = isNight ? 3.2 : 0;
       }
     });
   }
