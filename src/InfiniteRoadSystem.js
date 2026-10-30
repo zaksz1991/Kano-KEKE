@@ -25,6 +25,11 @@ export class InfiniteRoadSystem {
   }
 
   async init() {
+    this.billboardTex = null;
+    try {
+      this.billboardTex = await this.assets.loadTexture('/assets/models/textures/kano_ref/road_dual.jpg', {});
+    } catch (e) {}
+
     for (let i = 0; i < this.visibleChunks; i++) {
       const chunk = this._createChunk(i * this.chunkLength);
       this.scene.add(chunk);
@@ -245,6 +250,18 @@ export class InfiniteRoadSystem {
         roof.position.set(wall.position.x, h + 0.1, wall.position.z);
         group.add(roof);
       }
+    }
+
+    // Photo billboard (real Kano ref) – sparse
+    if (this.billboardTex && rand() > 0.72) {
+      const side = rand() > 0.5 ? 1 : -1;
+      const board = new THREE.Mesh(
+        new THREE.PlaneGeometry(6.5, 3.6),
+        new THREE.MeshBasicMaterial({ map: this.billboardTex, side: THREE.DoubleSide })
+      );
+      board.position.set(side * 16, 2.2, (rand() - 0.5) * L * 0.3);
+      board.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
+      group.add(board);
     }
 
     // Rare minaret
