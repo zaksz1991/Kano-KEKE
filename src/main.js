@@ -1015,12 +1015,10 @@ function animate() {
             try { audioEngine.playOneShot(220, 0.4, 'sine', 0.06); } catch (err) {}
           }
         });
-        // Soft speed during prayer
+        // Soft speed during prayer – cap maxSpeed, do NOT multiply velocity every frame
         try {
           const mul = prayerManager.getSpeedMultiplier?.() || 1;
-          if (mul < 1 && kekeController.maxSpeed > 10) {
-            kekeController.velocity *= 0.992;
-          }
+          if (mul < 1) kekeController.maxSpeed = Math.min(kekeController.maxSpeed, 12);
         } catch (err) {}
         audioEngine.updateEngine(kekeController.currentSpeed, kekeController.maxSpeed);
         shiftElapsed += delta;
@@ -1037,7 +1035,9 @@ function animate() {
           }
         });
         const fatMul = fatigue.getSpeedMul();
-        if (fatMul < 1) kekeController.velocity *= 0.985 + fatMul * 0.01;
+        if (fatMul < 1) {
+          kekeController.maxSpeed = Math.min(24, 24 * fatMul + 8);
+        }
 
         // Clock
         timeAccum += delta;

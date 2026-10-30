@@ -43,7 +43,7 @@ export class KekeCollisionSystem {
       this.shake = 0.3 + Math.min(0.35, speed / 50);
 
       // Knock player slightly and cut speed
-      this.controller.velocity *= 0.35;
+      this.controller.velocity = Math.max(0, this.controller.velocity * 0.4); // never reverse from crash
       this.keke.position.x -= Math.sign(dx || 1) * 0.9;
       v.mesh.position.x += Math.sign(dx || 1) * 1.8;
       v.laneX = v.mesh.position.x;
