@@ -101,6 +101,14 @@ export class PassengerManager {
     mesh.position.set(side * (9.5 + Math.random() * 1.5), 0, playerZ + 25 + Math.random() * 90);
     mesh.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
     this.scene.add(mesh);
+    // Yellow hail marker (visible at distance)
+    const flag = new THREE.Mesh(
+      new THREE.ConeGeometry(0.25, 0.5, 4),
+      new THREE.MeshBasicMaterial({ color: 0xffeb3b })
+    );
+    flag.position.y = 2.4;
+    mesh.add(flag);
+    p.flagMesh = flag;
     p.mesh = mesh;
     this.waiting.push(p);
   }
@@ -119,6 +127,10 @@ export class PassengerManager {
 
     // Animate flagging
     this.waiting.forEach((p) => {
+      if (p.flagMesh) {
+        p.flagPhase = (p.flagPhase || 0) + dt * 4;
+        p.flagMesh.position.y = 2.3 + Math.sin(p.flagPhase) * 0.15;
+      }
       if (!p.mesh) return;
       p.flagPhase += dt * 5;
       const arm = p.mesh.getObjectByName?.('flagArm');
