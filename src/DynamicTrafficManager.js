@@ -99,8 +99,8 @@ export class DynamicTrafficManager {
     const { mesh, kind } = picked;
     const opposite = Math.random() < 0.06; // mostly same direction
     const lane = opposite
-      ? (Math.random() > 0.5 ? -5.2 : -2.8)
-      : (Math.random() > 0.5 ? 2.8 : 5.2);
+      ? (Math.random() > 0.5 ? -5.5 : -3.0)
+      : (Math.random() > 0.5 ? 3.0 : 5.5);
     const playerZ = this.player?.group?.position.z || 0;
     const z = initial ? playerZ + 55 + Math.random() * 150 : playerZ + 140 + Math.random() * 90;
     // Keep clear of player lane at spawn
