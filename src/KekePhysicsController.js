@@ -1,18 +1,18 @@
 import * as THREE from 'three';
 
 /**
- * Stable arcade drive – no in-place forward/back oscillation
+ * Punchy arcade accel – strong launch, smooth top end, no oscillation
  */
 export class KekePhysicsController {
   constructor(kekeGroup) {
     this.group = kekeGroup;
     this.velocity = 0;
     this.currentSpeed = 0;
-    this.maxSpeed = 24;
-    this.reverseMax = 5;
-    this.acceleration = 18;
-    this.brakingForce = 30;
-    this.coastFriction = 7;
+    this.maxSpeed = 28;
+    this.reverseMax = 6;
+    this.acceleration = 32; // was 18 – weak launch
+    this.brakingForce = 36;
+    this.coastFriction = 5;
     this.throttleInput = 0;
     this.steerInput = 0;
     this.lateral = 0;
@@ -31,25 +31,26 @@ export class KekePhysicsController {
   update(delta) {
     const dt = THREE.MathUtils.clamp(delta || 0.016, 0.001, 0.033);
     const throttle = this.throttleInput;
+    const top = Math.max(14, this.maxSpeed || 28);
 
-    if (throttle > 0.05) {
-      // Always go forward when accelerating – clear reverse junk
+    if (throttle > 0.04) {
       if (this.velocity < 0) this.velocity = 0;
       this._brakeHold = 0;
-      const top = Math.max(10, this.maxSpeed || 24);
-      const headroom = 1 - THREE.MathUtils.clamp(this.velocity / top, 0, 1);
-      this.velocity += this.acceleration * throttle * (0.5 + 0.5 * headroom) * dt;
-    } else if (throttle < -0.05) {
-      if (this.velocity > 0.2) {
+
+      // Launch boost from standstill, then ease near top speed
+      const ratio = THREE.MathUtils.clamp(this.velocity / top, 0, 1);
+      const launch = 1.35 - ratio * 0.55; // 1.35 at 0 speed → 0.8 at top
+      this.velocity += this.acceleration * throttle * launch * dt;
+    } else if (throttle < -0.04) {
+      if (this.velocity > 0.15) {
         this.velocity -= this.brakingForce * Math.abs(throttle) * dt;
         if (this.velocity < 0) this.velocity = 0;
         this._brakeHold = 0;
       } else {
         this.velocity = 0;
         this._brakeHold += dt;
-        // Reverse only after clear stop + hold
-        if (this._brakeHold > 0.35) {
-          this.velocity = -Math.min(this.reverseMax, (this._brakeHold - 0.35) * 6);
+        if (this._brakeHold > 0.3) {
+          this.velocity = -Math.min(this.reverseMax, (this._brakeHold - 0.3) * 8);
         }
       }
     } else {
@@ -58,17 +59,15 @@ export class KekePhysicsController {
       else if (this.velocity < 0) this.velocity = Math.min(0, this.velocity + this.coastFriction * dt);
     }
 
-    // Hard zero – stops micro forward/back jitter
-    if (Math.abs(this.velocity) < 0.2) this.velocity = 0;
+    // Only kill true noise – was 0.2 and ate the first frames of accel
+    if (Math.abs(this.velocity) < 0.08) this.velocity = 0;
 
-    const top = Math.max(10, this.maxSpeed || 24);
     this.velocity = THREE.MathUtils.clamp(this.velocity, -this.reverseMax, top);
     this.currentSpeed = Math.abs(this.velocity);
 
-    // Lateral – INVERTED from previous (fix user report: left was going right)
-    // steer +1 (right button) => +X was wrong for them; use opposite
-    const latMax = 24 / (1 + this.currentSpeed * 0.02);
-    const targetLat = -this.steerInput * latMax; // left(+1) → -X
+    // Steer: left(+1) → -X
+    const latMax = 26 / (1 + this.currentSpeed * 0.02);
+    const targetLat = -this.steerInput * latMax;
     this.lateral += (targetLat - this.lateral) * Math.min(1, 22 * dt);
     if (Math.abs(this.steerInput) > 0.85) {
       this.lateral = targetLat * 0.9 + this.lateral * 0.1;
@@ -78,8 +77,6 @@ export class KekePhysicsController {
     this.group.position.x += this.lateral * dt;
     this.group.position.z += this.velocity * dt;
     this.group.position.y = 0;
-
-    // Never flip facing during normal drive
     this.group.rotation.set(0, 0, 0);
 
     if (this.group.position.x > this.roadLimit) {

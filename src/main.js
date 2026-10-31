@@ -849,7 +849,7 @@ function animate() {
         throttle = input.throttle || 0;
         steer = input.steering || 0;
         // Deadzone – ignores tiny float noise from touch
-        if (Math.abs(throttle) < 0.06) throttle = 0;
+        if (Math.abs(throttle) < 0.04) throttle = 0;
         if (Math.abs(steer) < 0.06) steer = 0;
         if (keys['KeyW'] || keys['ArrowUp']) throttle = 1;
         if (keys['KeyS'] || keys['ArrowDown']) throttle = -1;
@@ -857,7 +857,7 @@ function animate() {
         if (keys['KeyD'] || keys['ArrowRight']) steer = -1;
         if (input.horn) isHornActive = true;
 
-        if (kekeController.maxSpeed < 5) kekeController.maxSpeed = 26;
+        if (kekeController.maxSpeed < 12) kekeController.maxSpeed = 28;
         kekeController.setInput(throttle, steer);
         kekeController.update(delta);
         cameraRig.update(delta, kekeController.currentSpeed);

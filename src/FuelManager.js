@@ -3,18 +3,18 @@ export class FuelManager {
     this.keke = kekeController;
     this.fuel = 100;
     this.isOut = false;
-    this.baseMaxSpeed = kekeController.maxSpeed || 22;
+    this.baseMaxSpeed = Math.max(22, kekeController.maxSpeed || 28);
   }
 
   update(delta, hudCallback) {
     if (this.isOut) {
+      this.keke.maxSpeed = 0;
       if (hudCallback) hudCallback({ type: 'FUEL_UPDATE', level: 0 });
       return;
     }
 
     const speedRatio = Math.abs(this.keke.currentSpeed) / Math.max(1, this.keke.maxSpeed);
-    // Slow drain – full tank lasts several minutes of driving
-    this.fuel -= (0.04 + speedRatio * 0.12) * delta;  // slower drain for playable shifts
+    this.fuel -= (0.03 + speedRatio * 0.1) * delta;
     this.fuel = Math.max(0, this.fuel);
 
     if (this.fuel <= 0 && !this.isOut) {
