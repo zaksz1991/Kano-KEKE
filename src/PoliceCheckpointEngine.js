@@ -17,13 +17,22 @@ export class PoliceCheckpointEngine {
     this._spawnedUntil = 400; // first checkpoint further away
     this._warned = new WeakSet();
 
+    this.policeCar = null;
     if (this.assets) {
       this.assets
         .loadGLB('/assets/models/pedestrian.glb', { scale: 1 })
-        .then((m) => {
-          this.officerModel = m;
-        })
+        .then((m) => { this.officerModel = m; })
         .catch(() => {});
+      // Your Police Car.glb at checkpoints
+      const tryPolice = async (path) => {
+        try {
+          const m = await this.assets.loadGLB(path, { scale: 1.05 });
+          if (m) this.policeCar = m;
+        } catch (e) {}
+      };
+      tryPolice('/assets/models/Police Car.glb').then(() => {
+        if (!this.policeCar) tryPolice('/assets/models/Police%20Car.glb');
+      });
     }
   }
 
@@ -55,6 +64,12 @@ export class PoliceCheckpointEngine {
       g.add(cone);
     }
 
+    if (this.policeCar) {
+      const car = this.policeCar.clone(true);
+      car.position.set(-11.5, 0, 2);
+      car.rotation.y = Math.PI / 2;
+      g.add(car);
+    }
     if (this.officerModel) {
       const officer = this.officerModel.clone(true);
       officer.scale.setScalar(1.0);
