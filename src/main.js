@@ -845,26 +845,34 @@ function animate() {
 
       let throttle = 0;
       let steer = 0;
+      isHornActive = !!(input.horn);
       if (canDrive) {
-        throttle = input.throttle || 0;
-        steer = input.steering || 0;
-        // Deadzone – ignores tiny float noise from touch
-        if (Math.abs(throttle) < 0.04) throttle = 0;
-        if (Math.abs(steer) < 0.06) steer = 0;
+        throttle = Number(input.throttle) || 0;
+        steer = Number(input.steering) || 0;
         if (keys['KeyW'] || keys['ArrowUp']) throttle = 1;
         if (keys['KeyS'] || keys['ArrowDown']) throttle = -1;
         if (keys['KeyA'] || keys['ArrowLeft']) steer = 1;
         if (keys['KeyD'] || keys['ArrowRight']) steer = -1;
-        if (input.horn) isHornActive = true;
 
-        if (kekeController.maxSpeed < 14) kekeController.maxSpeed = 34;
+        // Always keep a real top speed while driving
+        if (!kekeController.maxSpeed || kekeController.maxSpeed < 20) {
+          kekeController.maxSpeed = 34;
+        }
+
         kekeController.setInput(throttle, steer);
         kekeController.update(delta);
+
+        // SAFETY: if ACCEL held but barely moving, force forward motion
+        if (throttle > 0.5 && kekeController.velocity < 8) {
+          kekeController.velocity = Math.max(kekeController.velocity, 0) + 40 * delta;
+          kekeGroup.position.z += kekeController.velocity * delta;
+          kekeController.currentSpeed = Math.abs(kekeController.velocity);
+        }
+
         cameraRig.update(delta, kekeController.currentSpeed);
-        // Backup: if camera somehow drifted far, snap close while moving
         if (kekeController.currentSpeed > 1) {
           const dist = camera.position.distanceTo(kekeGroup.position);
-          if (dist > 16) {
+          if (dist > 14) {
             try { cameraRig._snapToTarget?.(); } catch (e) {}
           }
         }
@@ -1009,11 +1017,7 @@ function animate() {
             try { audioEngine.playOneShot(220, 0.4, 'sine', 0.06); } catch (err) {}
           }
         });
-        // Soft speed during prayer – cap maxSpeed, do NOT multiply velocity every frame
-        try {
-          const mul = prayerManager.getSpeedMultiplier?.() || 1;
-          if (mul < 1) kekeController.maxSpeed = Math.min(kekeController.maxSpeed, 12);
-        } catch (err) {}
+        // Prayer: banner only – do NOT cap maxSpeed (was killing acceleration)
         audioEngine.updateEngine(kekeController.currentSpeed, kekeController.maxSpeed);
         shiftElapsed += delta;
         let nearFuel = false;
@@ -1028,10 +1032,11 @@ function animate() {
             if (earn) earn.innerText = ev.earnings;
           }
         });
-        const fatMul = fatigue.getSpeedMul();
-        if (fatMul < 1) {
-          kekeController.maxSpeed = Math.min(24, 24 * fatMul + 8);
-        }
+        // Fatigue: mild only – never below 22 top speed while driving
+        try {
+          const fatMul = fatigue.getSpeedMul();
+          if (fatMul < 1) kekeController.maxSpeed = Math.max(22, 34 * fatMul);
+        } catch (e) {}
 
         // Clock
         timeAccum += delta;
