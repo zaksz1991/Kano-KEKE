@@ -698,7 +698,7 @@ async function bootstrap() {
     gameStarted = true;
     // Start on right carriageway (Kano dual-road photo)
     try {
-      kekeGroup.position.x = 3.4;
+      kekeGroup.position.x = 3.8;
       kekeGroup.position.z = 0;
       kekeGroup.rotation.set(0, 0, 0);
     } catch (e) {}

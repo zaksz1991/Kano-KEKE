@@ -20,7 +20,7 @@ export class KekePhysicsController {
     this.steerInput = 0;
     this.lateral = 0;
     this.engineRPM = 0;
-    this.roadLimit = 7.8;
+    this.roadLimit = 8.5;
     this._brakeHold = 0;
     this._baseMax = 24;
   }
