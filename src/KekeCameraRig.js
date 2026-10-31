@@ -8,8 +8,8 @@ export class KekeCameraRig {
     this.camera = camera;
     this.target = targetGroup;
 
-    this.idealOffset = new THREE.Vector3(0, 3.4, -7.2);
-    this.lookAtOffset = new THREE.Vector3(0, 1.2, 6.5);
+    this.idealOffset = new THREE.Vector3(0, 3.7, -7.8);
+    this.lookAtOffset = new THREE.Vector3(0, 1.15, 7.5);
     this.currentPos = new THREE.Vector3();
     this.lookAtPos = new THREE.Vector3();
     this.velocity = new THREE.Vector3();
@@ -26,7 +26,7 @@ export class KekeCameraRig {
     this._euler = new THREE.Euler();
 
     this.modes = {
-      chase: { offset: new THREE.Vector3(0, 3.4, -7.2), look: new THREE.Vector3(0, 1.2, 6.5), fov: 58 },
+      chase: { offset: new THREE.Vector3(0, 3.7, -7.8), look: new THREE.Vector3(0, 1.15, 7.5), fov: 58 },
       near: { offset: new THREE.Vector3(0, 2.9, -5.6), look: new THREE.Vector3(0, 1.15, 5.5), fov: 60 },
       wide: { offset: new THREE.Vector3(0, 4.2, -9.5), look: new THREE.Vector3(0, 1.3, 8), fov: 55 },
       hood: { offset: new THREE.Vector3(0, 1.65, 0.2), look: new THREE.Vector3(0, 1.25, 9), fov: 72 }
