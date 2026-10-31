@@ -109,9 +109,9 @@ export class InfiniteRoadSystem {
 
     // Asphalt – dual carriageway (photo: dark grey)
     const asphalt = new THREE.MeshStandardMaterial({
-      color: 0x3a3a3a,
-      roughness: 0.9,
-      metalness: 0.05,
+      color: 0x2f2f2f,
+      roughness: 0.72,
+      metalness: 0.12,
       map: this.roadTexture || null
     });
 
