@@ -63,7 +63,8 @@ export class DynamicTrafficManager {
       mats.forEach((m) => {
         if (!m?.color) return;
         const lum = (m.color.r + m.color.g + m.color.b) / 3;
-        if (lum > 0.55 && (m.metalness || 0) < 0.75) {
+        // Force street palette – overrides green/grey placeholders
+        if ((m.metalness || 0) < 0.85) {
           m.color.setHex(hex);
           m.needsUpdate = true;
         }
@@ -85,6 +86,9 @@ export class DynamicTrafficManager {
       pick = this.templates[Math.floor(Math.random() * this.templates.length)];
     }
     const mesh = pick.mesh.clone(true);
+    if (pick.kind === 'okada') mesh.scale.multiplyScalar(1.05);
+    else if (pick.kind === 'bus') mesh.scale.multiplyScalar(0.95);
+    else mesh.scale.multiplyScalar(1.0);
     if (pick.kind === 'car' || pick.kind === 'van' || pick.kind === 'bus') this._tint(mesh);
     return { mesh, kind: pick.kind };
   }
