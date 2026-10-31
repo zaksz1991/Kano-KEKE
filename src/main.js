@@ -329,6 +329,7 @@ async function bootstrap() {
       new Promise((r) => setTimeout(() => r(null), 7000))
     ]);
     if (kekeModel) {
+      tempBody.visible = false;
       kekeGroup.remove(tempBody);
       kekeModel.traverse((n) => {
         if (n.isMesh) {

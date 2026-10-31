@@ -115,8 +115,8 @@ export class InfiniteRoadSystem {
       map: this.roadTexture || null
     });
 
-    for (const x of [-4.8, 4.8]) {
-      const lane = new THREE.Mesh(new THREE.PlaneGeometry(8.2, L, 1, 2), asphalt.clone());
+    for (const x of [-5.0, 5.0]) {
+      const lane = new THREE.Mesh(new THREE.PlaneGeometry(8.6, L, 1, 2), asphalt.clone());
       if (this.roadTexture) {
         lane.material.map = this.roadTexture;
         lane.material.map.repeat.set(1.2, L / 12);
@@ -163,7 +163,7 @@ export class InfiniteRoadSystem {
 
     // White dashed lane marks (photo)
     const white = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    for (const laneX of [-4.8, 4.8]) {
+    for (const laneX of [-5.0, 5.0]) {
       for (let z = -L / 2 + 2; z < L / 2; z += 7) {
         const dash = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 3.0), white);
         dash.rotation.x = -Math.PI / 2;
