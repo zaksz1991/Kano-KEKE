@@ -1,13 +1,27 @@
 /**
- * ONLY files that exist in public/assets/models/
+ * All vehicle / character GLBs under public/assets/models/
+ * Paths match GitHub: zaksz1991/KanoKEKE-Life/public/assets/models
  */
 export const ASSET_MANIFEST = {
   player: {
     keke: '/assets/models/keke.glb'
   },
   traffic: [
-    { path: '/assets/models/traffic_vehicle.glb', kind: 'car', scale: 1.15 },
-    { path: '/assets/models/okada.glb', kind: 'okada', scale: 1.0 }
+    // Core
+    { path: '/assets/models/traffic_vehicle.glb', kind: 'car', scale: 1.1 },
+    { path: '/assets/models/okada.glb', kind: 'okada', scale: 1.0 },
+    // Cars
+    { path: '/assets/models/Car.glb', kind: 'car', scale: 1.05 },
+    { path: '/assets/models/Car-2.glb', kind: 'car', scale: 1.05 },
+    { path: '/assets/models/Taxi.glb', kind: 'car', scale: 1.05 },
+    { path: '/assets/models/SUV.glb', kind: 'van', scale: 1.05 },
+    { path: '/assets/models/Sports%20Car.glb', kind: 'car', scale: 1.0 },
+    { path: '/assets/models/Sports%20Car-1.glb', kind: 'car', scale: 1.0 },
+    // Also try unescaped names (some hosts serve either)
+    { path: '/assets/models/Sports Car.glb', kind: 'car', scale: 1.0 },
+    { path: '/assets/models/Sports Car-1.glb', kind: 'car', scale: 1.0 },
+    { path: '/assets/models/Police%20Car.glb', kind: 'car', scale: 1.05 },
+    { path: '/assets/models/Police Car.glb', kind: 'car', scale: 1.05 }
   ],
   characters: {
     pedestrian: '/assets/models/pedestrian.glb'
@@ -24,6 +38,6 @@ export const ASSET_MANIFEST = {
   ],
   audio: {
     engine: '/assets/models/audio/engine.mp3',
-    horn: '/assets/models/audio/horn.mp3'
+    horn: '/assets/models/horn.mp3'
   }
 };
