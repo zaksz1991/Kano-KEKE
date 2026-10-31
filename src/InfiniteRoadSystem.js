@@ -146,16 +146,16 @@ export class InfiniteRoadSystem {
     }
 
     // Continuous yellow lines along median (photo)
-    const yellow = new THREE.MeshBasicMaterial({ color: 0xffc107 });
+    const yellow = new THREE.MeshBasicMaterial({ color: 0xffb300 });
     for (const x of [-0.95, 0.95]) {
-      const yl = new THREE.Mesh(new THREE.PlaneGeometry(0.12, L * 0.96), yellow);
+      const yl = new THREE.Mesh(new THREE.PlaneGeometry(0.16, L * 0.96), yellow);
       yl.rotation.x = -Math.PI / 2;
       yl.position.set(x, 0.04, 0);
       group.add(yl);
     }
     // Outer yellow lines
     for (const x of [-8.7, 8.7]) {
-      const yl = new THREE.Mesh(new THREE.PlaneGeometry(0.12, L * 0.96), yellow);
+      const yl = new THREE.Mesh(new THREE.PlaneGeometry(0.16, L * 0.96), yellow);
       yl.rotation.x = -Math.PI / 2;
       yl.position.set(x, 0.04, 0);
       group.add(yl);
