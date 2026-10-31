@@ -28,7 +28,7 @@ export class KekeCollisionSystem {
 
       // Generous but fair hit boxes (GLBs are larger than before)
       const latMax = v.kind === 'okada' ? 1.8 : v.kind === 'bus' ? 3.0 : 2.4;
-      const depthMax = v.kind === 'okada' ? 3.0 : 4.0;
+      const depthMax = v.kind === 'okada' ? 3.2 : 4.2;
       if (Math.abs(dx) > latMax || Math.abs(dz) > depthMax) continue;
 
       // Parked: only push traffic away
