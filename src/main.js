@@ -315,14 +315,7 @@ async function bootstrap() {
   tempBody.castShadow = true;
   kekeGroup.add(tempBody);
 
-  const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(240, 1000),
-    new THREE.MeshStandardMaterial({ color: 0x6b5e4e, roughness: 1 })
-  );
-  ground.rotation.x = -Math.PI / 2;
-  ground.position.z = 200;
-  ground.receiveShadow = true;
-  scene.add(ground);
+  // Ground comes from InfiniteRoadSystem chunks (Kano dual road) – no desert plane
 
   camera.position.set(0, 5, -12);
   camera.lookAt(0, 1, 5);

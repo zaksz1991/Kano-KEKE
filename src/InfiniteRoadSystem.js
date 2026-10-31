@@ -256,6 +256,32 @@ export class InfiniteRoadSystem {
       }
     }
 
+    // Underpass / flyover wall (Kano photo ref) – rare
+    if (rand() > 0.82) {
+      const concrete = new THREE.MeshStandardMaterial({ color: 0xb0b0b0, roughness: 0.9 });
+      const redWhite = new THREE.MeshBasicMaterial({ color: 0xc62828 });
+      for (const side of [-1, 1]) {
+        const wall = new THREE.Mesh(new THREE.BoxGeometry(0.5, 3.2, 18), concrete);
+        wall.position.set(side * 9.8, 1.6, 0);
+        group.add(wall);
+      }
+      // Red/white curb stripe feel
+      for (const side of [-1, 1]) {
+        for (let z = -8; z < 8; z += 2.2) {
+          const stripe = new THREE.Mesh(
+            new THREE.BoxGeometry(0.2, 0.35, 1.8),
+            Math.floor((z + 10) / 2.2) % 2 === 0 ? redWhite : new THREE.MeshBasicMaterial({ color: 0xfafafa })
+          );
+          stripe.position.set(side * 9.5, 0.2, z);
+          group.add(stripe);
+        }
+      }
+      // Overhead beam
+      const beam = new THREE.Mesh(new THREE.BoxGeometry(20, 0.6, 3), concrete);
+      beam.position.set(0, 3.6, 0);
+      group.add(beam);
+    }
+
     // Photo billboard (real Kano ref) – sparse
     const pool = [this.billboardTex, this.billboardTex2, this.billboardTex3].filter(Boolean);
     const btex = pool.length ? pool[Math.floor(rand() * pool.length)] : null;
