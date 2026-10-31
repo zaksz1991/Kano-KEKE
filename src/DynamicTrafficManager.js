@@ -131,7 +131,7 @@ export class DynamicTrafficManager {
         const away = Math.sign(v.mesh.position.x - px || 1) * 2.5;
         v.laneX = px + away;
       }
-      if (horn && Math.abs(v.mesh.position.z - playerZ) < 35) {
+      if (horn && Math.abs(v.mesh.position.z - playerZ) < 42) {
         // Horn: okadas swerve hard, cars drift out
         const push = (v.kind === 'okada' ? 2.2 : 1.4) * (v.opposite ? -1 : 1);
         v.mesh.position.x = THREE.MathUtils.lerp(v.mesh.position.x, v.laneX + push, 0.14);
