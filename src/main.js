@@ -853,8 +853,8 @@ function animate() {
         if (Math.abs(steer) < 0.06) steer = 0;
         if (keys['KeyW'] || keys['ArrowUp']) throttle = 1;
         if (keys['KeyS'] || keys['ArrowDown']) throttle = -1;
-        if (keys['KeyA'] || keys['ArrowLeft']) steer = -1;
-        if (keys['KeyD'] || keys['ArrowRight']) steer = 1;
+        if (keys['KeyA'] || keys['ArrowLeft']) steer = 1;
+        if (keys['KeyD'] || keys['ArrowRight']) steer = -1;
         if (input.horn) isHornActive = true;
 
         if (kekeController.maxSpeed < 5) kekeController.maxSpeed = 26;

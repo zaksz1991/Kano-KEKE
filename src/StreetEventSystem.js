@@ -56,7 +56,7 @@ export class StreetEventSystem {
   _startJam(hudCallback) {
     this.active = 'jam';
     this._activeT = 7;
-    this.keke.velocity *= 0.4;
+    this.keke.velocity = Math.max(0, this.keke.velocity * 0.5);
     if (hudCallback) hudCallback({ msg: '🚦 Traffic jam ahead — ease through slowly.' });
   }
 

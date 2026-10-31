@@ -52,8 +52,8 @@ export function setupMobileControls(inputState, onHorn, onRadio) {
 
   hold('touch-throttle', () => { inputState.throttle = 1; }, () => { inputState.throttle = 0; });
   hold('touch-brake', () => { inputState.throttle = -1; }, () => { inputState.throttle = 0; });
-  hold('touch-left', () => { inputState.steering = -1; }, () => { inputState.steering = 0; });
-  hold('touch-right', () => { inputState.steering = 1; }, () => { inputState.steering = 0; });
+  hold('touch-left', () => { inputState.steering = 1; }, () => { inputState.steering = 0; });
+  hold('touch-right', () => { inputState.steering = -1; }, () => { inputState.steering = 0; });
   hold(
     'touch-horn',
     () => {

@@ -79,7 +79,7 @@ export class KekeCameraRig {
     const q = this._yawQuat();
 
     // Parked: lock camera, kill residual spring + shake
-    if (speed < 0.4) {
+    if (speed < 0.5) {
       this._shakeAmp = 0;
       this.velocity.set(0, 0, 0);
       const desired = this.target.position.clone().add(this.idealOffset.clone().applyQuaternion(q));

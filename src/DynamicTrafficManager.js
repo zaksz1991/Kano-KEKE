@@ -15,8 +15,8 @@ export class DynamicTrafficManager {
     this.ready = false;
     // Kano street palette from photos – yellow keke, silver, white, dark
     this.tints = [
-      0xffc107, 0xffb300, 0xf9a825, 0xffeb3b, 0xe0e0e0,
-      0xbdbdbd, 0x212121, 0x1565c0, 0xc62828, 0xffffff
+      0xffc107, 0xffb300, 0xf9a825, 0xff9800, 0xf57f17,
+      0x1565c0, 0xc62828, 0x37474f, 0x6d4c41, 0x00897b
     ];
   }
 
@@ -55,20 +55,26 @@ export class DynamicTrafficManager {
     this.ready = true;
   }
 
-  _tint(mesh) {
-    const hex = this.tints[Math.floor(Math.random() * this.tints.length)];
+  _tint(mesh, kind = 'car') {
+    // Okadas/kekes → yellow; cars → mixed street colours (never pure white)
+    const hex = (kind === 'okada')
+      ? [0xffc107, 0xffb300, 0xfbc02d, 0xff9800][Math.floor(Math.random() * 4)]
+      : this.tints[Math.floor(Math.random() * this.tints.length)];
     mesh.traverse((n) => {
       if (!n.isMesh || !n.material) return;
       const mats = Array.isArray(n.material) ? n.material : [n.material];
-      mats.forEach((m) => {
-        if (!m?.color) return;
-        const lum = (m.color.r + m.color.g + m.color.b) / 3;
-        // Force street palette – overrides green/grey placeholders
-        if ((m.metalness || 0) < 0.85) {
-          m.color.setHex(hex);
-          m.needsUpdate = true;
+      const next = mats.map((m) => {
+        if (!m?.color) return m;
+        const c = m.clone();
+        c.color.setHex(hex);
+        // Avoid washed-out white
+        if (c.color.r > 0.9 && c.color.g > 0.9 && c.color.b > 0.9) {
+          c.color.setHex(0xffc107);
         }
+        c.needsUpdate = true;
+        return c;
       });
+      n.material = next.length === 1 ? next[0] : next;
     });
   }
 
@@ -89,7 +95,7 @@ export class DynamicTrafficManager {
     if (pick.kind === 'okada') mesh.scale.multiplyScalar(1.05);
     else if (pick.kind === 'bus') mesh.scale.multiplyScalar(0.95);
     else mesh.scale.multiplyScalar(1.0);
-    if (pick.kind === 'car' || pick.kind === 'van' || pick.kind === 'bus') this._tint(mesh);
+    this._tint(mesh, pick.kind);
     return { mesh, kind: pick.kind };
   }
 

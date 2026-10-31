@@ -1,10 +1,7 @@
 import * as THREE from 'three';
 
 /**
- * Stable arcade drive – NO forward/back oscillation
- * - World +Z only when going forward
- * - Reverse only after a full stop while holding brake
- * - Facing locked forward (no flip jitter)
+ * Stable arcade drive – no in-place forward/back oscillation
  */
 export class KekePhysicsController {
   constructor(kekeGroup) {
@@ -12,17 +9,16 @@ export class KekePhysicsController {
     this.velocity = 0;
     this.currentSpeed = 0;
     this.maxSpeed = 24;
-    this.reverseMax = 6;
+    this.reverseMax = 5;
     this.acceleration = 18;
-    this.brakingForce = 28;
-    this.coastFriction = 6;
+    this.brakingForce = 30;
+    this.coastFriction = 7;
     this.throttleInput = 0;
     this.steerInput = 0;
     this.lateral = 0;
     this.engineRPM = 0;
     this.roadLimit = 8.5;
     this._brakeHold = 0;
-    this._baseMax = 24;
   }
 
   setInput(throttle, steer) {
@@ -36,75 +32,64 @@ export class KekePhysicsController {
     const dt = THREE.MathUtils.clamp(delta || 0.016, 0.001, 0.033);
     const throttle = this.throttleInput;
 
-    // Remember designer max (fatigue/prayer should change maxSpeed, not multiply v every frame)
-    if (this.maxSpeed > this._baseMax) this._baseMax = this.maxSpeed;
-
     if (throttle > 0.05) {
-      // Forward only – clear any tiny reverse noise
+      // Always go forward when accelerating – clear reverse junk
       if (this.velocity < 0) this.velocity = 0;
       this._brakeHold = 0;
-      const top = Math.max(8, this.maxSpeed);
+      const top = Math.max(10, this.maxSpeed || 24);
       const headroom = 1 - THREE.MathUtils.clamp(this.velocity / top, 0, 1);
-      this.velocity += this.acceleration * throttle * (0.45 + 0.55 * headroom) * dt;
+      this.velocity += this.acceleration * throttle * (0.5 + 0.5 * headroom) * dt;
     } else if (throttle < -0.05) {
-      if (this.velocity > 0.15) {
-        // Brake to stop – never jump into reverse mid-motion
+      if (this.velocity > 0.2) {
         this.velocity -= this.brakingForce * Math.abs(throttle) * dt;
         if (this.velocity < 0) this.velocity = 0;
         this._brakeHold = 0;
       } else {
-        // Must hold brake briefly at rest before reverse
         this.velocity = 0;
         this._brakeHold += dt;
-        if (this._brakeHold > 0.25) {
-          this.velocity = -Math.min(this.reverseMax, (this._brakeHold - 0.25) * 8);
+        // Reverse only after clear stop + hold
+        if (this._brakeHold > 0.35) {
+          this.velocity = -Math.min(this.reverseMax, (this._brakeHold - 0.35) * 6);
         }
       }
     } else {
       this._brakeHold = 0;
-      if (this.velocity > 0) {
-        this.velocity = Math.max(0, this.velocity - this.coastFriction * dt);
-      } else if (this.velocity < 0) {
-        this.velocity = Math.min(0, this.velocity + this.coastFriction * dt);
-      }
+      if (this.velocity > 0) this.velocity = Math.max(0, this.velocity - this.coastFriction * dt);
+      else if (this.velocity < 0) this.velocity = Math.min(0, this.velocity + this.coastFriction * dt);
     }
 
-    // Kill micro-jitter around zero (this was the "same place" shake)
-    if (Math.abs(this.velocity) < 0.12) this.velocity = 0;
+    // Hard zero – stops micro forward/back jitter
+    if (Math.abs(this.velocity) < 0.2) this.velocity = 0;
 
-    this.velocity = THREE.MathUtils.clamp(this.velocity, -this.reverseMax, Math.max(8, this.maxSpeed));
+    const top = Math.max(10, this.maxSpeed || 24);
+    this.velocity = THREE.MathUtils.clamp(this.velocity, -this.reverseMax, top);
     this.currentSpeed = Math.abs(this.velocity);
 
-    // Lateral
-    const latMax = 22 / (1 + this.currentSpeed * 0.025);
-    const targetLat = this.steerInput * latMax;
-    this.lateral += (targetLat - this.lateral) * Math.min(1, 20 * dt);
-    if (Math.abs(this.steerInput) > 0.9) {
-      this.lateral = targetLat * 0.85 + this.lateral * 0.15;
+    // Lateral – INVERTED from previous (fix user report: left was going right)
+    // steer +1 (right button) => +X was wrong for them; use opposite
+    const latMax = 24 / (1 + this.currentSpeed * 0.02);
+    const targetLat = -this.steerInput * latMax; // left(+1) → -X
+    this.lateral += (targetLat - this.lateral) * Math.min(1, 22 * dt);
+    if (Math.abs(this.steerInput) > 0.85) {
+      this.lateral = targetLat * 0.9 + this.lateral * 0.1;
     }
-    if (Math.abs(this.steerInput) < 0.05) {
-      this.lateral *= 0.85;
-    }
+    if (Math.abs(this.steerInput) < 0.05) this.lateral *= 0.8;
 
     this.group.position.x += this.lateral * dt;
     this.group.position.z += this.velocity * dt;
     this.group.position.y = 0;
 
-    // Face FORWARD always while moving forward or stopped – no flip at -0.3
-    if (this.velocity < -1.0) {
-      this.group.rotation.set(0, Math.PI, 0);
-    } else {
-      this.group.rotation.set(0, 0, 0);
-    }
+    // Never flip facing during normal drive
+    this.group.rotation.set(0, 0, 0);
 
     if (this.group.position.x > this.roadLimit) {
-      this.group.position.x = THREE.MathUtils.lerp(this.group.position.x, this.roadLimit, 0.25);
+      this.group.position.x = THREE.MathUtils.lerp(this.group.position.x, this.roadLimit, 0.3);
       this.lateral = Math.min(0, this.lateral);
     } else if (this.group.position.x < -this.roadLimit) {
-      this.group.position.x = THREE.MathUtils.lerp(this.group.position.x, -this.roadLimit, 0.25);
+      this.group.position.x = THREE.MathUtils.lerp(this.group.position.x, -this.roadLimit, 0.3);
       this.lateral = Math.max(0, this.lateral);
     }
 
-    this.engineRPM = THREE.MathUtils.clamp(this.currentSpeed / Math.max(8, this.maxSpeed), 0, 1);
+    this.engineRPM = THREE.MathUtils.clamp(this.currentSpeed / top, 0, 1);
   }
 }
