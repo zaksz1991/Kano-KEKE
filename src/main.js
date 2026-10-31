@@ -851,8 +851,8 @@ function animate() {
         steer = Number(input.steering) || 0;
         if (keys['KeyW'] || keys['ArrowUp']) throttle = 1;
         if (keys['KeyS'] || keys['ArrowDown']) throttle = -1;
-        if (keys['KeyA'] || keys['ArrowLeft']) steer = 1;
-        if (keys['KeyD'] || keys['ArrowRight']) steer = -1;
+        if (keys['KeyA'] || keys['ArrowLeft']) steer = -1;
+        if (keys['KeyD'] || keys['ArrowRight']) steer = 1;
 
         // Always keep a real top speed while driving
         if (!kekeController.maxSpeed || kekeController.maxSpeed < 12) {
@@ -862,6 +862,11 @@ function animate() {
         kekeController.setInput(throttle, steer);
         kekeController.update(delta);
         cameraRig.update(delta, kekeController.currentSpeed);
+        // Live speed (km/h) – was stuck because update only ran later / wrong field
+        const spdEl = document.getElementById('speed-display');
+        if (spdEl) {
+          spdEl.innerText = String(Math.round(kekeController.currentSpeed * 3.6));
+        }
       }
 
       // Core world – always
@@ -930,7 +935,7 @@ function animate() {
           fuelBar.style.background = lvl < 20 ? '#f44336' : lvl < 45 ? '#ff9800' : '#4CAF50';
         }
         dashHud.update({
-              speed: Math.abs(kekeController.velocity) * 3.6,
+              speed: kekeController.currentSpeed * 3.6,
               cash: passengerManager.dailyEarnings,
               fuel: fuelManager.fuel ?? 100,
               seatsUsed: passengerManager.onBoard.length,
@@ -1040,7 +1045,7 @@ function animate() {
         }
 
         const speedDisplay = document.getElementById('speed-display');
-        if (speedDisplay) speedDisplay.innerText = Math.round(Math.abs(kekeController.velocity) * 3.6);
+        if (speedDisplay) speedDisplay.innerText = Math.round(kekeController.currentSpeed * 3.6);
         // Proximity radar targets
         const radarTargets = [];
         try {
@@ -1062,7 +1067,7 @@ function animate() {
           fuelBar.style.background = lvl < 20 ? '#f44336' : lvl < 45 ? '#ff9800' : '#4CAF50';
         }
         dashHud.update({
-          speed: Math.abs(kekeController.velocity) * 3.6,
+          speed: kekeController.currentSpeed * 3.6,
           cash: passengerManager.dailyEarnings,
           fuel: fuelManager.fuel ?? 100,
           seatsUsed: passengerManager.onBoard.length,

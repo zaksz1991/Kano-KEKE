@@ -1,22 +1,13 @@
 /**
- * Single source of truth for project GLB / audio paths
- * Drop new files in these folders and list them here.
+ * ONLY files that exist in public/assets/models/
  */
 export const ASSET_MANIFEST = {
   player: {
     keke: '/assets/models/keke.glb'
   },
   traffic: [
-    { path: '/assets/models/traffic_vehicle.glb', kind: 'car', scale: 1.1 },
-    { path: '/assets/models/okada.glb', kind: 'okada', scale: 1.0 },
-    { path: '/assets/models/traffic/car_01.glb', kind: 'car', scale: 1.05 },
-    { path: '/assets/models/traffic/car_02.glb', kind: 'car', scale: 1.05 },
-    { path: '/assets/models/traffic/car_03.glb', kind: 'car', scale: 1.05 },
-    { path: '/assets/models/traffic/bus.glb', kind: 'bus', scale: 1.0 },
-    { path: '/assets/models/traffic/van.glb', kind: 'van', scale: 1.0 },
-    { path: '/assets/models/traffic/okada_02.glb', kind: 'okada', scale: 1.0 },
-    { path: '/assets/models/traffic_bus.glb', kind: 'bus', scale: 1.0 },
-    { path: '/assets/models/traffic_van.glb', kind: 'van', scale: 1.0 }
+    { path: '/assets/models/traffic_vehicle.glb', kind: 'car', scale: 1.15 },
+    { path: '/assets/models/okada.glb', kind: 'okada', scale: 1.0 }
   ],
   characters: {
     pedestrian: '/assets/models/pedestrian.glb'

@@ -61,7 +61,7 @@ export class KekePhysicsController {
     this.currentSpeed = Math.abs(this.velocity);
 
     const latMax = 18 / (1 + this.currentSpeed * 0.03);
-    const targetLat = -this.steerInput * latMax;
+    const targetLat = this.steerInput * latMax; // +1 right (+X), -1 left (-X)
     this.lateral += (targetLat - this.lateral) * Math.min(1, 14 * dt);
     if (Math.abs(this.steerInput) < 0.05) this.lateral *= 0.85;
 

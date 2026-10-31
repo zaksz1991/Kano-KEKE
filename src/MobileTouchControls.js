@@ -50,8 +50,8 @@ export function setupMobileControls(inputState, onHorn, onRadio) {
     else if (hold.brake) inputState.throttle = -1;
     else inputState.throttle = 0;
 
-    if (hold.left && !hold.right) inputState.steering = 1;
-    else if (hold.right && !hold.left) inputState.steering = -1;
+    if (hold.left && !hold.right) inputState.steering = -1;  // left → -X
+    else if (hold.right && !hold.left) inputState.steering = 1; // right → +X
     else inputState.steering = 0;
 
     inputState.horn = hold.horn;
