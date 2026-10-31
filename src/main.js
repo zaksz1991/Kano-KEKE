@@ -369,7 +369,7 @@ async function bootstrap() {
   // Apply driver/keke bonuses
   const driver = charSelect.getDriver();
   const kekeDef = charSelect.getKeke();
-  kekeController.maxSpeed = 34 * (kekeDef.speed || 1) * (driver.speedBonus || 1);
+  kekeController.maxSpeed = 26 * (kekeDef.speed || 1) * (driver.speedBonus || 1);
 
   const cameraRig = new KekeCameraRig(camera, kekeGroup);
   const flow = new GameFlowManager(scene, camera, kekeGroup, kekeController, cameraRig);
@@ -690,7 +690,7 @@ async function bootstrap() {
     if (ks) charSelect.selectKeke(ks.value);
     const d = charSelect.getDriver();
     const k = charSelect.getKeke();
-    kekeController.maxSpeed = 34 * (k.speed || 1) * (d.speedBonus || 1);
+    kekeController.maxSpeed = 26 * (k.speed || 1) * (d.speedBonus || 1);
     passengerManager.capacity = k.capacity || 3;
     passengerManager.negotiationBonus = d.negotiationBonus || 1;
     passengerManager.tipBonus = d.tipBonus || 1;
@@ -855,20 +855,12 @@ function animate() {
         if (keys['KeyD'] || keys['ArrowRight']) steer = -1;
 
         // Always keep a real top speed while driving
-        if (!kekeController.maxSpeed || kekeController.maxSpeed < 20) {
-          kekeController.maxSpeed = 34;
+        if (!kekeController.maxSpeed || kekeController.maxSpeed < 12) {
+          kekeController.maxSpeed = 26;
         }
 
         kekeController.setInput(throttle, steer);
         kekeController.update(delta);
-
-        // SAFETY: if ACCEL held but barely moving, force forward motion
-        if (throttle > 0.5 && kekeController.velocity < 8) {
-          kekeController.velocity = Math.max(kekeController.velocity, 0) + 40 * delta;
-          kekeGroup.position.z += kekeController.velocity * delta;
-          kekeController.currentSpeed = Math.abs(kekeController.velocity);
-        }
-
         cameraRig.update(delta, kekeController.currentSpeed);
         if (kekeController.currentSpeed > 1) {
           const dist = camera.position.distanceTo(kekeGroup.position);
@@ -1035,7 +1027,7 @@ function animate() {
         // Fatigue: mild only – never below 22 top speed while driving
         try {
           const fatMul = fatigue.getSpeedMul();
-          if (fatMul < 1) kekeController.maxSpeed = Math.max(22, 34 * fatMul);
+          if (fatMul < 1) kekeController.maxSpeed = Math.max(18, 26 * fatMul);
         } catch (e) {}
 
         // Clock
