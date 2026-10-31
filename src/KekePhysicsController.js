@@ -8,9 +8,9 @@ export class KekePhysicsController {
     this.group = kekeGroup;
     this.velocity = 0;
     this.currentSpeed = 0;
-    this.maxSpeed = 28;
+    this.maxSpeed = 34;
     this.reverseMax = 6;
-    this.acceleration = 32; // was 18 – weak launch
+    this.acceleration = 55; // strong arcade launch
     this.brakingForce = 36;
     this.coastFriction = 5;
     this.throttleInput = 0;
@@ -39,7 +39,7 @@ export class KekePhysicsController {
 
       // Launch boost from standstill, then ease near top speed
       const ratio = THREE.MathUtils.clamp(this.velocity / top, 0, 1);
-      const launch = 1.35 - ratio * 0.55; // 1.35 at 0 speed → 0.8 at top
+      const launch = 1.6 - ratio * 0.5; // strong launch, still eases at top
       this.velocity += this.acceleration * throttle * launch * dt;
     } else if (throttle < -0.04) {
       if (this.velocity > 0.15) {

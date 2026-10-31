@@ -369,7 +369,7 @@ async function bootstrap() {
   // Apply driver/keke bonuses
   const driver = charSelect.getDriver();
   const kekeDef = charSelect.getKeke();
-  kekeController.maxSpeed = 28 * (kekeDef.speed || 1) * (driver.speedBonus || 1);
+  kekeController.maxSpeed = 34 * (kekeDef.speed || 1) * (driver.speedBonus || 1);
 
   const cameraRig = new KekeCameraRig(camera, kekeGroup);
   const flow = new GameFlowManager(scene, camera, kekeGroup, kekeController, cameraRig);
@@ -690,7 +690,7 @@ async function bootstrap() {
     if (ks) charSelect.selectKeke(ks.value);
     const d = charSelect.getDriver();
     const k = charSelect.getKeke();
-    kekeController.maxSpeed = 28 * (k.speed || 1) * (d.speedBonus || 1);
+    kekeController.maxSpeed = 34 * (k.speed || 1) * (d.speedBonus || 1);
     passengerManager.capacity = k.capacity || 3;
     passengerManager.negotiationBonus = d.negotiationBonus || 1;
     passengerManager.tipBonus = d.tipBonus || 1;
@@ -857,7 +857,7 @@ function animate() {
         if (keys['KeyD'] || keys['ArrowRight']) steer = -1;
         if (input.horn) isHornActive = true;
 
-        if (kekeController.maxSpeed < 12) kekeController.maxSpeed = 28;
+        if (kekeController.maxSpeed < 14) kekeController.maxSpeed = 34;
         kekeController.setInput(throttle, steer);
         kekeController.update(delta);
         cameraRig.update(delta, kekeController.currentSpeed);
