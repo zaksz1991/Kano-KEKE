@@ -1,10 +1,7 @@
 import * as THREE from 'three';
 
 /**
- * Balanced arcade keke drive
- * - Clear forward motion when accelerating
- * - Not twitchy / overpowered
- * - Smooth brake and steer
+ * Stable forward drive – position only advances, never resets
  */
 export class KekePhysicsController {
   constructor(kekeGroup) {
@@ -39,10 +36,8 @@ export class KekePhysicsController {
     if (throttle > 0.05) {
       if (this.velocity < 0) this.velocity = 0;
       this._brakeHold = 0;
-      // Slightly stronger off the line, soft near top
       const ratio = THREE.MathUtils.clamp(this.velocity / top, 0, 1);
-      const curve = 1.15 - ratio * 0.45;
-      this.velocity += this.acceleration * throttle * curve * dt;
+      this.velocity += this.acceleration * throttle * (1.1 - ratio * 0.4) * dt;
       if (this.velocity > top) this.velocity = top;
     } else if (throttle < -0.05) {
       if (this.velocity > 0.15) {
@@ -65,22 +60,23 @@ export class KekePhysicsController {
     if (Math.abs(this.velocity) < 0.1) this.velocity = 0;
     this.currentSpeed = Math.abs(this.velocity);
 
-    // Steer: left(+1) → -X, moderate rate
     const latMax = 18 / (1 + this.currentSpeed * 0.03);
     const targetLat = -this.steerInput * latMax;
     this.lateral += (targetLat - this.lateral) * Math.min(1, 14 * dt);
     if (Math.abs(this.steerInput) < 0.05) this.lateral *= 0.85;
 
+    // ONLY advance – never assign absolute world Z here
     this.group.position.x += this.lateral * dt;
     this.group.position.z += this.velocity * dt;
-    this.group.position.y = 0;
+    // y left to flow bounce or 0
+    if (this.group.position.y < 0) this.group.position.y = 0;
     this.group.rotation.set(0, 0, 0);
 
     if (this.group.position.x > this.roadLimit) {
-      this.group.position.x = THREE.MathUtils.lerp(this.group.position.x, this.roadLimit, 0.25);
+      this.group.position.x = this.roadLimit;
       this.lateral = Math.min(0, this.lateral);
     } else if (this.group.position.x < -this.roadLimit) {
-      this.group.position.x = THREE.MathUtils.lerp(this.group.position.x, -this.roadLimit, 0.25);
+      this.group.position.x = -this.roadLimit;
       this.lateral = Math.max(0, this.lateral);
     }
 

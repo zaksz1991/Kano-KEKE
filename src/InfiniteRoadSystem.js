@@ -282,6 +282,16 @@ export class InfiniteRoadSystem {
       group.add(beam);
     }
 
+    // Distance marker posts so progress is obvious (not identical void)
+    if (Math.floor(zBase / L) % 2 === 0) {
+      const post = new THREE.Mesh(
+        new THREE.BoxGeometry(0.3, 1.8, 0.3),
+        new THREE.MeshStandardMaterial({ color: 0xffeb3b })
+      );
+      post.position.set(-10.5, 0.9, 0);
+      group.add(post);
+    }
+
     // Photo billboard (real Kano ref) – sparse
     const pool = [this.billboardTex, this.billboardTex2, this.billboardTex3].filter(Boolean);
     const btex = pool.length ? pool[Math.floor(rand() * pool.length)] : null;

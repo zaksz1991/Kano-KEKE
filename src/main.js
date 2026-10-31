@@ -738,9 +738,9 @@ async function bootstrap() {
       flow.engineStarted = true;
       try {
         cameraRig.setMode('chase');
-        cameraRig._snapToTarget?.();
+        cameraRig._snapToTarget?.(); // follows keke wherever it is
       } catch (e) {
-        camera.position.set(0, 3.4, -7.2);
+        // do not hard-reset camera to origin – snapToTarget handles it
         camera.lookAt(0, 1.2, 6.5);
       }
     } catch (e) {}
@@ -862,12 +862,6 @@ function animate() {
         kekeController.setInput(throttle, steer);
         kekeController.update(delta);
         cameraRig.update(delta, kekeController.currentSpeed);
-        if (kekeController.currentSpeed > 1) {
-          const dist = camera.position.distanceTo(kekeGroup.position);
-          if (dist > 14) {
-            try { cameraRig._snapToTarget?.(); } catch (e) {}
-          }
-        }
       }
 
       // Core world – always

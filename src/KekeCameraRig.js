@@ -1,56 +1,42 @@
 import * as THREE from 'three';
 
 /**
- * Stable chase camera – no drift when parked, shake is one-shot
+ * Hard-follow chase camera – NO spring rubber-band (was causing snap-back look)
  */
 export class KekeCameraRig {
   constructor(camera, targetGroup) {
     this.camera = camera;
     this.target = targetGroup;
-
-    this.idealOffset = new THREE.Vector3(0, 3.7, -7.8);
-    this.lookAtOffset = new THREE.Vector3(0, 1.15, 7.5);
-    this.currentPos = new THREE.Vector3();
-    this.lookAtPos = new THREE.Vector3();
-    this.velocity = new THREE.Vector3();
-    this._shakeAmp = 0;
-
-    this.stiffness = 24;
-    this.damping = 12;
-    this.lookStiffness = 12;
+    this.idealOffset = new THREE.Vector3(0, 3.6, -7.5);
+    this.lookAtOffset = new THREE.Vector3(0, 1.2, 8);
     this.baseFov = 58;
     this.maxFov = 62;
+    this._shakeAmp = 0;
     this.mode = 'chase';
-
-    this._yawQ = new THREE.Quaternion();
-    this._euler = new THREE.Euler();
-
     this.modes = {
-      chase: { offset: new THREE.Vector3(0, 3.7, -7.8), look: new THREE.Vector3(0, 1.15, 7.5), fov: 58 },
-      near: { offset: new THREE.Vector3(0, 2.9, -5.6), look: new THREE.Vector3(0, 1.15, 5.5), fov: 60 },
-      wide: { offset: new THREE.Vector3(0, 4.2, -9.5), look: new THREE.Vector3(0, 1.3, 8), fov: 55 },
-      hood: { offset: new THREE.Vector3(0, 1.65, 0.2), look: new THREE.Vector3(0, 1.25, 9), fov: 72 }
+      chase: { offset: new THREE.Vector3(0, 3.6, -7.5), look: new THREE.Vector3(0, 1.2, 8), fov: 58 },
+      near: { offset: new THREE.Vector3(0, 3.0, -5.5), look: new THREE.Vector3(0, 1.1, 6), fov: 60 },
+      wide: { offset: new THREE.Vector3(0, 4.5, -10), look: new THREE.Vector3(0, 1.3, 10), fov: 55 },
+      hood: { offset: new THREE.Vector3(0, 1.6, 0.3), look: new THREE.Vector3(0, 1.2, 10), fov: 70 }
     };
-
     this._snapToTarget();
   }
 
-  _yawQuat() {
-    this._euler.set(0, this.target.rotation.y, 0);
-    this._yawQ.setFromEuler(this._euler);
-    return this._yawQ;
-  }
-
   _snapToTarget() {
-    const q = this._yawQuat();
-    this.currentPos.copy(this.target.position).add(this.idealOffset.clone().applyQuaternion(q));
-    this.lookAtPos.copy(this.target.position).add(this.lookAtOffset.clone().applyQuaternion(q));
-    this.velocity.set(0, 0, 0);
-    this._shakeAmp = 0;
-    this.camera.position.copy(this.currentPos);
-    this.camera.lookAt(this.lookAtPos);
+    const t = this.target.position;
+    this.camera.position.set(
+      t.x + this.idealOffset.x,
+      t.y + this.idealOffset.y,
+      t.z + this.idealOffset.z
+    );
+    this.camera.lookAt(
+      t.x + this.lookAtOffset.x,
+      t.y + this.lookAtOffset.y,
+      t.z + this.lookAtOffset.z
+    );
     this.camera.fov = this.baseFov;
     this.camera.updateProjectionMatrix();
+    this._shakeAmp = 0;
   }
 
   setMode(mode) {
@@ -70,63 +56,38 @@ export class KekeCameraRig {
   }
 
   setShake(amount) {
-    // Only raise shake, never called every frame with decaying value
     if (amount > this._shakeAmp) this._shakeAmp = amount;
   }
 
   update(delta, speed = 0) {
-    const dt = Math.min(Math.max(delta, 0.001), 0.05);
-    const q = this._yawQuat();
+    const t = this.target.position;
+    // Direct follow – camera is always glued behind the keke
+    const desiredX = t.x + this.idealOffset.x;
+    const desiredY = t.y + this.idealOffset.y;
+    const desiredZ = t.z + this.idealOffset.z;
 
-    // Parked: lock camera, kill residual spring + shake
-    if (speed < 0.5) {
-      this._shakeAmp = 0;
-      this.velocity.set(0, 0, 0);
-      const desired = this.target.position.clone().add(this.idealOffset.clone().applyQuaternion(q));
-      this.currentPos.lerp(desired, 0.25);
-      this.camera.position.copy(this.currentPos);
-      const lookDesired = this.target.position.clone().add(this.lookAtOffset.clone().applyQuaternion(q));
-      this.lookAtPos.lerp(lookDesired, 0.3);
-      this.camera.lookAt(this.lookAtPos);
-      this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, this.baseFov, 0.1);
-      this.camera.updateProjectionMatrix();
-      return;
-    }
+    // Light smooth only on X/Y; Z is hard-follow so road never rubber-bands
+    this.camera.position.x += (desiredX - this.camera.position.x) * 0.2;
+    this.camera.position.y += (desiredY - this.camera.position.y) * 0.2;
+    this.camera.position.z = desiredZ; // HARD lock Z to vehicle
 
-    const ratio = THREE.MathUtils.clamp(speed / 28, 0, 1);
-    const offset = this.idealOffset.clone();
-    offset.z -= ratio * 0.8;
-    offset.y += ratio * 0.3;
-    offset.applyQuaternion(q);
-
-    const desired = this.target.position.clone().add(offset);
-    const toDesired = desired.clone().sub(this.currentPos);
-    this.velocity.addScaledVector(toDesired, this.stiffness * dt);
-    this.velocity.multiplyScalar(Math.max(0, 1 - this.damping * dt));
-    this.currentPos.addScaledVector(this.velocity, dt);
-
-    if (this.currentPos.distanceTo(desired) > 12) {
-      this.currentPos.lerp(desired, 0.35);
-      this.velocity.multiplyScalar(0.3);
-    }
-
-    this.camera.position.copy(this.currentPos);
-
-    // One-shot shake decay
     if (this._shakeAmp > 0.02) {
       this.camera.position.x += (Math.random() - 0.5) * this._shakeAmp;
       this.camera.position.y += (Math.random() - 0.5) * this._shakeAmp * 0.4;
-      this._shakeAmp *= 0.82;
+      this._shakeAmp *= 0.8;
     } else {
       this._shakeAmp = 0;
     }
 
-    const lookDesired = this.target.position.clone().add(this.lookAtOffset.clone().applyQuaternion(q));
-    this.lookAtPos.lerp(lookDesired, 1 - Math.exp(-this.lookStiffness * dt));
-    this.camera.lookAt(this.lookAtPos);
+    this.camera.lookAt(
+      t.x + this.lookAtOffset.x,
+      t.y + this.lookAtOffset.y,
+      t.z + this.lookAtOffset.z
+    );
 
-    const fov = THREE.MathUtils.lerp(this.baseFov, this.maxFov, ratio * 0.35);
-    this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, fov, 1 - Math.exp(-4 * dt));
+    const ratio = THREE.MathUtils.clamp((speed || 0) / 26, 0, 1);
+    const fov = THREE.MathUtils.lerp(this.baseFov, this.maxFov, ratio * 0.3);
+    this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, fov, 0.08);
     this.camera.updateProjectionMatrix();
   }
 }
