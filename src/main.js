@@ -851,8 +851,8 @@ function animate() {
         steer = Number(input.steering) || 0;
         if (keys['KeyW'] || keys['ArrowUp']) throttle = 1;
         if (keys['KeyS'] || keys['ArrowDown']) throttle = -1;
-        if (keys['KeyA'] || keys['ArrowLeft']) steer = 1;
-        if (keys['KeyD'] || keys['ArrowRight']) steer = -1;
+        if (keys['KeyA'] || keys['ArrowLeft']) steer = -1;
+        if (keys['KeyD'] || keys['ArrowRight']) steer = 1;
 
         // Always keep a real top speed while driving
         if (!kekeController.maxSpeed || kekeController.maxSpeed < 12) {

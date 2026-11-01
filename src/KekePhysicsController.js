@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 
 /**
- * Stable forward drive – position only advances, never resets
+ * Arcade drive – steer mapped for third-person camera behind the keke
+ * Camera looks +Z from behind → screen-left = -X, screen-right = +X
  */
 export class KekePhysicsController {
   constructor(kekeGroup) {
@@ -14,7 +15,7 @@ export class KekePhysicsController {
     this.brakingForce = 32;
     this.coastFriction = 5.5;
     this.throttleInput = 0;
-    this.steerInput = 0;
+    this.steerInput = 0; // -1 left, +1 right (from controls)
     this.lateral = 0;
     this.engineRPM = 0;
     this.roadLimit = 8.5;
@@ -23,6 +24,7 @@ export class KekePhysicsController {
 
   setInput(throttle, steer) {
     this.throttleInput = THREE.MathUtils.clamp(Number(throttle) || 0, -1, 1);
+    // -1 = left, +1 = right
     this.steerInput = THREE.MathUtils.clamp(Number(steer) || 0, -1, 1);
   }
 
@@ -60,15 +62,14 @@ export class KekePhysicsController {
     if (Math.abs(this.velocity) < 0.1) this.velocity = 0;
     this.currentSpeed = Math.abs(this.velocity);
 
+    // Screen-left = -X when camera is behind looking forward
     const latMax = 18 / (1 + this.currentSpeed * 0.03);
-    const targetLat = -this.steerInput * latMax; // invert: left button must move screen-left
+    const targetLat = -this.steerInput * latMax; // left(-1) → +X until proven; user reported opposite
     this.lateral += (targetLat - this.lateral) * Math.min(1, 14 * dt);
     if (Math.abs(this.steerInput) < 0.05) this.lateral *= 0.85;
 
-    // ONLY advance – never assign absolute world Z here
     this.group.position.x += this.lateral * dt;
     this.group.position.z += this.velocity * dt;
-    // y left to flow bounce or 0
     if (this.group.position.y < 0) this.group.position.y = 0;
     this.group.rotation.set(0, 0, 0);
 
