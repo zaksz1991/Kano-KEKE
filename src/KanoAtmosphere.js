@@ -79,8 +79,8 @@ export function updateAtmosphereByTime(scene, renderer, timeInMinutes, roadSyste
     scene.background.set(0x121820);
     if (scene.fog) {
       scene.fog.color.set(0x121820);
-      scene.fog.near = mobile ? 25 : 35;
-      scene.fog.far = mobile ? 100 : 150;
+      scene.fog.near = mobile ? 40 : 55;
+      scene.fog.far = mobile ? 130 : 180;
     }
     renderer.toneMappingExposure = 1.25;
   } else {
@@ -102,7 +102,7 @@ export function updateAtmosphereByTime(scene, renderer, timeInMinutes, roadSyste
 
   // Only toggle night lights if they exist (desktop)
   scene.traverse((o) => {
-    if (o.name === 'nightMarketLight' && o.isLight) o.intensity = night ? 2.0 : 0;
+    if (o.name === 'nightMarketLight' && o.isLight) o.intensity = night ? 2.8 : 0;
   });
 }
 

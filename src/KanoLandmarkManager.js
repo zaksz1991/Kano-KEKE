@@ -13,7 +13,7 @@ export class KanoLandmarkManager {
     const defs = ASSET_MANIFEST.landmarks || [];
     for (const def of defs) {
       try {
-        const model = await this.assets.loadGLB(def.path, { scale: 1, castShadow: false });
+        const model = await this.assets.loadGLB(def.path, { scale: 1.25, castShadow: false });
         if (!model) continue;
         const group = new THREE.Group();
         group.add(model);
