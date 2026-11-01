@@ -97,7 +97,7 @@ export class DynamicTrafficManager {
     const okadas = this.templates.filter((x) => x.kind === 'okada');
     const cars = this.templates.filter((x) => x.kind !== 'okada');
     let pick;
-    if (okadas.length && Math.random() < 0.35) {
+    if (okadas.length && Math.random() < 0.42) {
       pick = okadas[Math.floor(Math.random() * okadas.length)];
     } else if (cars.length) {
       pick = cars[Math.floor(Math.random() * cars.length)];
