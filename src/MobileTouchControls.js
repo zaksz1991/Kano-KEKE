@@ -23,6 +23,7 @@ export function setupMobileControls(inputState, onHorn, onRadio) {
 
   // Persistent hold flags (survive pointer quirks)
   const hold = { accel: false, brake: false, left: false, right: false, horn: false };
+  let wasHorn = false;
 
   const bind = (id, key) => {
     const el = document.getElementById(id);
@@ -55,6 +56,8 @@ export function setupMobileControls(inputState, onHorn, onRadio) {
     else inputState.steering = 0;
 
     inputState.horn = hold.horn;
+    if (hold.horn && !wasHorn && onHorn) onHorn();
+    wasHorn = hold.horn;
   };
 
   // Re-sync every frame from hold flags (fixes lost pointerup / stuck zero)

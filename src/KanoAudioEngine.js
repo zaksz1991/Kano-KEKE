@@ -143,7 +143,7 @@ export class KanoAudioEngine {
         const src = this.ctx.createBufferSource();
         const g = this.ctx.createGain();
         src.buffer = this.hornBuf;
-        g.gain.value = 0.9;
+        g.gain.value = 1.0;
         src.connect(g);
         g.connect(this.ctx.destination);
         src.start(0);
@@ -159,7 +159,7 @@ export class KanoAudioEngine {
       osc.type = 'square';
       osc.frequency.setValueAtTime(420, t);
       osc.frequency.exponentialRampToValueAtTime(280, t + 0.25);
-      g.gain.setValueAtTime(0.12, t);
+      g.gain.setValueAtTime(0.35, t);
       g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
       osc.connect(g);
       g.connect(this.ctx.destination);

@@ -862,11 +862,28 @@ function animate() {
         kekeController.setInput(throttle, steer);
         kekeController.update(delta);
         cameraRig.update(delta, kekeController.currentSpeed);
-        // Live speed (km/h) – was stuck because update only ran later / wrong field
+        // LIVE speed every frame (DashHUD + legacy)
+        const kmh = Math.round(kekeController.currentSpeed * 3.6);
         const spdEl = document.getElementById('speed-display');
-        if (spdEl) {
-          spdEl.innerText = String(Math.round(kekeController.currentSpeed * 3.6));
-        }
+        if (spdEl) spdEl.innerText = String(kmh);
+        const dashSpd = document.getElementById('dash-speed');
+        if (dashSpd) dashSpd.textContent = String(kmh);
+        try {
+          dashHud.update({
+            speed: kekeController.currentSpeed * 3.6,
+            cash: passengerManager.dailyEarnings,
+            fuel: fuelManager.fuel ?? 100,
+            seatsUsed: passengerManager.onBoard.length,
+            seatsMax: passengerManager.capacity,
+            lives: missionManager.lives,
+            route: document.getElementById('route-name-display')?.textContent || 'Kano',
+            missionsText: missionManager.getHudText() + '\nStamina ' + fatigue.getPercent() + '%',
+            weather: weatherManager.currentWeather || 'CLEAR',
+            shiftTime: shiftElapsed,
+            startCash: shiftStartCash,
+            notice: passengerManager.getHudStatus?.() || null
+          });
+        } catch (e) {}
       }
 
       // Core world – always
