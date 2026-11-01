@@ -17,7 +17,7 @@ export class DashHUD {
     el.style.cssText = `
       position:fixed;top:0;left:0;right:0;z-index:50;pointer-events:none;
       display:none;font-family:system-ui,sans-serif;
-      background:linear-gradient(180deg,rgba(0,0,0,0.75) 0%,rgba(0,0,0,0) 100%);
+      background:linear-gradient(180deg,rgba(0,0,0,0.82) 0%,rgba(0,0,0,0.15) 70%,rgba(0,0,0,0) 100%);
       padding:10px 12px 28px;color:#fff;
     `;
     el.innerHTML = `
@@ -30,7 +30,7 @@ export class DashHUD {
           <div id="dash-rate" style="font-size:10px;color:#a5d6a7;">₦0/min</div>
         </div>
         <div style="text-align:center;">
-          <div id="dash-speed" style="font-size:28px;font-weight:900;line-height:1;">0</div>
+          <div id="dash-speed" style="font-size:32px;font-weight:900;line-height:1;color:#ffcc00;">0</div>
           <div style="font-size:10px;color:#90a4ae;">km/h</div>
         </div>
         <div style="text-align:right;min-width:90px;">
