@@ -1027,6 +1027,7 @@ function animate() {
         });
         // Prayer: banner only – do NOT cap maxSpeed (was killing acceleration)
         audioEngine.updateEngine(kekeController.currentSpeed, kekeController.maxSpeed);
+        try { headlights.update(window.timeInMinutes); } catch (e) {}
         shiftElapsed += delta;
         let nearFuel = false;
         try {

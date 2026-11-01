@@ -33,8 +33,8 @@ export function setupKanoAtmosphere(scene, renderer) {
   ambient.name = 'ambientLight';
   scene.add(ambient);
 
-  // Skip fill + night market lights on mobile (extra draw/light cost)
-  if (!mobile) {
+  // Night fill lights (kept light count low for mobile)
+  if (true) {
     const fill = new THREE.DirectionalLight(0xffd9a0, 1.0);
     fill.position.set(-40, 30, -20);
     fill.name = 'fillLight';

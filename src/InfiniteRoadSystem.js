@@ -410,7 +410,7 @@ export class InfiniteRoadSystem {
   setNightMode(isNight) {
     this.scene.traverse((obj) => {
       if (obj.name === 'streetLight' && obj.isLight) {
-        obj.intensity = isNight ? 4.5 : 0;
+        obj.intensity = isNight ? 6.5 : 0;
       }
     });
   }

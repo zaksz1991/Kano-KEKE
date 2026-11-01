@@ -23,8 +23,8 @@ export class KekeHeadlights {
     this.keke.add(this.lampL);
     this.keke.add(this.lampR);
 
-    this.spotL = new THREE.SpotLight(0xfff5e0, 0, 28, Math.PI / 7, 0.45, 1.2);
-    this.spotR = new THREE.SpotLight(0xfff5e0, 0, 28, Math.PI / 7, 0.45, 1.2);
+    this.spotL = new THREE.SpotLight(0xfff5e0, 0, 40, Math.PI / 6, 0.4, 1.0);
+    this.spotR = new THREE.SpotLight(0xfff5e0, 0, 40, Math.PI / 6, 0.4, 1.0);
     this.spotL.position.set(-0.45, 0.85, 1.25);
     this.spotR.position.set(0.45, 0.85, 1.25);
     this.targetL = new THREE.Object3D();
@@ -52,8 +52,8 @@ export class KekeHeadlights {
     const on = this.manual === null ? isNight : this.manual;
     this.enabled = on;
 
-    const intensity = on ? 1.6 : 0;
-    const emissive = on ? 1.4 : 0;
+    const intensity = on ? 3.2 : 0;
+    const emissive = on ? 2.2 : 0;
     this.spotL.intensity = intensity;
     this.spotR.intensity = intensity;
     if (this.lampL.material) this.lampL.material.emissiveIntensity = emissive;
