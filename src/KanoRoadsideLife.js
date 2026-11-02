@@ -20,11 +20,13 @@ export class KanoRoadsideLife {
   }
 
   init() {
-    return; // disabled – GLB landmarks only, no box props
-    for (let i = 0; i < 8; i++) {
-      this._spawnAt(40 + i * 70);
+    // Sparse Kano roadside life (bus stops, vendors, pumps, mini-mosques)
+    // Kept low-count for mobile FPS – not full box city
+    this.maxProps = 12;
+    for (let i = 0; i < 6; i++) {
+      this._spawnAt(50 + i * 95);
     }
-    this._spawnedUntil = 40 + 7 * 70;
+    this._spawnedUntil = 50 + 5 * 95;
   }
 
   _spawnAt(z) {

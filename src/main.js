@@ -888,6 +888,7 @@ function animate() {
 
       // Core world – always
       roadSystem.update(kekeGroup.position.z);
+      try { roadsideLife.update(kekeGroup.position.z); } catch (e) {}
       trafficManager.update(delta, isHornActive);
 
       // Secondary – skip when last frame was slow
