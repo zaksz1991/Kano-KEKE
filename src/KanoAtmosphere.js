@@ -7,7 +7,7 @@ export function setupKanoAtmosphere(scene, renderer) {
   scene.background = new THREE.Color(0x5dade2);
   scene.fog = new THREE.Fog(0xa8d5f5, mobile ? 60 : 110, mobile ? 160 : 300);
 
-  const sun = new THREE.DirectionalLight(0xfff6e0, mobile ? 2.8 : 3.8);
+  const sun = new THREE.DirectionalLight(0xfff6e0, mobile ? 3.2 : 4.2);
   sun.position.set(50, 80, 30);
   sun.name = 'sunLight';
   if (!mobile) {
@@ -25,7 +25,7 @@ export function setupKanoAtmosphere(scene, renderer) {
   }
   scene.add(sun);
 
-  const hemi = new THREE.HemisphereLight(0xffe8c0, 0x6b5344, mobile ? 1.6 : 2.0);
+  const hemi = new THREE.HemisphereLight(0xffe8c0, 0x6b5344, mobile ? 1.85 : 2.2);
   hemi.name = 'hemiLight';
   scene.add(hemi);
 
