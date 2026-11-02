@@ -98,7 +98,7 @@ export class KekeCustomizer {
         <h3 style="margin:0 0 8px;color:#ffcc00;text-align:center;">🔧 Garajin Keke</h3>
         <div style="font-size:13px;color:#4caf50;margin-bottom:10px;text-align:center;">Cash: ₦${earnings}</div>
         <div style="margin-bottom:12px;">
-          <div style="color:#00e5ff;font-size:11px;letter-spacing:1px;margin-bottom:6px;">PAINT — ₦1,500</div>
+          <div style="color:#00e5ff;font-size:11px;letter-spacing:1px;margin-bottom:6px;">PAINT — ₦1,000</div>
           <div style="display:flex;flex-wrap:wrap;justify-content:center;">${swatches}</div>
         </div>
         <button type="button" id="shop-neon" style="width:100%;margin:4px 0;padding:12px;background:#222;color:#00ffff;border:1px solid #00ffff;border-radius:8px;cursor:pointer;font-weight:700;">Neon Underglow — ₦3,500</button>
@@ -118,7 +118,7 @@ export class KekeCustomizer {
       btn.onclick = (e) => {
         e.preventDefault();
         const key = btn.getAttribute('data-paint');
-        if (spend(1500)) {
+        if (spend(1000)) {
           this.applyPaint(key);
           btn.style.outline = '3px solid #ffcc00';
         }
