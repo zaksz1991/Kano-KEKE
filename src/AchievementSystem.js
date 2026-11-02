@@ -14,7 +14,10 @@ export class AchievementSystem {
       explorer: { title: 'Explorer', desc: 'Discover 3 landmarks in one shift' },
       night_owl: { title: 'Night Owl', desc: 'Drive past 8 PM game time' },
       full_tank: { title: 'Full Tank', desc: 'Refuel at a petrol station' },
-      legend: { title: 'Street Legend', desc: 'Score 15,000 in one shift' }
+      legend: { title: 'Street Legend', desc: 'Score 15,000 in one shift' },
+      karota_clear: { title: 'Toh Wuce', desc: 'Clear a KAROTA checkpoint cleanly' },
+      combo_10: { title: 'Unstoppable', desc: 'Reach combo x10' },
+      rich_10k: { title: 'Big Man', desc: 'Hold ₦10,000 cash in a shift' }
     };
     this.landmarkCount = 0;
   }
@@ -59,7 +62,13 @@ export class AchievementSystem {
   onDropoff(combo, cash) {
     this.unlock('first_fare');
     if (combo >= 5) this.unlock('combo_5');
+    if (combo >= 10) this.unlock('combo_10');
     if (cash >= 5000) this.unlock('rich_5k');
+    if (cash >= 10000) this.unlock('rich_10k');
+  }
+
+  onKarotaClear() {
+    this.unlock('karota_clear');
   }
 
   onLandmark() {

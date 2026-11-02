@@ -1067,7 +1067,10 @@ function animate() {
             try { audioEngine.playOneShot(880, 0.15, 'square', 0.08); } catch (e) {}
             setTimeout(() => { try { audioEngine.playOneShot(660, 0.2, 'square', 0.07); } catch (e) {} }, 180);
           }
-          if (ev.type === 'KAROTA_CLEAR' || (ev.msg && (ev.msg.includes('waved') || ev.msg.includes('wuce')))) missionManager.onCheckpointClear(true);
+          if (ev.type === 'KAROTA_CLEAR' || (ev.msg && (ev.msg.includes('waved') || ev.msg.includes('wuce')))) {
+            missionManager.onCheckpointClear(true);
+            try { achievements.onKarotaClear(); } catch (e) {}
+          }
           _updateMissionHud(missionManager);
         });
         nearMiss.update(delta, (ev) => {
