@@ -1,3 +1,4 @@
+document.title = 'Kano Run · AISHAT AKINTOLA';
 import * as THREE from 'three';
 import { AssetManager } from './AssetManager.js';
 import { setupKanoAtmosphere, updateAtmosphereByTime, setPrayerAmbient } from './KanoAtmosphere.js';
@@ -117,7 +118,21 @@ document.getElementById('start-game-btn')?.addEventListener('click', (e) => {
 });
 
 
-// ---------- Early menu UI ----------
+// ---------- AISHAT AKINTOLA credit (always visible) ----------
+  (function brandAishat() {
+    if (document.getElementById('aishat-credit')) return;
+    const el = document.createElement('div');
+    el.id = 'aishat-credit';
+    el.style.cssText =
+      'position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:120;pointer-events:none;' +
+      'font:800 11px/1.2 system-ui,sans-serif;letter-spacing:2px;color:#ffcc00;' +
+      'text-shadow:0 0 8px rgba(0,0,0,0.9),0 1px 2px #000;background:rgba(0,0,0,0.45);' +
+      'padding:4px 12px;border-radius:999px;border:1px solid rgba(255,204,0,0.5);';
+    el.textContent = 'AISHAT AKINTOLA';
+    document.body.appendChild(el);
+  })();
+
+  // ---------- Early menu UI ----------
 
   // Daily reward – bind EXISTING button (index.html already has it)
   (function bindDailyReward() {
@@ -340,7 +355,7 @@ async function bootstrap() {
   let kekeModel = null;
   try {
     kekeModel = await Promise.race([
-      assetManager.loadGLB('/assets/models/keke.glb', { scale: 1.15 }),
+      assetManager.loadGLB('/assets/models/keke.glb', { scale: 0.82 }),
       new Promise((r) => setTimeout(() => r(null), 7000))
     ]);
     if (kekeModel) {
@@ -396,7 +411,12 @@ async function bootstrap() {
   landmarkManager.init().catch(() => {});
 
   const trafficManager = new DynamicTrafficManager(scene, kekeController, assetManager);
-  if (isMobile) trafficManager.maxVehicles = 4;
+  if (isMobile) {
+    trafficManager.maxVehicles = 3;
+    renderer.setPixelRatio(1);
+    camera.far = 140;
+    camera.updateProjectionMatrix();
+  }
   trafficManager.init().catch(() => {});
 
   const passengerManager = new PassengerManager(scene, kekeController, assetManager);
@@ -443,10 +463,12 @@ async function bootstrap() {
   await pedestrianManager.init().catch(() => {});
   // Light exhaust + dust (mobile-safe counts)
   let particleSystem = { update() {} };
-  try {
-    particleSystem = new KanoParticleSystem(scene, kekeGroup);
-  } catch (e) {
-    console.warn('particles', e);
+  if (!isMobile) {
+    try {
+      particleSystem = new KanoParticleSystem(scene, kekeGroup);
+    } catch (e) {
+      console.warn('particles', e);
+    }
   }
   let weatherManager = { update() {}, currentWeather: 'CLEAR', forceWeather() {} };
   if (!isMobile) {
@@ -802,6 +824,46 @@ async function bootstrap() {
       const route = KANO_ROUTES.find((r) => String(r.id) === String(routeSel.value)) || KANO_ROUTES[0];
       if (route) routeName.textContent = route.name.split('➔')[0].trim();
     }
+    // Road mode
+    const roadModeSel = document.getElementById('road-mode-select');
+    const roadMode = roadModeSel?.value === 'single' ? 'single' : 'dual';
+    window.__kanoRoadMode = roadMode;
+    try {
+      roadSystem.setRoadMode?.(roadMode);
+      // Rebuild chunks for new mode
+      roadSystem.chunks.forEach((ch) => {
+        try { scene.remove(ch); } catch (e) {}
+      });
+      roadSystem.chunks = [];
+      for (let i = 0; i < roadSystem.visibleChunks; i++) {
+        const chunk = roadSystem._createChunk(i * roadSystem.chunkLength);
+        scene.add(chunk);
+        roadSystem.chunks.push(chunk);
+        roadSystem._applyRoadTile?.(chunk);
+      }
+      if (roadMode === 'single') {
+        kekeGroup.position.x = 0;
+        kekeController.roadLimit = 5.2;
+        trafficManager.maxVehicles = Math.min(trafficManager.maxVehicles || 6, isMobile ? 3 : 5);
+      } else {
+        kekeGroup.position.x = 3.8;
+        kekeController.roadLimit = 8.5;
+      }
+    } catch (e) { console.warn('road mode', e); }
+
+    // Naija Challenge
+    const modeSel = document.getElementById('game-mode-select');
+    window.__kanoGameMode = modeSel?.value || 'career';
+    if (window.__kanoGameMode === 'naija') {
+      missionManager.level = Math.max(missionManager.level, 1);
+      // Harder: more traffic, less lives, score multiplier
+      trafficManager.maxVehicles = isMobile ? 5 : 8;
+      missionManager.lives = 2;
+      window.__kanoNaijaMult = 2;
+      showBanner('🇳🇬 NAIJA CHALLENGE — 2× score · 2 lives · heavy traffic');
+    } else {
+      window.__kanoNaijaMult = 1;
+    }
     const earn = document.getElementById('earnings');
     if (earn) earn.innerText = passengerManager.dailyEarnings;
 
@@ -1024,7 +1086,7 @@ function animate() {
             try { voiceBank.speak('drop'); } catch (e) {}
             const fareMatch = String(ev.msg || '').match(/₦(\d+)/);
             const fare = fareMatch ? parseInt(fareMatch[1], 10) : 200;
-            missionManager.onDropoff(fare);
+            missionManager.onDropoff(Math.round(fare * (window.__kanoNaijaMult || 1)));
             try { achievements.onDropoff(missionManager.combo, passengerManager.dailyEarnings); } catch (e) {}
             if (missionManager.combo >= 2) {
               showBanner(`🔥 Combo x${missionManager.combo}!`);

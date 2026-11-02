@@ -1,21 +1,20 @@
 import * as THREE from 'three';
 
 /**
- * Arcade drive – steer mapped for third-person camera behind the keke
- * Camera looks +Z from behind → screen-left = -X, screen-right = +X
+ * Arcade drive – clear acceleration, speed always rises with ACCEL
  */
 export class KekePhysicsController {
   constructor(kekeGroup) {
     this.group = kekeGroup;
     this.velocity = 0;
     this.currentSpeed = 0;
-    this.maxSpeed = 26;
+    this.maxSpeed = 28;
     this.reverseMax = 5;
-    this.acceleration = 22;
-    this.brakingForce = 32;
-    this.coastFriction = 5.5;
+    this.acceleration = 26;
+    this.brakingForce = 34;
+    this.coastFriction = 5;
     this.throttleInput = 0;
-    this.steerInput = 0; // -1 left, +1 right (from controls)
+    this.steerInput = 0;
     this.lateral = 0;
     this.engineRPM = 0;
     this.roadLimit = 8.5;
@@ -24,7 +23,6 @@ export class KekePhysicsController {
 
   setInput(throttle, steer) {
     this.throttleInput = THREE.MathUtils.clamp(Number(throttle) || 0, -1, 1);
-    // -1 = left, +1 = right
     this.steerInput = THREE.MathUtils.clamp(Number(steer) || 0, -1, 1);
   }
 
@@ -33,13 +31,14 @@ export class KekePhysicsController {
   update(delta) {
     const dt = THREE.MathUtils.clamp(delta || 0.016, 0.001, 0.033);
     const throttle = this.throttleInput;
-    const top = Math.max(16, this.maxSpeed || 26);
+    const top = Math.max(18, this.maxSpeed || 28);
 
     if (throttle > 0.05) {
       if (this.velocity < 0) this.velocity = 0;
       this._brakeHold = 0;
       const ratio = THREE.MathUtils.clamp(this.velocity / top, 0, 1);
-      this.velocity += this.acceleration * throttle * (1.1 - ratio * 0.4) * dt;
+      // Always accelerate while ACCEL held – never flat zero
+      this.velocity += this.acceleration * throttle * (1.2 - ratio * 0.5) * dt;
       if (this.velocity > top) this.velocity = top;
     } else if (throttle < -0.05) {
       if (this.velocity > 0.15) {
@@ -59,12 +58,12 @@ export class KekePhysicsController {
       else if (this.velocity < 0) this.velocity = Math.min(0, this.velocity + this.coastFriction * dt);
     }
 
-    if (Math.abs(this.velocity) < 0.1) this.velocity = 0;
+    if (Math.abs(this.velocity) < 0.08) this.velocity = 0;
     this.currentSpeed = Math.abs(this.velocity);
 
-    // Screen-left = -X when camera is behind looking forward
+    // Steer: left=-1 → -X (screen left when camera behind) — was confirmed correct with flip
     const latMax = 18 / (1 + this.currentSpeed * 0.03);
-    const targetLat = -this.steerInput * latMax; // left(-1) → +X until proven; user reported opposite
+    const targetLat = -this.steerInput * latMax;
     this.lateral += (targetLat - this.lateral) * Math.min(1, 14 * dt);
     if (Math.abs(this.steerInput) < 0.05) this.lateral *= 0.85;
 

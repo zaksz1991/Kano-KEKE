@@ -13,6 +13,11 @@ export class InfiniteRoadSystem {
     this.chunks = [];
     this.roadTexture = null;
     this.roadTileModel = null;
+    this.roadMode = 'dual'; // 'dual' | 'single'
+  }
+
+  setRoadMode(mode) {
+    this.roadMode = mode === 'single' ? 'single' : 'dual';
   }
 
   rng(seed) {
@@ -115,60 +120,82 @@ export class InfiniteRoadSystem {
       map: this.roadTexture || null
     });
 
-    for (const x of [-5.0, 5.0]) {
-      const lane = new THREE.Mesh(new THREE.PlaneGeometry(8.6, L, 1, 2), asphalt.clone());
+    const yellow = new THREE.MeshBasicMaterial({ color: 0xffb300 });
+    const white = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const dual = this.roadMode !== 'single';
+
+    if (dual) {
+      // Dual carriageway
+      for (const x of [-5.0, 5.0]) {
+        const lane = new THREE.Mesh(new THREE.PlaneGeometry(8.6, L, 1, 2), asphalt.clone());
+        if (this.roadTexture) {
+          lane.material.map = this.roadTexture;
+          lane.material.map.repeat.set(1.2, L / 12);
+        }
+        lane.rotation.x = -Math.PI / 2;
+        lane.position.set(x, 0.01, 0);
+        group.add(lane);
+        group.userData.roadMeshes.push(lane);
+      }
+      const median = new THREE.Mesh(
+        new THREE.BoxGeometry(1.5, 0.16, L * 0.96),
+        new THREE.MeshStandardMaterial({ color: 0x5d4e37, roughness: 1 })
+      );
+      median.position.set(0, 0.09, 0);
+      group.add(median);
+      const grassMat = new THREE.MeshStandardMaterial({ color: 0x4caf50, roughness: 1 });
+      for (let z = -L / 2 + 6; z < L / 2; z += 14) {
+        if (rand() > 0.4) {
+          const bush = new THREE.Mesh(new THREE.SphereGeometry(0.35, 4, 3), grassMat);
+          bush.position.set((rand() - 0.5) * 0.3, 0.28, z);
+          bush.scale.y = 0.5;
+          group.add(bush);
+        }
+      }
+      for (const x of [-0.95, 0.95]) {
+        const yl = new THREE.Mesh(new THREE.PlaneGeometry(0.16, L * 0.96), yellow);
+        yl.rotation.x = -Math.PI / 2;
+        yl.position.set(x, 0.04, 0);
+        group.add(yl);
+      }
+      for (const x of [-8.7, 8.7]) {
+        const yl = new THREE.Mesh(new THREE.PlaneGeometry(0.16, L * 0.96), yellow);
+        yl.rotation.x = -Math.PI / 2;
+        yl.position.set(x, 0.04, 0);
+        group.add(yl);
+      }
+      for (const laneX of [-5.0, 5.0]) {
+        for (let z = -L / 2 + 2; z < L / 2; z += 7) {
+          const dash = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 3.0), white);
+          dash.rotation.x = -Math.PI / 2;
+          dash.position.set(laneX, 0.04, z);
+          group.add(dash);
+        }
+      }
+    } else {
+      // One-way single carriageway (3 lanes)
+      const lane = new THREE.Mesh(new THREE.PlaneGeometry(11.5, L, 1, 2), asphalt.clone());
       if (this.roadTexture) {
         lane.material.map = this.roadTexture;
-        lane.material.map.repeat.set(1.2, L / 12);
+        lane.material.map.repeat.set(1.5, L / 12);
       }
       lane.rotation.x = -Math.PI / 2;
-      lane.position.set(x, 0.01, 0);
+      lane.position.set(0, 0.01, 0);
       group.add(lane);
       group.userData.roadMeshes.push(lane);
-    }
-
-    // Central median with grass (photo: planted strip + yellow borders)
-    const median = new THREE.Mesh(
-      new THREE.BoxGeometry(1.5, 0.16, L * 0.96),
-      new THREE.MeshStandardMaterial({ color: 0x5d4e37, roughness: 1 })
-    );
-    median.position.set(0, 0.09, 0);
-    group.add(median);
-
-    const grassMat = new THREE.MeshStandardMaterial({ color: 0x4caf50, roughness: 1 });
-    for (let z = -L / 2 + 6; z < L / 2; z += 14) {
-      if (rand() > 0.4) {
-        const bush = new THREE.Mesh(new THREE.SphereGeometry(0.35, 4, 3), grassMat);
-        bush.position.set((rand() - 0.5) * 0.3, 0.28, z);
-        bush.scale.y = 0.5;
-        group.add(bush);
+      for (const x of [-5.5, 5.5]) {
+        const yl = new THREE.Mesh(new THREE.PlaneGeometry(0.16, L * 0.96), yellow);
+        yl.rotation.x = -Math.PI / 2;
+        yl.position.set(x, 0.04, 0);
+        group.add(yl);
       }
-    }
-
-    // Continuous yellow lines along median (photo)
-    const yellow = new THREE.MeshBasicMaterial({ color: 0xffb300 });
-    for (const x of [-0.95, 0.95]) {
-      const yl = new THREE.Mesh(new THREE.PlaneGeometry(0.16, L * 0.96), yellow);
-      yl.rotation.x = -Math.PI / 2;
-      yl.position.set(x, 0.04, 0);
-      group.add(yl);
-    }
-    // Outer yellow lines
-    for (const x of [-8.7, 8.7]) {
-      const yl = new THREE.Mesh(new THREE.PlaneGeometry(0.16, L * 0.96), yellow);
-      yl.rotation.x = -Math.PI / 2;
-      yl.position.set(x, 0.04, 0);
-      group.add(yl);
-    }
-
-    // White dashed lane marks (photo)
-    const white = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    for (const laneX of [-5.0, 5.0]) {
-      for (let z = -L / 2 + 2; z < L / 2; z += 7) {
-        const dash = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 3.0), white);
-        dash.rotation.x = -Math.PI / 2;
-        dash.position.set(laneX, 0.04, z);
-        group.add(dash);
+      for (const laneX of [-2.5, 0, 2.5]) {
+        for (let z = -L / 2 + 2; z < L / 2; z += 7) {
+          const dash = new THREE.Mesh(new THREE.PlaneGeometry(0.14, 3.0), white);
+          dash.rotation.x = -Math.PI / 2;
+          dash.position.set(laneX, 0.04, z);
+          group.add(dash);
+        }
       }
     }
 
