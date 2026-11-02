@@ -37,6 +37,7 @@ import { AchievementSystem } from './AchievementSystem.js';
 import { FirstShiftTutorial } from './FirstShiftTutorial.js';
 import { StreetEventSystem } from './StreetEventSystem.js';
 import { NearMissSystem } from './NearMissSystem.js';
+import { HausaVoiceBank } from './HausaVoiceBank.js';
 import { KekeSignalLights } from './KekeSignalLights.js';
 import { KekeHeadlights } from './KekeHeadlights.js';
 
@@ -418,6 +419,7 @@ async function bootstrap() {
   const policeEngine = new PoliceCheckpointEngine(scene, kekeController, passengerManager, assetManager);
   policeEngine.spawnCheckpoint(200);
   const audioEngine = new KanoAudioEngine();
+  const voiceBank = new HausaVoiceBank(audioEngine);
   audioEngine.setup(camera, kekeGroup);
   audioEngine.enableOnInteraction();
   // Preload speech voices
@@ -932,13 +934,21 @@ function animate() {
           seatOccupancy.sync(passengerManager.onBoard.length);
           const earn = document.getElementById('earnings');
           if (earn && ev.earnings != null) earn.innerText = ev.earnings;
+          if (ev.type === 'NEGOTIATE') {
+            try { voiceBank.speak('negotiate'); } catch (e) {}
+          }
+          if (ev.type === 'AKWAI') {
+            try { voiceBank.speak('drop'); } catch (e) {}
+          }
           if (ev.type === 'BOARD') {
             audioEngine.playOneShot(520, 0.12, 'sine', 0.1);
+            try { voiceBank.speak('board'); } catch (e) {}
             try { tutorial.onBoard(); } catch (e) {}
           }
           if (ev.type === 'DROPOFF') {
             try { tutorial.onDrop(); } catch (e) {}
             audioEngine.playOneShot(660, 0.15, 'triangle', 0.12);
+            try { voiceBank.speak('drop'); } catch (e) {}
             const fareMatch = String(ev.msg || '').match(/₦(\d+)/);
             const fare = fareMatch ? parseInt(fareMatch[1], 10) : 200;
             missionManager.onDropoff(fare);
@@ -992,7 +1002,11 @@ function animate() {
         });
         policeEngine.update((ev) => {
           showBanner(ev);
+          if (ev.type === 'KAROTA_CLEAR' || (ev.msg && ev.msg.includes('wuce'))) {
+            try { voiceBank.speak('karota'); } catch (e) {}
+          }
           if (ev.type === 'KAROTA_CHASE' || (ev.msg && ev.msg.includes('chase'))) {
+            try { voiceBank.speak('karota'); } catch (e) {}
             try { audioEngine.playOneShot(880, 0.15, 'square', 0.08); } catch (e) {}
             setTimeout(() => { try { audioEngine.playOneShot(660, 0.2, 'square', 0.07); } catch (e) {} }, 180);
           }
@@ -1008,6 +1022,8 @@ function animate() {
           if (ev.type === 'CRASH') {
             // One-shot shake only on crash event – NOT every frame
             try { cameraRig.setShake?.(ev.shake || 0.55); } catch (e) {}
+            try { voiceBank.speak('crash'); } catch (e) {}
+            try { audioEngine.playOneShot(140, 0.25, 'sawtooth', 0.1); } catch (e) {}
             try { audioEngine.playOneShot(90, 0.2, 'sawtooth', 0.1); } catch (e) {}
           }
           _updateMissionHud(missionManager);
@@ -1034,7 +1050,11 @@ function animate() {
           if (e?.msg) {
             showBanner(e.msg);
             try {
+          if (ev.type === 'KAROTA_CLEAR' || (ev.msg && ev.msg.includes('wuce'))) {
+            try { voiceBank.speak('karota'); } catch (e) {}
+          }
           if (ev.type === 'KAROTA_CHASE' || (ev.msg && ev.msg.includes('chase'))) {
+            try { voiceBank.speak('karota'); } catch (e) {}
             try { audioEngine.playOneShot(880, 0.15, 'square', 0.08); } catch (e) {}
             setTimeout(() => { try { audioEngine.playOneShot(660, 0.2, 'square', 0.07); } catch (e) {} }, 180);
           } } catch (err) {}
