@@ -85,9 +85,9 @@ export class CharacterSelectionManager {
       {
         id: 'green_karota',
         name: 'KAROTA Green Commemorative',
-        cost: 20000,
-        levelReq: 3,
-        unlocked: false,
+        cost: 0,
+        levelReq: 1,
+        unlocked: true,
         speed: 1.05,
         capacity: 3,
         color: 0x2e7d32,
@@ -181,7 +181,10 @@ export class CharacterSelectionManager {
       this.drivers.forEach((d) => {
         const opt = document.createElement('option');
         opt.value = d.id;
-        opt.textContent = d.unlocked ? `${d.name} — ${d.title}` : `🔒 ${d.name} (Lv${d.levelReq} · ₦${d.cost})`;
+        const bonus = d.speedBonus ? ` · spd×${d.speedBonus}` : '';
+        opt.textContent = d.unlocked
+          ? `${d.name} — ${d.title}${bonus}`
+          : `🔒 ${d.name} (Lv${d.levelReq} · ₦${d.cost})`;
         opt.disabled = !d.unlocked;
         if (d.id === this.selectedDriverId) opt.selected = true;
         driverSelect.appendChild(opt);
@@ -194,7 +197,7 @@ export class CharacterSelectionManager {
         const opt = document.createElement('option');
         opt.value = k.id;
         opt.textContent = k.unlocked
-          ? `${k.name}`
+          ? `${k.name} · spd×${k.speed} · ${k.capacity} seats`
           : `🔒 ${k.name} (Lv${k.levelReq} · ₦${k.cost})`;
         opt.disabled = !k.unlocked;
         if (k.id === this.selectedKekeId) opt.selected = true;
