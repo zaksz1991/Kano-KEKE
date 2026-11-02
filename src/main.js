@@ -203,11 +203,23 @@ document.getElementById('start-game-btn')?.addEventListener('click', (e) => {
 
 (function wireMenu() {
   const routeSelect = document.getElementById('route-select');
-  if (routeSelect && routeSelect.options.length === 0) {
+  if (routeSelect) {
+    const level = (() => {
+      try {
+        return JSON.parse(localStorage.getItem('kano_run_save_v2') || '{}').currentLevel || 1;
+      } catch (e) {
+        return 1;
+      }
+    })();
+    routeSelect.innerHTML = '';
     KANO_ROUTES.forEach((r) => {
       const opt = document.createElement('option');
       opt.value = r.id;
-      opt.textContent = r.name;
+      const locked = (r.minLevel || 1) > level;
+      opt.textContent = locked
+        ? `🔒 ${r.name} (Lv${r.minLevel})`
+        : `${r.name} · ₦${r.baseFare}+ · ${r.distanceKm}km`;
+      opt.disabled = locked;
       routeSelect.appendChild(opt);
     });
   }
