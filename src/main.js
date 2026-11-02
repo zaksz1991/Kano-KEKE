@@ -108,12 +108,17 @@ window.__kanoStartShift = null;
 document.getElementById('start-game-btn')?.addEventListener('click', (e) => {
   e.preventDefault();
   e.stopPropagation();
+  hideLoading();
   if (typeof window.__kanoStartShift === 'function') {
-    window.__kanoStartShift();
+    try {
+      window.__kanoStartShift();
+    } catch (err) {
+      console.error('start', err);
+      showBanner('Start error — retry');
+    }
   } else {
     window.__kanoStartQueued = true;
-    hideLoading();
-    showBanner('Starting…');
+    showBanner('Starting… (preparing world)');
   }
 });
 
@@ -807,21 +812,9 @@ async function bootstrap() {
     window.__kanoRoadMode = roadMode;
     try {
       roadSystem.setRoadMode?.(roadMode);
-      // Rebuild chunks for new mode
-      roadSystem.chunks.forEach((ch) => {
-        try { scene.remove(ch); } catch (e) {}
-      });
-      roadSystem.chunks = [];
-      for (let i = 0; i < roadSystem.visibleChunks; i++) {
-        const chunk = roadSystem._createChunk(i * roadSystem.chunkLength);
-        scene.add(chunk);
-        roadSystem.chunks.push(chunk);
-        roadSystem._applyRoadTile?.(chunk);
-      }
       if (roadMode === 'single') {
         kekeGroup.position.x = 0;
         kekeController.roadLimit = 5.2;
-        trafficManager.maxVehicles = Math.min(trafficManager.maxVehicles || 6, isMobile ? 3 : 5);
       } else {
         kekeGroup.position.x = 3.8;
         kekeController.roadLimit = 8.5;
@@ -925,8 +918,7 @@ async function bootstrap() {
     }
   });
 
-  clearTimeout(safety);
-  hideLoading();
+  try { hideLoading(); } catch (e) {}
   showBanner('Select driver & route, then START SHIFT');
   showFirstRunTips();
 
@@ -1308,9 +1300,21 @@ function animate() {
 }
 
 bootstrap().catch((e) => {
-  console.error(e);
-  hideLoading();
-  showBanner('Loaded with fallbacks');
+  console.error('bootstrap failed', e);
+  try { hideLoading(); } catch (err) {}
+  showBanner('World ready (fallback) — press Start Shift');
+  const b = document.getElementById('start-game-btn');
+  if (b) {
+    b.disabled = false;
+    b.style.opacity = '1';
+    b.textContent = 'Start Shift';
+  }
+  // Emergency start if systems partially exist
+  if (!window.__kanoStartShift) {
+    window.__kanoStartShift = () => {
+      showBanner('Reload page — bootstrap incomplete');
+    };
+  }
 });
 
 window.addEventListener('resize', () => {
