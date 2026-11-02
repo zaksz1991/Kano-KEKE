@@ -206,4 +206,23 @@ export class CharacterSelectionManager {
       kekeSelect.onchange = () => this.selectKeke(kekeSelect.value);
     }
   }
+
+  /** Unlock free level-gated drivers/kekes after level-up */
+  syncUnlocksByLevel(level) {
+    let unlocked = [];
+    this.drivers.forEach((d) => {
+      if (!d.unlocked && d.levelReq <= level && d.cost === 0) {
+        d.unlocked = true;
+        unlocked.push(d.name);
+      }
+    });
+    this.kekes.forEach((k) => {
+      if (!k.unlocked && k.levelReq <= level && k.cost === 0) {
+        k.unlocked = true;
+        unlocked.push(k.name);
+      }
+    });
+    // Soft-unlock cost items when level met (still need cash later)
+    return unlocked;
+  }
 }

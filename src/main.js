@@ -441,6 +441,11 @@ async function bootstrap() {
     onEndShift: () => {
       paused = false;
       const result = missionManager.settleShift(passengerManager.dailyEarnings, fuelManager.fuel ?? 50);
+      try {
+        const unlocked = charSelect.syncUnlocksByLevel?.(result.level) || [];
+        if (unlocked.length) showBanner('🔓 Unlocked: ' + unlocked.join(', '));
+        charSelect.populateUI();
+      } catch (e) {}
       try { achievements.onShiftEnd(result.score, false); } catch (e) {}
       try {
         HighScoreBoard.submit({
@@ -639,6 +644,11 @@ async function bootstrap() {
     if (e.code === 'KeyN') {
       // End shift / settle
       const result = missionManager.settleShift(passengerManager.dailyEarnings, fuelManager.fuel ?? 50);
+      try {
+        const unlocked = charSelect.syncUnlocksByLevel?.(result.level) || [];
+        if (unlocked.length) showBanner('🔓 Unlocked: ' + unlocked.join(', '));
+        charSelect.populateUI();
+      } catch (e) {}
       try { achievements.onShiftEnd(result.score, false); } catch (e) {}
       try {
         HighScoreBoard.submit({
