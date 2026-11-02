@@ -86,6 +86,26 @@ export class PoliceCheckpointEngine {
     strip.position.set(0, 0.04, 0);
     g.add(strip);
 
+    // KAROTA road sign
+    const pole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.08, 0.1, 3.2, 6),
+      new THREE.MeshStandardMaterial({ color: 0x455a64 })
+    );
+    pole.position.set(8.5, 1.6, -1);
+    g.add(pole);
+    const board = new THREE.Mesh(
+      new THREE.BoxGeometry(2.4, 1.1, 0.12),
+      new THREE.MeshStandardMaterial({ color: 0x1b5e20, emissive: 0x0d3b12, emissiveIntensity: 0.4 })
+    );
+    board.position.set(8.5, 3.4, -1);
+    g.add(board);
+    const board2 = new THREE.Mesh(
+      new THREE.BoxGeometry(2.2, 0.35, 0.13),
+      new THREE.MeshBasicMaterial({ color: 0xffeb3b })
+    );
+    board2.position.set(8.5, 3.55, -0.94);
+    g.add(board2);
+
     this.scene.add(g);
     this.checkpoints.push({ z, group: g, cleared: false, arm });
   }
@@ -104,7 +124,7 @@ export class PoliceCheckpointEngine {
     // Mostly fair – wave through
     const roll = Math.random();
     if (roll < 0.75) {
-      if (hudCallback) hudCallback({ msg: '🟢 KAROTA: Toh — wuce. Drive safe.' });
+      if (hudCallback) hudCallback({ msg: '🟢 KAROTA: Toh — wuce. Drive safe.', type: 'KAROTA_CLEAR' });
     } else if (roll < 0.92) {
       const fine = 200 + Math.floor(Math.random() * 300);
       this.passengers.dailyEarnings = Math.max(0, this.passengers.dailyEarnings - fine);
@@ -173,7 +193,7 @@ export class PoliceCheckpointEngine {
             cp._passed = true;
             cp.cleared = true;
             this._raiseBarrier(cp);
-            if (hudCallback) hudCallback({ msg: '🟢 KAROTA waved you on' });
+            if (hudCallback) hudCallback({ msg: '🟢 KAROTA waved you on', type: 'KAROTA_CLEAR' });
           }
         }
       }
