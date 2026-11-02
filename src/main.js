@@ -591,6 +591,24 @@ async function bootstrap() {
   const mobileEl = document.getElementById('mobile-controls-overlay');
   if (mobileEl) mobileEl.style.display = 'none';
 
+  window.__kanoTogglePause = () => {
+    if (pauseMenu.isOpen()) {
+      pauseMenu.hide();
+      paused = false;
+      if (flow.state === 'PAUSED') flow.setState('DRIVING');
+      const mc = document.getElementById('mobile-controls-overlay');
+      if (mc) mc.style.display = 'block';
+      showBanner('▶ Resumed');
+    } else if (gameStarted) {
+      paused = true;
+      if (flow.state === 'DRIVING') flow.setState('PAUSED');
+      try { saveShiftProgress(); } catch (e) {}
+      const mc = document.getElementById('mobile-controls-overlay');
+      if (mc) mc.style.display = 'none';
+      pauseMenu.show();
+    }
+  };
+
   // Input
   window.addEventListener('keydown', (e) => {
     keys[e.code] = true;

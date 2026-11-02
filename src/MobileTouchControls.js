@@ -18,6 +18,7 @@ export function setupMobileControls(inputState, onHorn, onRadio) {
     <button type="button" id="touch-right" style="position:absolute;bottom:145px;left:118px;width:88px;height:88px;border-radius:50%;border:3px solid #fff;background:rgba(30,30,30,0.8);color:#fff;font-size:28px;pointer-events:auto;touch-action:none;user-select:none;">▶</button>
     <button type="button" id="touch-horn" style="position:absolute;bottom:145px;right:18px;width:72px;height:72px;border-radius:50%;border:2px solid #00bcd4;background:rgba(0,150,180,0.85);color:#fff;font-weight:900;font-size:12px;pointer-events:auto;touch-action:none;user-select:none;">HORN</button>
     <button type="button" id="touch-radio" style="position:absolute;bottom:145px;right:100px;width:72px;height:72px;border-radius:50%;border:2px solid #ffcc00;background:rgba(80,60,0,0.85);color:#ffcc00;font-weight:900;font-size:11px;pointer-events:auto;touch-action:none;user-select:none;">RADIO</button>
+    <button type="button" id="touch-pause" style="position:absolute;top:12px;right:12px;width:56px;height:40px;border-radius:10px;border:2px solid #fff;background:rgba(0,0,0,0.55);color:#fff;font-weight:900;font-size:12px;pointer-events:auto;touch-action:none;user-select:none;z-index:90;">II</button>
   `;
   document.body.appendChild(touchUI);
 
@@ -76,6 +77,10 @@ export function setupMobileControls(inputState, onHorn, onRadio) {
   document.getElementById('touch-radio')?.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     if (onRadio) onRadio();
+  });
+  document.getElementById('touch-pause')?.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    if (typeof window.__kanoTogglePause === 'function') window.__kanoTogglePause();
   });
 
   // Expose for debug
