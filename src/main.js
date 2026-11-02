@@ -1,4 +1,4 @@
-document.title = 'Kano Run · AISHAT AKINTOLA';
+document.title = 'Kano-KEKE · AISHAT AKINTOLA';
 import * as THREE from 'three';
 import { AssetManager } from './AssetManager.js';
 import { setupKanoAtmosphere, updateAtmosphereByTime, setPrayerAmbient } from './KanoAtmosphere.js';
@@ -262,7 +262,7 @@ function showLoading(msg, pct = 0) {
     el.id = 'loading-overlay';
     el.style.cssText = 'position:fixed;inset:0;background:#0a0a0f;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#ffcc00;font-family:system-ui,sans-serif;';
     el.innerHTML = `<div style="font-size:11px;letter-spacing:3px;color:#ffcc00;font-weight:800;margin-bottom:6px;">AISHAT AKINTOLA</div>
-      <div style="font-size:28px;font-weight:800;letter-spacing:3px;">KANO RUN</div>
+      <div style="font-size:28px;font-weight:800;letter-spacing:3px;">Kano-KEKE</div>
       <div id="load-msg" style="font-size:14px;color:#00ffff;margin:14px 0;">${msg}</div>
       <div style="width:260px;height:6px;background:#222;border-radius:4px;overflow:hidden;">
         <div id="load-bar" style="width:${pct}%;height:100%;background:linear-gradient(90deg,#ffcc00,#ff9800);transition:width 0.25s;"></div>
@@ -340,7 +340,7 @@ async function bootstrap() {
     startBtn.textContent = 'Start Shift';
   }
   showLoading('Preparing Kano…', 8);
-  const safety = setTimeout(() => hideLoading(), 8000);
+  const safety = setTimeout(() => hideLoading(), 1500);
 
   // Keke group
   const kekeGroup = new THREE.Group();
@@ -359,38 +359,9 @@ async function bootstrap() {
   camera.lookAt(0, 1, 5);
 
   // Load keke model (timeout)
-  showLoading('Keke…', 25);
+  // NO GLB on start page – yellow procedural keke only (instant)
   let kekeModel = null;
-  try {
-    kekeModel = await Promise.race([
-      assetManager.loadGLB('/assets/models/keke.glb', { scale: 0.82 }),
-      new Promise((r) => setTimeout(() => r(null), 2000))
-    ]);
-    if (kekeModel) {
-      tempBody.visible = false;
-      kekeGroup.remove(tempBody);
-      kekeModel.traverse((n) => {
-        if (n.isMesh) {
-          n.castShadow = true;
-          n.receiveShadow = true;
-          if (n.material) {
-            const mats = Array.isArray(n.material) ? n.material : [n.material];
-            mats.forEach((m) => { if (m) { m.envMapIntensity = 1.8; m.needsUpdate = true; } });
-          }
-        }
-      });
-      // Apply selected keke color tint
-      const kekeDef = charSelect.getKeke();
-      kekeModel.traverse((n) => {
-        if (n.isMesh && n.material && n.material.color) {
-          // subtle - only if yellow-ish base
-        }
-      });
-      kekeGroup.add(kekeModel);
-    }
-  } catch (e) {
-    console.warn('Keke model fallback');
-  }
+  showLoading('Ready', 90);
 
   showLoading('Ready — press Start Shift', 100);
   if (startBtn) {
@@ -398,7 +369,7 @@ async function bootstrap() {
     startBtn.style.opacity = '1';
     startBtn.textContent = 'Start Shift';
   }
-  setTimeout(() => hideLoading(), 400);
+  setTimeout(() => hideLoading(), 100);
 
   // Systems
   const kekeController = new KekePhysicsController(kekeGroup);
@@ -414,10 +385,10 @@ async function bootstrap() {
   const flow = new GameFlowManager(scene, camera, kekeGroup, kekeController, cameraRig);
 
   const roadSystem = new InfiniteRoadSystem(scene, assetManager);
-  roadSystem.init().catch(() => {});
+  roadSystem.init(); /* procedural */
 
   const landmarkManager = new KanoLandmarkManager(scene, assetManager);
-  landmarkManager.init().catch(() => {});
+  /* landmarks off at boot */
 
   const trafficManager = new DynamicTrafficManager(scene, kekeController, assetManager);
   if (isMobile) {
@@ -428,7 +399,7 @@ async function bootstrap() {
   } else {
     trafficManager.maxVehicles = 9;
   }
-  trafficManager.init().catch(() => {});
+  trafficManager.init(); /* proxies only */
 
   const passengerManager = new PassengerManager(scene, kekeController, assetManager);
   passengerManager.dailyEarnings = saved.cash ?? 1500;
@@ -863,7 +834,8 @@ async function bootstrap() {
     const naijaModes = {
       naija_hausa: { label: 'Hausa', greeting: 'Sannu! Challenge na Arewa', mult: 2, time: 180 },
       naija_yoruba: { label: 'Yoruba', greeting: 'E ku aaro! Challenge ti Iwoorun', mult: 2.2, time: 150 },
-      naija_igbo: { label: 'Igbo', greeting: 'Ndewo! Challenge nke Owuwa Anyanwu', mult: 2.5, time: 120 }
+      naija_igbo: { label: 'Igbo', greeting: 'Ndewo! Challenge nke Owuwa Anyanwu', mult: 2.5, time: 120 },
+      race: { label: 'Race', greeting: 'KEKE RACE — beat the NAPEP pack!', mult: 3, time: 120, race: true }
     };
     const naija = naijaModes[window.__kanoGameMode];
     if (naija) {
@@ -875,6 +847,14 @@ async function bootstrap() {
       window.__kanoNaijaLang = naija.label;
       showBanner('🇳🇬 NAIJA · ' + naija.label.toUpperCase() + ' — ' + naija.greeting);
       setTimeout(() => showBanner(naija.mult + '× score · 2 lives · ' + Math.floor(naija.time / 60) + ' min'), 1800);
+      if (naija.race) {
+        try {
+          trafficManager.maxVehicles = isMobile ? 5 : 7;
+          trafficManager.startRace?.(6);
+          showBanner('🏁 RACE: pass rival kekes — first to distance wins');
+        } catch (e) {}
+      }
+
     } else {
       window.__kanoNaijaMult = 1;
       window.__kanoNaijaActive = false;
@@ -901,9 +881,7 @@ async function bootstrap() {
     }
     shiftElapsed = 0;
     shiftStartCash = passengerManager.dailyEarnings;
-    // Load people models only after player starts (keeps menu fast)
-    try { passengerManager.initModels().catch(() => {}); } catch (e) {}
-    try { pedestrianManager.init().catch(() => {}); } catch (e) {}
+    // People stay procedural – no GLB download
     // hide old mission floating hud overlap
     const oldM = document.getElementById('mission-hud');
     if (oldM) oldM.style.display = 'none';
@@ -1056,6 +1034,10 @@ function animate() {
             const mm = Math.floor(left / 60);
             const ss = String(left % 60).padStart(2, '0');
             notice = `🇳🇬 ${window.__kanoNaijaLang || 'NAIJA'} ${mm}:${ss} · ${window.__kanoNaijaMult || 2}×`;
+            if (window.__kanoGameMode === 'race') {
+              const place = trafficManager.getRacePlace?.() || window.__kanoRacePlace || '?';
+              notice = `🏁 RACE P${place} · ${mm}:${ss}`;
+            }
             if (window.__kanoNaijaTime <= 0) {
               window.__kanoNaijaActive = false;
               showBanner('🇳🇬 Naija Challenge complete! Score locked.');

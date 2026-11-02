@@ -41,7 +41,9 @@ export class PassengerManager {
   }
 
   async initModels() {
-    if (!this.assets) return;
+    // DISABLED – no pedestrian.glb download (keeps start fast)
+    this.pedModel = null;
+    return;
     try {
       this.pedModel = await this.assets.loadGLB(
         ASSET_MANIFEST.characters.pedestrian || '/assets/models/pedestrian.glb',

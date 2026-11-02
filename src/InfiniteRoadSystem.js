@@ -43,11 +43,7 @@ export class InfiniteRoadSystem {
     }
     // Optional textures much later (desktop only)
     const mobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) || window.innerWidth < 900;
-    if (!mobile) {
-      setTimeout(() => {
-        this._loadTexture().catch(() => {});
-      }, 6000);
-    }
+    // textures permanently skipped for fast boot
   }
 
   _applyRoadTile(chunk) {
