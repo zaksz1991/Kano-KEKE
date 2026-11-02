@@ -500,6 +500,43 @@ async function bootstrap() {
     }
   });
 
+
+  function _showContinueModal(missionManager, collisionSystem, kekeController) {
+    if (document.getElementById('continue-modal')) return;
+    const m = document.createElement('div');
+    m.id = 'continue-modal';
+    m.style.cssText =
+      'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:160;display:flex;align-items:center;justify-content:center;padding:12px;';
+    const lives = missionManager?.lives ?? 0;
+    const continues = missionManager?.continues ?? 0;
+    m.innerHTML = `
+      <div style="background:#1a1a24;border:2px solid #ff5252;border-radius:16px;padding:22px;max-width:320px;width:100%;color:#fff;font-family:system-ui;text-align:center;">
+        <div style="font-size:28px;">💥</div>
+        <h2 style="color:#ff5252;margin:8px 0;">KEKE WRECKED</h2>
+        <p style="color:#b0bec5;font-size:14px;line-height:1.5;">Engine down. Lives left: <b>${lives}</b><br/>Continues: <b>${continues}</b></p>
+        <button id="btn-continue-pay" style="width:100%;margin:8px 0;padding:14px;border:none;border-radius:10px;font-weight:900;background:#ffcc00;color:#000;cursor:pointer;">CONTINUE — ₦1,500</button>
+        <button id="btn-continue-end" style="width:100%;margin:4px 0;padding:12px;border:1px solid #666;border-radius:10px;font-weight:700;background:#333;color:#fff;cursor:pointer;">END SHIFT</button>
+      </div>`;
+    document.body.appendChild(m);
+    m.querySelector('#btn-continue-pay')?.addEventListener('click', () => {
+      if (window.__kanoBuyContinue?.()) {
+        showBanner('🛠 Repaired — drive on!');
+        paused = false;
+        if (flow.state === 'PAUSED') flow.setState('DRIVING');
+      }
+    });
+    m.querySelector('#btn-continue-end')?.addEventListener('click', () => {
+      m.remove();
+      try { window.__kanoEndShift?.(); } catch (e) {}
+      // Fallback: reload menu
+      try {
+        paused = true;
+        showBanner('Shift ended');
+        location.reload();
+      } catch (e) {}
+    });
+  }
+
   window.__kanoBuyContinue = () => {
     const r = missionManager.buyContinue(passengerManager.dailyEarnings, 1500);
     if (!r.ok) { showBanner('Need ₦1,500 for continue'); return false; }
