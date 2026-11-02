@@ -17,7 +17,7 @@ export class FuelStationSystem {
   init() {
     for (let i = 0; i < 3; i++) {
       this._spawn(this._nextZ);
-      this._nextZ += 240 + Math.random() * 90;
+      this._nextZ += 190 + Math.random() * 70;
     }
   }
 
@@ -61,7 +61,7 @@ export class FuelStationSystem {
     // Approach marker on road edge
     const disc = new THREE.Mesh(
       new THREE.CircleGeometry(2.0, 12),
-      new THREE.MeshBasicMaterial({ color: 0xffeb3b, transparent: true, opacity: 0.4 })
+      new THREE.MeshBasicMaterial({ color: 0x00e676, transparent: true, opacity: 0.55 })
     );
     disc.rotation.x = -Math.PI / 2;
     disc.position.set(-side * 3.5, 0.04, 0);
@@ -77,7 +77,7 @@ export class FuelStationSystem {
 
     if (playerZ > this._nextZ - 200) {
       this._spawn(this._nextZ);
-      this._nextZ += 220 + Math.random() * 100;
+      this._nextZ += 180 + Math.random() * 80;
     }
 
     for (const st of this.stations) {
