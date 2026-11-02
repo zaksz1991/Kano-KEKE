@@ -14,12 +14,16 @@ export class DailySettlementManager {
     this.lastDailyClaim = saved?.lastDailyClaim || null;
   }
 
+  _watDayKey(ts = Date.now()) {
+    // West Africa Time = UTC+1
+    const d = new Date(ts + 3600000);
+    return d.getUTCFullYear() + '-' + d.getUTCMonth() + '-' + d.getUTCDate();
+  }
+
   canClaimDaily() {
     if (!this.lastDailyClaim) return true;
     try {
-      const last = new Date(this.lastDailyClaim);
-      const now = new Date();
-      return last.toDateString() !== now.toDateString();
+      return this._watDayKey(this.lastDailyClaim) !== this._watDayKey(Date.now());
     } catch (e) {
       return true;
     }
@@ -27,7 +31,7 @@ export class DailySettlementManager {
 
   claimDaily() {
     if (!this.canClaimDaily()) return { ok: false, amount: 0, reason: 'already' };
-    const amount = 1000 + Math.floor(Math.random() * 500);
+    const amount = 1500 + Math.floor(Math.random() * 500);
     this.lastDailyClaim = Date.now();
     if (this.passengers) {
       this.passengers.dailyEarnings = (this.passengers.dailyEarnings || 0) + amount;

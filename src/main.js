@@ -142,16 +142,18 @@ document.getElementById('start-game-btn')?.addEventListener('click', (e) => {
         try {
           const raw = localStorage.getItem('kano_run_save_v2');
           const prev = raw ? JSON.parse(raw) : {};
-          if (prev.lastDailyClaim) {
-            const last = new Date(prev.lastDailyClaim);
-            const now = new Date();
-            if (last.toDateString() === now.toDateString()) {
-              b.textContent = 'ALREADY CLAIMED';
-              showBanner('Daily already claimed today');
-              return;
-            }
+          // WAT calendar day (UTC+1) so claim resets at midnight Kano time
+          const watDay = (ts) => {
+            const d = new Date(ts + 3600000); // +1h
+            return d.getUTCFullYear() + '-' + d.getUTCMonth() + '-' + d.getUTCDate();
+          };
+          if (prev.lastDailyClaim && watDay(prev.lastDailyClaim) === watDay(Date.now())) {
+            b.textContent = 'ALREADY CLAIMED';
+            b.disabled = true;
+            showBanner('Daily already claimed today (WAT)');
+            return;
           }
-          const amt = 1200;
+          const amt = 1500;
           const cash = (prev.cash || window.__kanoCash || 1500) + amt;
           const claimAt = Date.now();
           localStorage.setItem('kano_run_save_v2', JSON.stringify({
