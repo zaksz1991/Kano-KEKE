@@ -425,8 +425,13 @@ async function bootstrap() {
 
   const pedestrianManager = new PedestrianManager(scene, kekeController, assetManager);
   await pedestrianManager.init().catch(() => {});
-  // Dust/exhaust particles OFF – caused grey blob under keke and cost FPS
-  const particleSystem = { update() {} };
+  // Light exhaust + dust (mobile-safe counts)
+  let particleSystem = { update() {} };
+  try {
+    particleSystem = new KanoParticleSystem(scene, kekeGroup);
+  } catch (e) {
+    console.warn('particles', e);
+  }
   let weatherManager = { update() {}, currentWeather: 'CLEAR', forceWeather() {} };
   if (!isMobile) {
     try { weatherManager = new KanoWeatherManager(scene, kekeController, passengerManager); } catch (e) { console.warn('weather', e); }
@@ -872,6 +877,7 @@ function animate() {
         kekeController.setInput(throttle, steer);
         kekeController.update(delta);
         cameraRig.update(delta, kekeController.currentSpeed);
+        try { particleSystem.update(delta, kekeController.currentSpeed); } catch (e) {}
         // LIVE speed every frame (DashHUD + legacy)
         const kmh = Math.round(kekeController.currentSpeed * 3.6);
         const spdEl = document.getElementById('speed-display');
@@ -1001,7 +1007,7 @@ function animate() {
           showBanner(ev);
           if (ev.type === 'CRASH') {
             // One-shot shake only on crash event – NOT every frame
-            try { cameraRig.setShake?.(ev.shake || 0.3); } catch (e) {}
+            try { cameraRig.setShake?.(ev.shake || 0.55); } catch (e) {}
             try { audioEngine.playOneShot(90, 0.2, 'sawtooth', 0.1); } catch (e) {}
           }
           _updateMissionHud(missionManager);
