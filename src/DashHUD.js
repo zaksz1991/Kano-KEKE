@@ -21,6 +21,7 @@ export class DashHUD {
       padding:10px 12px 28px;color:#fff;
     `;
     el.innerHTML = `
+      <div style="text-align:center;font-size:9px;letter-spacing:2px;color:#ffcc00;font-weight:800;margin-bottom:4px;opacity:0.95;">AISHAT AKINTOLA</div>
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
         <div>
           <div id="dash-route" style="font-size:11px;color:#00e5ff;letter-spacing:0.5px;">ROUTE</div>
