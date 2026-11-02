@@ -860,9 +860,12 @@ async function bootstrap() {
       trafficManager.maxVehicles = isMobile ? 5 : 8;
       missionManager.lives = 2;
       window.__kanoNaijaMult = 2;
+      window.__kanoNaijaTime = 180; // 3 minutes
+      window.__kanoNaijaActive = true;
       showBanner('🇳🇬 NAIJA CHALLENGE — 2× score · 2 lives · heavy traffic');
     } else {
       window.__kanoNaijaMult = 1;
+      window.__kanoNaijaActive = false;
     }
     const earn = document.getElementById('earnings');
     if (earn) earn.innerText = passengerManager.dailyEarnings;
@@ -1022,6 +1025,19 @@ function animate() {
         const dashSpd = document.getElementById('dash-speed');
         if (dashSpd) dashSpd.textContent = String(kmh);
         try {
+          let notice = passengerManager.getHudStatus?.() || null;
+          if (window.__kanoNaijaActive && window.__kanoNaijaTime != null) {
+            window.__kanoNaijaTime -= delta;
+            const left = Math.max(0, Math.ceil(window.__kanoNaijaTime));
+            const mm = Math.floor(left / 60);
+            const ss = String(left % 60).padStart(2, '0');
+            notice = `🇳🇬 NAIJA ${mm}:${ss} · 2× score`;
+            if (window.__kanoNaijaTime <= 0) {
+              window.__kanoNaijaActive = false;
+              showBanner('🇳🇬 Naija Challenge complete! Score locked.');
+              try { window.__kanoEndShift?.(); } catch (e) {}
+            }
+          }
           dashHud.update({
             speed: kekeController.currentSpeed * 3.6,
             cash: passengerManager.dailyEarnings,
@@ -1034,7 +1050,7 @@ function animate() {
             weather: weatherManager.currentWeather || 'CLEAR',
             shiftTime: shiftElapsed,
             startCash: shiftStartCash,
-            notice: passengerManager.getHudStatus?.() || null
+            notice
           });
         } catch (e) {}
       }
