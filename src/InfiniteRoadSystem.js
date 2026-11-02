@@ -45,13 +45,17 @@ export class InfiniteRoadSystem {
       this.chunks.push(chunk);
     }
     await this._loadTexture();
-    try {
-      this.roadTileModel = await this.assets.loadGLB('/assets/models/environment/road_tile.glb', {
-        scale: 1,
-        castShadow: false
-      });
-      this.chunks.forEach((chunk) => this._applyRoadTile(chunk));
-    } catch (e) {}
+    // Heavy road_tile.glb is optional – never block start (10MB+)
+    const mobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) || window.innerWidth < 900;
+    if (!mobile) {
+      try {
+        this.roadTileModel = await Promise.race([
+          this.assets.loadGLB('/assets/models/environment/road_tile.glb', { scale: 1, castShadow: false }),
+          new Promise((r) => setTimeout(() => r(null), 2500))
+        ]);
+        if (this.roadTileModel) this.chunks.forEach((chunk) => this._applyRoadTile(chunk));
+      } catch (e) {}
+    }
   }
 
   _applyRoadTile(chunk) {

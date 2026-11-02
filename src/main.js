@@ -261,11 +261,13 @@ function showLoading(msg, pct = 0) {
     el = document.createElement('div');
     el.id = 'loading-overlay';
     el.style.cssText = 'position:fixed;inset:0;background:#0a0a0f;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#ffcc00;font-family:system-ui,sans-serif;';
-    el.innerHTML = `<div style="font-size:28px;font-weight:800;letter-spacing:3px;">KANO RUN</div>
+    el.innerHTML = `<div style="font-size:11px;letter-spacing:3px;color:#ffcc00;font-weight:800;margin-bottom:6px;">AISHAT AKINTOLA</div>
+      <div style="font-size:28px;font-weight:800;letter-spacing:3px;">KANO RUN</div>
       <div id="load-msg" style="font-size:14px;color:#00ffff;margin:14px 0;">${msg}</div>
       <div style="width:260px;height:6px;background:#222;border-radius:4px;overflow:hidden;">
-        <div id="load-bar" style="width:${pct}%;height:100%;background:linear-gradient(90deg,#ffcc00,#ff9800);"></div>
-      </div>`;
+        <div id="load-bar" style="width:${pct}%;height:100%;background:linear-gradient(90deg,#ffcc00,#ff9800);transition:width 0.25s;"></div>
+      </div>
+      <div style="font-size:11px;color:#666;margin-top:12px;">You can press Start Shift as soon as it unlocks</div>`;
     document.body.appendChild(el);
   } else {
     const m = document.getElementById('load-msg');
@@ -331,8 +333,14 @@ function showFirstRunTips() {
 
 // ---------- Bootstrap ----------
 async function bootstrap() {
-  showLoading('Loading Kano streets...', 10);
-  const safety = setTimeout(() => hideLoading(), 15000);
+  // Playable ASAP – do not block Start Shift on every GLB
+  if (startBtn) {
+    startBtn.disabled = false;
+    startBtn.style.opacity = '1';
+    startBtn.textContent = 'Start Shift';
+  }
+  showLoading('Preparing Kano…', 8);
+  const safety = setTimeout(() => hideLoading(), 8000);
 
   // Keke group
   const kekeGroup = new THREE.Group();
@@ -351,12 +359,12 @@ async function bootstrap() {
   camera.lookAt(0, 1, 5);
 
   // Load keke model (timeout)
-  showLoading('Loading keke...', 40);
+  showLoading('Keke…', 25);
   let kekeModel = null;
   try {
     kekeModel = await Promise.race([
       assetManager.loadGLB('/assets/models/keke.glb', { scale: 0.82 }),
-      new Promise((r) => setTimeout(() => r(null), 7000))
+      new Promise((r) => setTimeout(() => r(null), 3500))
     ]);
     if (kekeModel) {
       tempBody.visible = false;
@@ -384,12 +392,13 @@ async function bootstrap() {
     console.warn('Keke model fallback');
   }
 
-  showLoading('Building world...', 70);
+  showLoading('Ready — press Start Shift', 100);
   if (startBtn) {
     startBtn.disabled = false;
     startBtn.style.opacity = '1';
     startBtn.textContent = 'Start Shift';
   }
+  setTimeout(() => hideLoading(), 400);
 
   // Systems
   const kekeController = new KekePhysicsController(kekeGroup);
@@ -426,7 +435,7 @@ async function bootstrap() {
   passengerManager.capacity = kekeDef.capacity || 3;
   passengerManager.negotiationBonus = driver.negotiationBonus || 1;
   passengerManager.tipBonus = driver.tipBonus || 1;
-  await passengerManager.initModels().catch(() => {});
+  passengerManager.initModels().catch(() => {}); // background
   const seatOccupancy = new KekeSeatOccupancy(kekeGroup, assetManager);
   seatOccupancy.init().catch(() => {});
   const dashHud = new DashHUD();
@@ -458,11 +467,9 @@ async function bootstrap() {
   const voiceBank = new HausaVoiceBank(audioEngine);
   audioEngine.setup(camera, kekeGroup);
   audioEngine.enableOnInteraction();
-  // Preload speech voices
-  if (window.speechSynthesis) speechSynthesis.getVoices();
 
   const pedestrianManager = new PedestrianManager(scene, kekeController, assetManager);
-  await pedestrianManager.init().catch(() => {});
+  pedestrianManager.init().catch(() => {}); // background
   // Light exhaust + dust (mobile-safe counts)
   let particleSystem = { update() {} };
   if (!isMobile) {
