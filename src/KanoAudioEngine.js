@@ -190,20 +190,16 @@ export class KanoAudioEngine {
   }
 
   toggleRadio() {
-    this._init();
-    this._resume();
-    this.stationIndex = (this.stationIndex + 1) % this.stations.length;
-    const st = this.stations[this.stationIndex];
-    this.radioOn = st.freq > 0;
-    if (this.radioGain && this.radioOsc && this.ctx) {
-      if (this.radioOn) {
-        this.radioOsc.frequency.setTargetAtTime(st.freq, this.ctx.currentTime, 0.05);
-        this.radioGain.gain.setTargetAtTime(0.12, this.ctx.currentTime, 0.08);
-      } else {
-        this.radioGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.08);
-      }
+    // Radio removed – no synthetic tone
+    this.radioOn = false;
+    if (this.radioGain && this.ctx) {
+      try { this.radioGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05); } catch (e) {}
     }
-    return st.name;
+    return 'OFF';
+  }
+
+  cycleRadio() {
+    return this.toggleRadio();
   }
 
   updateEngine(speed, maxSpeed = 26) {

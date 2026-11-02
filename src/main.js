@@ -412,10 +412,12 @@ async function bootstrap() {
 
   const trafficManager = new DynamicTrafficManager(scene, kekeController, assetManager);
   if (isMobile) {
-    trafficManager.maxVehicles = 3;
+    trafficManager.maxVehicles = 5;
     renderer.setPixelRatio(1);
-    camera.far = 140;
+    camera.far = 150;
     camera.updateProjectionMatrix();
+  } else {
+    trafficManager.maxVehicles = 9;
   }
   trafficManager.init().catch(() => {});
 
@@ -688,10 +690,7 @@ async function bootstrap() {
       audioEngine.playHorn();
     }
     if (e.code === 'KeyR') {
-      const name = audioEngine.cycleRadio();
-      const el = document.getElementById('radio-display');
-      if (el) el.textContent = name;
-      showBanner(`📻 ${name}`);
+      /* radio removed */
     }
     if (e.code === 'KeyP' || e.code === 'Escape') {
       if (pauseMenu.isOpen()) {
@@ -851,21 +850,28 @@ async function bootstrap() {
       }
     } catch (e) { console.warn('road mode', e); }
 
-    // Naija Challenge
+    // Naija Challenge – Hausa / Yoruba / Igbo
     const modeSel = document.getElementById('game-mode-select');
     window.__kanoGameMode = modeSel?.value || 'career';
-    if (window.__kanoGameMode === 'naija') {
-      missionManager.level = Math.max(missionManager.level, 1);
-      // Harder: more traffic, less lives, score multiplier
-      trafficManager.maxVehicles = isMobile ? 5 : 8;
+    const naijaModes = {
+      naija_hausa: { label: 'Hausa', greeting: 'Sannu! Challenge na Arewa', mult: 2, time: 180 },
+      naija_yoruba: { label: 'Yoruba', greeting: 'E ku aaro! Challenge ti Iwoorun', mult: 2.2, time: 150 },
+      naija_igbo: { label: 'Igbo', greeting: 'Ndewo! Challenge nke Owuwa Anyanwu', mult: 2.5, time: 120 }
+    };
+    const naija = naijaModes[window.__kanoGameMode];
+    if (naija) {
+      trafficManager.maxVehicles = isMobile ? 6 : 10;
       missionManager.lives = 2;
-      window.__kanoNaijaMult = 2;
-      window.__kanoNaijaTime = 180; // 3 minutes
+      window.__kanoNaijaMult = naija.mult;
+      window.__kanoNaijaTime = naija.time;
       window.__kanoNaijaActive = true;
-      showBanner('🇳🇬 NAIJA CHALLENGE — 2× score · 2 lives · heavy traffic');
+      window.__kanoNaijaLang = naija.label;
+      showBanner('🇳🇬 NAIJA · ' + naija.label.toUpperCase() + ' — ' + naija.greeting);
+      setTimeout(() => showBanner(naija.mult + '× score · 2 lives · ' + Math.floor(naija.time / 60) + ' min'), 1800);
     } else {
       window.__kanoNaijaMult = 1;
       window.__kanoNaijaActive = false;
+      window.__kanoNaijaLang = null;
     }
     const earn = document.getElementById('earnings');
     if (earn) earn.innerText = passengerManager.dailyEarnings;
@@ -877,7 +883,15 @@ async function bootstrap() {
     try { missionBoard.hide(); } catch (e) {}
     dashHud.show();
     radar.show();
-    tutorial.start();
+    // Tutorial optional
+    const tutSel = document.getElementById('tutorial-select');
+    if (tutSel && tutSel.value === 'on') {
+      try {
+        localStorage.setItem('kano_tutorial_opt_in', '1');
+        localStorage.removeItem('kano_tutorial_v1');
+        tutorial.start();
+      } catch (e) {}
+    }
     shiftElapsed = 0;
     shiftStartCash = passengerManager.dailyEarnings;
     // hide old mission floating hud overlap
@@ -1031,7 +1045,7 @@ function animate() {
             const left = Math.max(0, Math.ceil(window.__kanoNaijaTime));
             const mm = Math.floor(left / 60);
             const ss = String(left % 60).padStart(2, '0');
-            notice = `🇳🇬 NAIJA ${mm}:${ss} · 2× score`;
+            notice = `🇳🇬 ${window.__kanoNaijaLang || 'NAIJA'} ${mm}:${ss} · ${window.__kanoNaijaMult || 2}×`;
             if (window.__kanoNaijaTime <= 0) {
               window.__kanoNaijaActive = false;
               showBanner('🇳🇬 Naija Challenge complete! Score locked.');
@@ -1240,9 +1254,9 @@ function animate() {
 
         // Clock
         timeAccum += delta;
-        // ~2 game minutes per real second while driving
-        if (timeAccum > 0.28) {
-          window.timeInMinutes = (window.timeInMinutes + 2) % 1440;
+        // Slow day/night (~1 game hour ≈ 3 real minutes)
+        if (timeAccum > 0.5) {
+          window.timeInMinutes = (window.timeInMinutes + 0.4) % 1440;
           try { achievements.onNight(window.timeInMinutes); } catch (e) {}
           timeAccum = 0;
           const hours = Math.floor(window.timeInMinutes / 60);

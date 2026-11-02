@@ -1,12 +1,12 @@
 /**
- * Random Kano street events during a shift
+ * Kano street events – no random flat tyres
  */
 export class StreetEventSystem {
   constructor(kekeController, passengerManager, fuelManager) {
     this.keke = kekeController;
     this.passengers = passengerManager;
     this.fuel = fuelManager;
-    this._timer = 25 + Math.random() * 20;
+    this._timer = 40 + Math.random() * 30;
     this.active = null;
     this._activeT = 0;
   }
@@ -14,42 +14,30 @@ export class StreetEventSystem {
   update(delta, hudCallback) {
     if (this.active) {
       this._activeT -= delta;
-      if (this._activeT <= 0) {
-        this._resolve(hudCallback);
-      }
+      if (this._activeT <= 0) this._resolve(hudCallback);
       return;
     }
 
     this._timer -= delta;
     if (this._timer > 0) return;
-    this._timer = 35 + Math.random() * 40;
+    this._timer = 45 + Math.random() * 40;
 
     const roll = Math.random();
-    if (roll < 0.3) this._startFlat(hudCallback);
-    else if (roll < 0.55) this._startDispute(hudCallback);
-    else if (roll < 0.75) this._startJam(hudCallback);
-    else if (roll < 0.9) this._startCheckpointRumor(hudCallback);
+    if (roll < 0.35) this._startDispute(hudCallback);
+    else if (roll < 0.55) this._startJam(hudCallback);
+    else if (roll < 0.75) this._startCheckpointRumor(hudCallback);
     else this._startLucky(hudCallback);
-  }
-
-  _startFlat(hudCallback) {
-    this.active = 'flat';
-    this._activeT = 8;
-    this.keke.maxSpeed = Math.min(this.keke.maxSpeed, 10);
-    if (hudCallback) hudCallback({ msg: '🛑 Flat tyre feel — speed limited. Keep steady for a few seconds.' });
   }
 
   _startDispute(hudCallback) {
     if (!this.passengers.onBoard?.length) {
-      this._timer = 5;
+      this._timer = 8;
       return;
     }
     this.active = 'dispute';
     this._activeT = 6;
     if (hudCallback) {
-      hudCallback({
-        msg: '😤 Passenger argument! Stay calm — drop them soon for full fare.'
-      });
+      hudCallback({ msg: '😤 Passenger argument! Stay calm — drop them soon for full fare.' });
     }
   }
 
@@ -81,12 +69,8 @@ export class StreetEventSystem {
   }
 
   _resolve(hudCallback) {
-    if (this.active === 'flat') {
-      this.keke.maxSpeed = Math.max(this.keke.maxSpeed, 22);
-      if (hudCallback) hudCallback({ msg: '🔧 Tyre holding — you can speed up again.' });
-    }
-    if (this.active === 'jam') {
-      if (hudCallback) hudCallback({ msg: 'Traffic clearing — move out.' });
+    if (this.active === 'jam' && hudCallback) {
+      hudCallback({ msg: 'Traffic clearing — move out.' });
     }
     this.active = null;
     this._activeT = 0;

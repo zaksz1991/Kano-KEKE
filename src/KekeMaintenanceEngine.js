@@ -11,10 +11,10 @@ export class KekeMaintenanceEngine {
   update(delta, currentSpeed, hudCallback) {
     if (Math.abs(currentSpeed) < 0.05) return;
     this.distanceTraveled += delta * Math.abs(currentSpeed);
-    this.tyreHealth = Math.max(0, this.tyreHealth - delta * 0.02);
+    /* tyre decay only on collision */
     this.oilLevel = Math.max(0, this.oilLevel - delta * 0.015);
 
-    if (this.tyreHealth <= 5 && Math.random() < 0.002) {
+    if (false && this.tyreHealth <= 5 && Math.random() < 0.002) { // disabled: no random flat
       this.keke.maxSpeed = Math.max(8, this.baseMax * 0.35);
       if (hudCallback) hudCallback('🛑 Flat tyre – speed reduced. Find a vulcanizer.');
     }
