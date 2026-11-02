@@ -20,10 +20,12 @@ export class KanoAudioEngine {
     this.stations = [
       { name: 'OFF', freq: 0 },
       { name: 'Freedom Radio 99.5', freq: 196 },
-      { name: 'Arewa Radio 93.1', freq: 247 },
-      { name: 'Rahma Radio 97.3', freq: 165 },
-      { name: 'Kano FM 89.3', freq: 294 },
-      { name: 'Cool FM Kano', freq: 330 }
+      { name: 'Arewa Radio 93.1', freq: 220 },
+      { name: 'Rahma Radio 97.3', freq: 247 },
+      { name: 'Kano FM 89.3', freq: 165 },
+      { name: 'Cool FM Kano', freq: 294 },
+      { name: 'Vision FM 92.1', freq: 185 },
+      { name: 'Express Radio 90.3', freq: 260 }
     ];
   }
 
@@ -196,7 +198,7 @@ export class KanoAudioEngine {
     if (this.radioGain && this.radioOsc && this.ctx) {
       if (this.radioOn) {
         this.radioOsc.frequency.setTargetAtTime(st.freq, this.ctx.currentTime, 0.05);
-        this.radioGain.gain.setTargetAtTime(0.05, this.ctx.currentTime, 0.08);
+        this.radioGain.gain.setTargetAtTime(0.12, this.ctx.currentTime, 0.08);
       } else {
         this.radioGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.08);
       }
