@@ -30,31 +30,23 @@ export class InfiniteRoadSystem {
   }
 
   async init() {
+    // Instant procedural road only – no textures / no 11MB road_tile at boot
     this.billboardTex = null;
-    try {
-      this.billboardTex = await this.assets.loadTexture('/assets/models/textures/kano_ref/road_dual.jpg', {});
-    } catch (e) {}
-    try {
-      this.billboardTex2 = await this.assets.loadTexture('/assets/models/textures/kano_ref/road_aerial.jpg', {});
-      this.billboardTex3 = await this.assets.loadTexture('/assets/models/textures/kano_ref/road_wet.jpg', {});
-    } catch (e) { this.billboardTex2 = null; }
-
+    this.billboardTex2 = null;
+    this.billboardTex3 = null;
+    this.roadTexture = null;
+    this.roadTileModel = null;
     for (let i = 0; i < this.visibleChunks; i++) {
       const chunk = this._createChunk(i * this.chunkLength);
       this.scene.add(chunk);
       this.chunks.push(chunk);
     }
-    await this._loadTexture();
-    // Heavy road_tile.glb is optional – never block start (10MB+)
+    // Optional textures much later (desktop only)
     const mobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) || window.innerWidth < 900;
     if (!mobile) {
-      try {
-        this.roadTileModel = await Promise.race([
-          this.assets.loadGLB('/assets/models/environment/road_tile.glb', { scale: 1, castShadow: false }),
-          new Promise((r) => setTimeout(() => r(null), 2500))
-        ]);
-        if (this.roadTileModel) this.chunks.forEach((chunk) => this._applyRoadTile(chunk));
-      } catch (e) {}
+      setTimeout(() => {
+        this._loadTexture().catch(() => {});
+      }, 6000);
     }
   }
 

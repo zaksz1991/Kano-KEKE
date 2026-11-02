@@ -364,7 +364,7 @@ async function bootstrap() {
   try {
     kekeModel = await Promise.race([
       assetManager.loadGLB('/assets/models/keke.glb', { scale: 0.82 }),
-      new Promise((r) => setTimeout(() => r(null), 3500))
+      new Promise((r) => setTimeout(() => r(null), 2000))
     ]);
     if (kekeModel) {
       tempBody.visible = false;
@@ -435,7 +435,7 @@ async function bootstrap() {
   passengerManager.capacity = kekeDef.capacity || 3;
   passengerManager.negotiationBonus = driver.negotiationBonus || 1;
   passengerManager.tipBonus = driver.tipBonus || 1;
-  passengerManager.initModels().catch(() => {}); // background
+  // passenger GLB deferred until after Start Shift
   const seatOccupancy = new KekeSeatOccupancy(kekeGroup, assetManager);
   seatOccupancy.init().catch(() => {});
   const dashHud = new DashHUD();
@@ -469,7 +469,7 @@ async function bootstrap() {
   audioEngine.enableOnInteraction();
 
   const pedestrianManager = new PedestrianManager(scene, kekeController, assetManager);
-  pedestrianManager.init().catch(() => {}); // background
+  // peds deferred until after Start Shift
   // Light exhaust + dust (mobile-safe counts)
   let particleSystem = { update() {} };
   if (!isMobile) {
@@ -901,6 +901,9 @@ async function bootstrap() {
     }
     shiftElapsed = 0;
     shiftStartCash = passengerManager.dailyEarnings;
+    // Load people models only after player starts (keeps menu fast)
+    try { passengerManager.initModels().catch(() => {}); } catch (e) {}
+    try { pedestrianManager.init().catch(() => {}); } catch (e) {}
     // hide old mission floating hud overlap
     const oldM = document.getElementById('mission-hud');
     if (oldM) oldM.style.display = 'none';

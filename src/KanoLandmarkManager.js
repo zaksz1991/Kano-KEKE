@@ -1,39 +1,40 @@
 import * as THREE from 'three';
 import { ASSET_MANIFEST } from './AssetManifest.js';
 
+/** Landmarks load only after delay – never block start */
 export class KanoLandmarkManager {
   constructor(scene, assetManager) {
     this.scene = scene;
     this.assets = assetManager;
     this.landmarks = [];
-    this.loaded = false;
   }
 
   async init() {
-    const defs = ASSET_MANIFEST.landmarks || [];
-    for (const def of defs) {
+    // Defer 12s so first drive is free of heavy landmark GLBs
+    setTimeout(() => this._loadAll(), 12000);
+  }
+
+  async _loadAll() {
+    const list = ASSET_MANIFEST.landmarks || [];
+    for (const def of list) {
       try {
-        const model = await this.assets.loadGLB(def.path, { scale: 1.25, castShadow: false });
+        const model = await Promise.race([
+          this.assets.loadGLB(def.path, { scale: 1.25, castShadow: false }),
+          new Promise((r) => setTimeout(() => r(null), 4000))
+        ]);
         if (!model) continue;
-        const group = new THREE.Group();
-        group.add(model);
-        group.position.set(def.x || 0, 0, def.z || 0);
-        this.scene.add(group);
-        this.landmarks.push({ name: def.name, zPos: def.z, group, visited: false });
-      } catch (e) {
-        console.warn('Landmark skip', def.name);
-      }
+        model.position.set(def.x || -12, 0, def.z || 200);
+        this.scene.add(model);
+        this.landmarks.push({ mesh: model, z: def.z, name: def.name });
+      } catch (e) {}
     }
-    this.loaded = true;
   }
 
   update(playerZ, hudCallback) {
     this.landmarks.forEach((lm) => {
-      if (!lm.visited && Math.abs(playerZ - lm.zPos) < 28) {
-        lm.visited = true;
-        if (hudCallback) hudCallback(`📍 ${lm.name}`);
-      }
-      if (lm.group) lm.group.visible = Math.abs(playerZ - lm.zPos) < 200;
+      if (!lm.mesh) return;
+      const dist = Math.abs((lm.z || 0) - playerZ);
+      lm.mesh.visible = dist < 200;
     });
   }
 }
