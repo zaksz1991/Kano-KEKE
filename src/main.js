@@ -949,6 +949,10 @@ function animate() {
         kekeController.update(delta);
         cameraRig.update(delta, kekeController.currentSpeed);
         try { particleSystem.update(delta, kekeController.currentSpeed); } catch (e) {}
+        try {
+          tutorial.onSpeed(kekeController.currentSpeed);
+          tutorial.onSteer(steer);
+        } catch (e) {}
         // LIVE speed every frame (DashHUD + legacy)
         const kmh = Math.round(kekeController.currentSpeed * 3.6);
         const spdEl = document.getElementById('speed-display');
@@ -1103,7 +1107,7 @@ function animate() {
         });
         fuelStations.update(delta, kekeGroup.position, kekeController.currentSpeed, (ev) => {
           showBanner(ev);
-          if (ev.type === 'REFUEL') { try { achievements.onRefuel(); } catch (e) {} }
+          if (ev.type === 'REFUEL') { try { achievements.onRefuel(); } catch (e) {} try { tutorial.onRefuel(); } catch (e) {} }
           if (ev.earnings != null) {
             const earn = document.getElementById('earnings');
             if (earn) earn.innerText = ev.earnings;
