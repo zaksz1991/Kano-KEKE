@@ -85,9 +85,9 @@ if (isMobile) {
 const assetManager = new AssetManager();
   const startBtn = document.getElementById('start-game-btn');
   if (startBtn) {
-    startBtn.disabled = true;
-    startBtn.style.opacity = '0.5';
-    startBtn.textContent = 'LOADING MODELS...';
+    startBtn.disabled = false;
+    startBtn.style.opacity = '1';
+    startBtn.textContent = 'Start Shift';
   }
 
 const saved = SaveSystem.loadGame();

@@ -104,10 +104,10 @@ export class KanoAudioEngine {
       this.ready = true;
 
       // Load real samples in background
-      this._loadBuffer('/assets/models/audio/engine.mp3').then((buf) => {
+      if (false) this._loadBuffer('/assets/models/audio/engine.mp3').then((buf) => {
         this.engineBuf = buf;
       });
-      this._loadBuffer('/assets/models/audio/horn.mp3').then((buf) => {
+      if (false) this._loadBuffer('/assets/models/audio/horn.mp3').then((buf) => {
         this.hornBuf = buf;
       });
     } catch (e) {
