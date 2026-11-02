@@ -112,8 +112,8 @@ document.getElementById('start-game-btn')?.addEventListener('click', (e) => {
     window.__kanoStartShift();
   } else {
     window.__kanoStartQueued = true;
-    showLoading('Almost ready...', 60);
-    showBanner('Loading world — starting in a moment...');
+    hideLoading();
+    showBanner('Starting…');
   }
 });
 
@@ -339,8 +339,8 @@ async function bootstrap() {
     startBtn.style.opacity = '1';
     startBtn.textContent = 'Start Shift';
   }
-  showLoading('Preparing Kano…', 8);
-  const safety = setTimeout(() => hideLoading(), 1500);
+  /* no long loading */
+  hideLoading();
 
   // Keke group
   const kekeGroup = new THREE.Group();
@@ -361,15 +361,15 @@ async function bootstrap() {
   // Load keke model (timeout)
   // NO GLB on start page – yellow procedural keke only (instant)
   let kekeModel = null;
-  showLoading('Ready', 90);
+  
 
-  showLoading('Ready — press Start Shift', 100);
+  
   if (startBtn) {
     startBtn.disabled = false;
     startBtn.style.opacity = '1';
     startBtn.textContent = 'Start Shift';
   }
-  setTimeout(() => hideLoading(), 100);
+  hideLoading();
 
   // Systems
   const kekeController = new KekePhysicsController(kekeGroup);
@@ -432,7 +432,7 @@ async function bootstrap() {
   const streetEvents = new StreetEventSystem(kekeController, passengerManager, fuelManager);
   const fuelStations = new FuelStationSystem(scene, fuelManager, passengerManager);
   try { fuelStations.init(); } catch (e) { console.warn('fuel stations', e); }
-  const policeEngine = new PoliceCheckpointEngine(scene, kekeController, passengerManager, assetManager);
+  const policeEngine = new PoliceCheckpointEngine(scene, kekeController, passengerManager);
   policeEngine.spawnCheckpoint(200);
   const audioEngine = new KanoAudioEngine();
   const voiceBank = new HausaVoiceBank(audioEngine);
