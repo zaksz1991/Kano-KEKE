@@ -37,7 +37,7 @@ export class HighScoreBoard {
       el = document.createElement('div');
       el.id = 'highscore-board';
       el.style.cssText =
-        'margin:10px 16px;padding:10px 12px;background:rgba(0,0,0,0.7);border:1px solid rgba(255,204,0,0.35);border-radius:10px;color:#eee;font:12px/1.45 system-ui;max-width:320px;';
+        'margin:10px 16px;padding:10px 12px;background:rgba(0,0,0,0.75);border:1px solid rgba(255,204,0,0.4);border-radius:10px;color:#eee;font:12px/1.45 system-ui;max-width:320px;';
       const menu = document.getElementById('main-menu-overlay');
       const board = document.getElementById('mission-board-panel');
       if (board && board.parentNode) board.parentNode.insertBefore(el, board.nextSibling);
@@ -53,13 +53,21 @@ export class HighScoreBoard {
     el.innerHTML =
       '<div style="color:#ffcc00;font-weight:800;margin-bottom:6px;">🏆 HIGH SCORES</div>' +
       list
-        .map(
-          (s, i) =>
-            `<div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.06);padding:3px 0;">
+        .map((s, i) => {
+          const d = s.date ? new Date(s.date) : null;
+          const when = d ? d.toLocaleDateString() : '';
+          const route = (s.route || 'Kano').slice(0, 22);
+          return `<div style="border-bottom:1px solid rgba(255,255,255,0.06);padding:5px 0;">
+            <div style="display:flex;justify-content:space-between;">
               <span style="color:#90caf9;">#${i + 1} ${s.driver}</span>
-              <span style="color:#ffcc00;font-weight:700;">${s.score}</span>
-            </div>`
-        )
+              <span style="color:#ffcc00;font-weight:800;">${s.score}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:#90a4ae;">
+              <span>${route}</span>
+              <span>₦${s.cash || 0} · ${when}</span>
+            </div>
+          </div>`;
+        })
         .join('');
   }
 }
