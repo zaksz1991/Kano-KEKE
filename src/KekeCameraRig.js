@@ -8,14 +8,14 @@ export class KekeCameraRig {
     this.camera = camera;
     this.target = targetGroup;
     // Farther + higher so vehicle reads at natural size
-    this.idealOffset = new THREE.Vector3(0, 4.2, -11.5);
+    this.idealOffset = new THREE.Vector3(0, 4.6, -12.5);
     this.lookAtOffset = new THREE.Vector3(0, 1.0, 10);
     this.baseFov = 55;
     this.maxFov = 62;
     this._shakeAmp = 0;
     this.mode = 'chase';
     this.modes = {
-      chase: { offset: new THREE.Vector3(0, 4.2, -11.5), look: new THREE.Vector3(0, 1.0, 10), fov: 55 },
+      chase: { offset: new THREE.Vector3(0, 4.6, -12.5), look: new THREE.Vector3(0, 1.0, 10), fov: 55 },
       near: { offset: new THREE.Vector3(0, 3.4, -8.0), look: new THREE.Vector3(0, 1.0, 7), fov: 58 },
       wide: { offset: new THREE.Vector3(0, 5.5, -15), look: new THREE.Vector3(0, 1.2, 12), fov: 52 },
       hood: { offset: new THREE.Vector3(0, 1.8, 0.4), look: new THREE.Vector3(0, 1.2, 12), fov: 68 }

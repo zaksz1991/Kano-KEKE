@@ -196,14 +196,14 @@ export class InfiniteRoadSystem {
     const kB = new THREE.MeshBasicMaterial({ color: 0x111111 });
     for (const side of [-1, 1]) {
       // Outer kerb
-      for (let z = -L / 2 + 1.2; z < L / 2; z += 3.2) {
+      for (let z = -L / 2 + 1.2; z < L / 2; z += 4.5) {
         const mat = Math.floor((z + L) / 3.2) % 2 === 0 ? kW : kB;
         const kerb = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.18, 2.9), mat);
         kerb.position.set(side * 9.0, 0.1, z);
         group.add(kerb);
       }
       // Median kerb
-      for (let z = -L / 2 + 1.2; z < L / 2; z += 3.2) {
+      for (let z = -L / 2 + 1.2; z < L / 2; z += 4.5) {
         const mat = Math.floor((z + L) / 3.2) % 2 === 0 ? kW : kB;
         const kerb = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.16, 2.9), mat);
         kerb.position.set(side * 0.78, 0.12, z);
