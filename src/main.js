@@ -1,4 +1,4 @@
-document.title = 'Kano-KEKE · AISHAT AKINTOLA';
+document.title = 'KANO KEKE';
 import * as THREE from 'three';
 import { AssetManager } from './AssetManager.js';
 import { setupKanoAtmosphere, updateAtmosphereByTime, setPrayerAmbient } from './KanoAtmosphere.js';
@@ -146,17 +146,17 @@ document.getElementById('start-game-btn')?.addEventListener('click', (e) => {
 });
 
 
-// ---------- AISHAT AKINTOLA credit (always visible) ----------
+// ---------- Title credit ----------
   (function brandAishat() {
-    if (document.getElementById('aishat-credit')) return;
+    if (document.getElementById('kano-title-credit')) return;
     const el = document.createElement('div');
-    el.id = 'aishat-credit';
+    el.id = 'kano-title-credit';
     el.style.cssText =
       'position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:120;pointer-events:none;' +
       'font:800 11px/1.2 system-ui,sans-serif;letter-spacing:2px;color:#ffcc00;' +
       'text-shadow:0 0 8px rgba(0,0,0,0.9),0 1px 2px #000;background:rgba(0,0,0,0.45);' +
       'padding:4px 12px;border-radius:999px;border:1px solid rgba(255,204,0,0.5);';
-    el.textContent = 'AISHAT AKINTOLA';
+    el.textContent = 'KANO KEKE';
     document.body.appendChild(el);
   })();
 
@@ -289,7 +289,7 @@ function showLoading(msg, pct = 0) {
     el = document.createElement('div');
     el.id = 'loading-overlay';
     el.style.cssText = 'position:fixed;inset:0;background:#0a0a0f;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#ffcc00;font-family:system-ui,sans-serif;';
-    el.innerHTML = `<div style="font-size:11px;letter-spacing:3px;color:#ffcc00;font-weight:800;margin-bottom:6px;">AISHAT AKINTOLA</div>
+    el.innerHTML = `<div style="font-size:11px;letter-spacing:3px;color:#ffcc00;font-weight:800;margin-bottom:6px;">KANO KEKE</div>
       <div style="font-size:28px;font-weight:800;letter-spacing:3px;">Kano-KEKE</div>
       <div id="load-msg" style="font-size:14px;color:#00ffff;margin:14px 0;">${msg}</div>
       <div style="width:260px;height:6px;background:#222;border-radius:4px;overflow:hidden;">
