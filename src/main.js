@@ -1101,6 +1101,21 @@ window.__kanoFullFrame = function fullFrame() {
             const earn = document.getElementById('earnings');
             if (earn) earn.innerText = ev.earnings;
           }
+          if (ev && (ev.type === 'DROPOFF' || (ev.msg && String(ev.msg).includes('₦')))) {
+            try {
+              let pop = document.getElementById('kano-fare-pop');
+              if (!pop) {
+                pop = document.createElement('div');
+                pop.id = 'kano-fare-pop';
+                pop.style.cssText = 'position:fixed;top:40%;left:50%;transform:translate(-50%,-50%);z-index:70;pointer-events:none;font:900 32px system-ui;color:#69f0ae;text-shadow:0 2px 12px #000;transition:opacity 0.4s;';
+                document.body.appendChild(pop);
+              }
+              pop.textContent = String(ev.msg || 'Fare!').slice(0, 40);
+              pop.style.opacity = '1';
+              clearTimeout(window.__farePopT);
+              window.__farePopT = setTimeout(() => { pop.style.opacity = '0'; }, 1600);
+            } catch (e) {}
+          }
         });
       } catch (e) {}
       try { collisionSystem.update?.(delta, showBanner); } catch (e) {}
