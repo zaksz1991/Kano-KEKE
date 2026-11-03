@@ -504,6 +504,51 @@ async function bootstrap() {
       console.warn('minFrame', e);
     }
   }
+
+  window.__kanoEndShift = () => {
+    try {
+      const cash = passengerManager?.dailyEarnings ?? 0;
+      let result = { score: cash, level: 1 };
+      try {
+        result = missionManager.settleShift(cash, fuelManager?.fuel ?? 50);
+      } catch (e) {}
+      try {
+        HighScoreBoard.submit({
+          score: result.score || cash,
+          cash,
+          driver: charSelect.getDriver()?.name || 'RuffNeck',
+          route: document.getElementById('route-name-display')?.textContent || 'Kano'
+        });
+        HighScoreBoard.renderOnMenu();
+      } catch (e) {}
+      try {
+        SaveSystem.saveGame({
+          cash,
+          currentLevel: result.level || missionManager?.level || 1,
+          highScore: result.score || 0
+        });
+      } catch (e) {}
+      gameStarted = false;
+      paused = false;
+      const menu = document.getElementById('main-menu-overlay');
+      if (menu) menu.style.display = 'flex';
+      const mc = document.getElementById('mobile-controls-overlay');
+      if (mc) mc.style.display = 'none';
+      try { dashHud?.hide?.(); } catch (e) {}
+      const big = document.getElementById('kano-speed-big');
+      if (big) big.remove();
+      const rh = document.getElementById('kano-race-hud');
+      if (rh) rh.remove();
+      showBanner('✅ Shift ended · ₦' + cash);
+    } catch (e) {
+      console.warn('endShift', e);
+      showBanner('Shift ended');
+      gameStarted = false;
+      const menu = document.getElementById('main-menu-overlay');
+      if (menu) menu.style.display = 'flex';
+    }
+  };
+
   minimalAnimate();
   // EARLY mobile controls
   try {
@@ -824,7 +869,8 @@ async function bootstrap() {
       passengerManager.acceptDeal((ev) => showBanner(ev));
     }
     if (e.code === 'KeyN') {
-      // End shift / settle
+      try { window.__kanoEndShift?.(); } catch (err) {}
+      return;
       const result = missionManager.settleShift(passengerManager.dailyEarnings, fuelManager.fuel ?? 50);
       try {
         const unlocked = charSelect.syncUnlocksByLevel?.(result.level) || [];
