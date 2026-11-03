@@ -1082,6 +1082,19 @@ window.__kanoFullFrame = function fullFrame() {
       try { roadSystem.update?.(kekeGroup.position.z); } catch (e) {}
       try { trafficManager.update?.(delta, isHornActive); } catch (e) {}
       try {
+        if (window.__kanoGameMode === 'race' || trafficManager.raceMode) {
+          const place = trafficManager.getRacePlace?.() || 1;
+          let rh = document.getElementById('kano-race-hud');
+          if (!rh) {
+            rh = document.createElement('div');
+            rh.id = 'kano-race-hud';
+            rh.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:56;pointer-events:none;font:900 18px system-ui;color:#00e5ff;text-shadow:0 2px 6px #000;';
+            document.body.appendChild(rh);
+          }
+          rh.textContent = '🏁 P' + place;
+        }
+      } catch (e) {}
+      try {
         passengerManager.update?.(delta, (ev) => {
           showBanner(ev);
           if (ev && ev.earnings != null) {
