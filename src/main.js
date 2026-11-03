@@ -409,11 +409,91 @@ async function bootstrap() {
   const passengerManager = new PassengerManager(scene, kekeController, assetManager);
   passengerManager.dailyEarnings = saved.cash ?? 1500;
   passengerManager.capacity = kekeDef.capacity || 3;
+
+  // ===== CRITICAL: start works NOW even if rest of bootstrap fails =====
+  let gameSystemsReady = true;
+  window.__kanoStartShift = function earlyStartShift() {
+    try {
+      hideLoading();
+      gameStarted = true;
+      try {
+        kekeGroup.position.set(3.8, 0, 0);
+        kekeGroup.rotation.set(0, 0, 0);
+        kekeController.velocity = 0;
+        kekeController.maxSpeed = 26;
+      } catch (e) {}
+      const menu = document.getElementById('main-menu-overlay');
+      if (menu) menu.style.display = 'none';
+      const mc = document.getElementById('mobile-controls-overlay');
+      if (mc) mc.style.display = 'block';
+      try {
+        flow.state = 'DRIVING';
+        flow.engineStarted = true;
+        cameraRig.setMode?.('chase');
+        cameraRig._snapToTarget?.();
+      } catch (e) {
+        camera.position.set(3.8, 4.2, -11.5);
+        camera.lookAt(3.8, 1, 10);
+      }
+      showBanner('🚗 Drive! Hold ACCEL');
+      window.__kanoStartQueued = false;
+    } catch (err) {
+      console.error('earlyStart', err);
+      showBanner('Start failed — try again');
+    }
+  };
+  if (window.__kanoStartQueued) {
+    window.__kanoStartQueued = false;
+    try { window.__kanoStartShift(); } catch (e) {}
+  }
+  // ===== end early start =====
+  // Minimal loop so drive works even if rest of bootstrap crashes
+  const clock = new THREE.Clock();
+  window.__kanoFullFrame = null;
+  function minimalAnimate() {
+    requestAnimationFrame(minimalAnimate);
+    if (typeof window.__kanoFullFrame === 'function') {
+      try { window.__kanoFullFrame(); } catch (e) { console.warn(e); }
+      return;
+    }
+    const delta = Math.min(clock.getDelta(), 0.05);
+    if (!gameStarted) {
+      window.__menuFrame = (window.__menuFrame || 0) + 1;
+      if (window.__menuFrame % 3 === 0) {
+        try {
+          camera.position.set(8, 5, 12);
+          camera.lookAt(0, 1, 0);
+          renderer.render(scene, camera);
+        } catch (e) {}
+      }
+      return;
+    }
+    try {
+      let throttle = Number(input.throttle) || 0;
+      let steer = Number(input.steering) || 0;
+      if (keys['KeyW'] || keys['ArrowUp']) throttle = 1;
+      if (keys['KeyS'] || keys['ArrowDown']) throttle = -1;
+      if (keys['KeyA'] || keys['ArrowLeft']) steer = -1;
+      if (keys['KeyD'] || keys['ArrowRight']) steer = 1;
+      kekeController.setInput(throttle, steer);
+      kekeController.update(delta);
+      cameraRig.update(delta, kekeController.currentSpeed);
+      try { roadSystem.update?.(kekeGroup.position.z); } catch (e) {}
+      try { trafficManager.update?.(delta, false); } catch (e) {}
+      try { passengerManager.update?.(delta, showBanner); } catch (e) {}
+      renderer.render(scene, camera);
+    } catch (e) {
+      console.warn('minFrame', e);
+    }
+  }
+  minimalAnimate();
+
+
+
   passengerManager.negotiationBonus = driver.negotiationBonus || 1;
   passengerManager.tipBonus = driver.tipBonus || 1;
-  // passenger GLB deferred until after Start Shift
   const seatOccupancy = new KekeSeatOccupancy(kekeGroup, assetManager);
-  seatOccupancy.init().catch(() => {});
+  try { const p = seatOccupancy.init?.(); if (p && p.catch) p.catch(() => {}); } catch (e) {}
   const dashHud = new DashHUD();
   const radar = new ProximityRadar();
   const fatigue = new DriverFatigueSystem(charSelect.getDriver());
@@ -929,7 +1009,6 @@ async function bootstrap() {
   });
 
   // ---------- Loop ----------
-  const clock = new THREE.Clock();
   let timeAccum = 0;
   let atmosAccum = 0;
   let hudAccum = 0;
@@ -948,356 +1027,84 @@ async function bootstrap() {
     }
   });
 
-function animate() {
-    requestAnimationFrame(animate);
+window.__kanoFullFrame = function fullFrame() {
     const frameStart = performance.now();
     const delta = Math.min(clock.getDelta(), 0.05);
-    // Adaptive: if last frame was heavy, skip secondary systems this frame
-    const adaptiveSkip = (window.__lastFrameMs || 0) > 28;
-
-    if (!gameStarted) {
-      // Static menu view – skip most frames to save battery/CPU
-      window.__menuFrame = (window.__menuFrame || 0) + 1;
-      if (window.__menuFrame % 2 === 0) {
-        camera.position.set(8, 5, 12);
-        camera.lookAt(0, 1, 0);
-        try { renderer.render(scene, camera); } catch (e) {}
-      }
+    if (!gameStarted) return;
+    if (paused || (flow && flow.state === 'PAUSED')) {
+      try { renderer.render(scene, camera); } catch (e) {}
       return;
     }
-
-    if (paused || flow.state === 'PAUSED') {
-      if (typeof isMobile !== 'undefined' && isMobile) renderer.render(scene, camera); else { try { composer.render(); } catch (e) { renderer.render(scene, camera); } }
-      return;
-    }
-
     try {
-      // Intro / flow
-      flow.update(delta, showBanner);
-      // Skip intro if player hits gas
-      if (!flow.isDriving() && flow.state !== 'MENU' && flow.state !== 'PAUSED') {
-        if ((input.throttle || 0) > 0.5 || keys['KeyW'] || keys['ArrowUp']) {
-          flow.skipIntro?.(showBanner);
-        }
-      }
-
-      // ALWAYS accept drive input once shift started (not paused)
-      const canDrive = gameStarted && !paused && flow.state !== 'PAUSED';
-      if (canDrive && flow.state !== 'DRIVING') {
-        flow.state = 'DRIVING';
-        flow.engineStarted = true;
-      }
-
-      let throttle = 0;
-      let steer = 0;
+      try { flow.state = 'DRIVING'; flow.engineStarted = true; } catch (e) {}
+      let throttle = Number(input.throttle) || 0;
+      let steer = Number(input.steering) || 0;
+      if (keys['KeyW'] || keys['ArrowUp']) throttle = 1;
+      if (keys['KeyS'] || keys['ArrowDown']) throttle = -1;
+      if (keys['KeyA'] || keys['ArrowLeft']) steer = -1;
+      if (keys['KeyD'] || keys['ArrowRight']) steer = 1;
       isHornActive = !!(input.horn);
-      if (canDrive) {
-        throttle = Number(input.throttle) || 0;
-        steer = Number(input.steering) || 0;
-        if (keys['KeyW'] || keys['ArrowUp']) throttle = 1;
-        if (keys['KeyS'] || keys['ArrowDown']) throttle = -1;
-        if (keys['KeyA'] || keys['ArrowLeft']) steer = -1;
-        if (keys['KeyD'] || keys['ArrowRight']) steer = 1;
+      if (keys['KeyH'] || keys['Space']) isHornActive = true;
 
-        // Always keep a real top speed while driving
-        if (!kekeController.maxSpeed || kekeController.maxSpeed < 12) {
-          kekeController.maxSpeed = 26;
-        }
+      kekeController.setInput(throttle, steer);
+      kekeController.update(delta);
+      cameraRig.update(delta, kekeController.currentSpeed);
 
-        kekeController.setInput(throttle, steer);
-        kekeController.update(delta);
-        cameraRig.update(delta, kekeController.currentSpeed);
-        try { particleSystem.update(delta, kekeController.currentSpeed); } catch (e) {}
-        try {
-          tutorial.onSpeed(kekeController.currentSpeed);
-          tutorial.onSteer(steer);
-        } catch (e) {}
-        // LIVE speed every frame (DashHUD + legacy)
-        const kmh = Math.round(kekeController.currentSpeed * 3.6);
-        const spdEl = document.getElementById('speed-display');
-        if (spdEl) spdEl.innerText = String(kmh);
-        const dashSpd = document.getElementById('dash-speed');
-        if (dashSpd) dashSpd.textContent = String(kmh);
-        try {
-          let notice = passengerManager.getHudStatus?.() || null;
-          if (window.__kanoNaijaActive && window.__kanoNaijaTime != null) {
-            window.__kanoNaijaTime -= delta;
-            const left = Math.max(0, Math.ceil(window.__kanoNaijaTime));
-            const mm = Math.floor(left / 60);
-            const ss = String(left % 60).padStart(2, '0');
-            notice = `🇳🇬 ${window.__kanoNaijaLang || 'NAIJA'} ${mm}:${ss} · ${window.__kanoNaijaMult || 2}×`;
-            if (window.__kanoGameMode === 'race') {
-              const place = trafficManager.getRacePlace?.() || window.__kanoRacePlace || '?';
-              notice = `🏁 RACE P${place} · ${mm}:${ss}`;
-            }
-            if (window.__kanoNaijaTime <= 0) {
-              window.__kanoNaijaActive = false;
-              showBanner('🇳🇬 Naija Challenge complete! Score locked.');
-              try { window.__kanoEndShift?.(); } catch (e) {}
-            }
-          }
-          dashHud.update({
-            speed: kekeController.currentSpeed * 3.6,
-            cash: passengerManager.dailyEarnings,
-            fuel: fuelManager.fuel ?? 100,
-            seatsUsed: passengerManager.onBoard.length,
-            seatsMax: passengerManager.capacity,
-            lives: missionManager.lives,
-            route: document.getElementById('route-name-display')?.textContent || 'Kano',
-            missionsText: missionManager.getHudText() + '\nStamina ' + fatigue.getPercent() + '%',
-            weather: weatherManager.currentWeather || 'CLEAR',
-            shiftTime: shiftElapsed,
-            startCash: shiftStartCash,
-            notice
-          });
-        } catch (e) {}
-      }
-
-      // Core world – always
-      roadSystem.update(kekeGroup.position.z);
-      try { roadsideLife.update(kekeGroup.position.z); } catch (e) {}
-      trafficManager.update(delta, isHornActive);
-
-      // Secondary – skip when last frame was slow
-      if (!adaptiveSkip) {
-        if ((window.__sysFrame = (window.__sysFrame || 0) + 1) % 2 === 0) {
-          pedestrianManager.update(delta * 2);
-        }
-        landmarkManager.update(kekeGroup.position.z, (msg) => {
-          missionManager.xp = (missionManager.xp || 0) + 15;
-          try { achievements.onLandmark(); } catch (e) {}
-          missionManager.score = (missionManager.score || 0) + 50;
-          showBanner(String(msg) + ' · +15 XP');
-        });
-        weatherManager.update(delta, kekeGroup.position, showBanner);
-        atmosAccum += delta;
-        if (atmosAccum > 0.5) {
-          atmosAccum = 0;
-          updateAtmosphereByTime(scene, renderer, window.timeInMinutes, roadSystem);
-        }
-      }
-
-      if (canDrive) {
-        passengerManager.update(delta, (ev) => {
+      try { roadSystem.update?.(kekeGroup.position.z); } catch (e) {}
+      try { trafficManager.update?.(delta, isHornActive); } catch (e) {}
+      try {
+        passengerManager.update?.(delta, (ev) => {
           showBanner(ev);
-          seatOccupancy.sync(passengerManager.onBoard.length);
-          const earn = document.getElementById('earnings');
-          if (earn && ev.earnings != null) earn.innerText = ev.earnings;
-          if (ev.type === 'NEGOTIATE') {
-            try { voiceBank.speak('negotiate'); } catch (e) {}
-          }
-          if (ev.type === 'AKWAI') {
-            try { voiceBank.speak('drop'); } catch (e) {}
-          }
-          if (ev.type === 'BOARD') {
-            audioEngine.playOneShot(520, 0.12, 'sine', 0.1);
-            try { voiceBank.speak('board'); } catch (e) {}
-            try { tutorial.onBoard(); } catch (e) {}
-          }
-          if (ev.type === 'DROPOFF') {
-            try { tutorial.onDrop(); } catch (e) {}
-            audioEngine.playOneShot(660, 0.15, 'triangle', 0.12);
-            try { voiceBank.speak('drop'); } catch (e) {}
-            const fareMatch = String(ev.msg || '').match(/₦(\d+)/);
-            const fare = fareMatch ? parseInt(fareMatch[1], 10) : 200;
-            missionManager.onDropoff(Math.round(fare * (window.__kanoNaijaMult || 1)));
-            try { achievements.onDropoff(missionManager.combo, passengerManager.dailyEarnings); } catch (e) {}
-            if (missionManager.combo >= 2) {
-              showBanner(`🔥 Combo x${missionManager.combo}!`);
-              try { audioEngine.playOneShot(520 + missionManager.combo * 40, 0.12, 'square', 0.08); } catch (e) {}
-            }
-            _updateMissionHud(missionManager);
-            // Proximity radar targets
-        const radarTargets = [];
-        try {
-          passengerManager.waiting?.forEach((p) => {
-            if (p.mesh) radarTargets.push({ x: p.mesh.position.x, z: p.mesh.position.z, type: 'passenger' });
-          });
-          fuelStations.stations?.forEach((s) => {
-            radarTargets.push({ x: s.mesh.position.x, z: s.z, type: 'fuel' });
-          });
-        } catch (e) {}
-        radar.update(
-          { x: kekeGroup.position.x, z: kekeGroup.position.z, rotY: kekeGroup.rotation.y },
-          radarTargets
-        );
-        const fuelBar = document.getElementById('fuel-bar');
-        if (fuelBar) {
-          const lvl = Math.max(0, Math.min(100, fuelManager.fuel ?? 100));
-          fuelBar.style.width = lvl + '%';
-          fuelBar.style.background = lvl < 20 ? '#f44336' : lvl < 45 ? '#ff9800' : '#4CAF50';
-        }
-        dashHud.update({
-              speed: kekeController.currentSpeed * 3.6,
-              cash: passengerManager.dailyEarnings,
-              fuel: fuelManager.fuel ?? 100,
-              seatsUsed: passengerManager.onBoard.length,
-              seatsMax: passengerManager.capacity,
-              lives: missionManager.lives,
-              missionsText: missionManager.getHudText() + '\nStamina ' + fatigue.getPercent() + '%',
-          weather: weatherManager.currentWeather || 'CLEAR',
-          shiftTime: shiftElapsed,
-          startCash: shiftStartCash,
-          notice: (typeof fare !== 'undefined' && fare) ? `+₦${fare}` : (passengerManager.getHudStatus?.() || null)
-            });
-            SaveSystem.saveGame({
-              cash: passengerManager.dailyEarnings,
-              currentLevel: missionManager.level,
-              xp: missionManager.xp,
-              highScore: missionManager.highScore
-            });
-          }
-          if (ev.type === 'BOARD') _updateMissionHud(missionManager);
-        });
-        policeEngine.update((ev) => {
-          showBanner(ev);
-          if (ev.type === 'KAROTA_CLEAR' || (ev.msg && ev.msg.includes('wuce'))) {
-            try { voiceBank.speak('karota'); } catch (e) {}
-          }
-          if (ev.type === 'KAROTA_CHASE' || (ev.msg && ev.msg.includes('chase'))) {
-            try { voiceBank.speak('karota'); } catch (e) {}
-            try { audioEngine.playOneShot(880, 0.15, 'square', 0.08); } catch (e) {}
-            setTimeout(() => { try { audioEngine.playOneShot(660, 0.2, 'square', 0.07); } catch (e) {} }, 180);
-          }
-          if (ev.type === 'KAROTA_CLEAR' || (ev.msg && (ev.msg.includes('waved') || ev.msg.includes('wuce')))) {
-            missionManager.onCheckpointClear(true);
-            try { achievements.onKarotaClear(); } catch (e) {}
-          }
-          _updateMissionHud(missionManager);
-        });
-        nearMiss.update(delta, (ev) => {
-          showBanner(ev);
-          try { audioEngine.playOneShot(660, 0.08, 'sine', 0.06); } catch (e) {}
-        });
-        collisionSystem.update(delta, (ev) => {
-          showBanner(ev);
-          if (ev.type === 'CRASH') {
-            // One-shot shake only on crash event – NOT every frame
-            try { cameraRig.setShake?.(ev.shake || 0.55); } catch (e) {}
-            try { voiceBank.speak('crash'); } catch (e) {}
-            try { audioEngine.playOneShot(140, 0.25, 'sawtooth', 0.1); } catch (e) {}
-            try { audioEngine.playOneShot(90, 0.2, 'sawtooth', 0.1); } catch (e) {}
-          }
-          _updateMissionHud(missionManager);
-          if (ev.type === 'WRECKED') _showContinueModal(missionManager, collisionSystem, kekeController);
-        });
-        fuelStations.update(delta, kekeGroup.position, kekeController.currentSpeed, (ev) => {
-          showBanner(ev);
-          if (ev.type === 'REFUEL') { try { achievements.onRefuel(); } catch (e) {} try { tutorial.onRefuel(); } catch (e) {} }
-          if (ev.earnings != null) {
-            const earn = document.getElementById('earnings');
-            if (earn) earn.innerText = ev.earnings;
-          }
-          const bar = document.getElementById('fuel-bar');
-          if (bar) bar.style.width = `${Math.round(fuelManager.fuel)}%`;
-        });
-        fuelManager.update(delta, (e) => {
-          if (e.type === 'FUEL_UPDATE') {
-            const bar = document.getElementById('fuel-bar');
-            if (bar) bar.style.width = `${e.level}%`;
-          }
-          if (e.type === 'OUT_OF_FUEL') showBanner(e.msg);
-        });
-        prayerManager.update(window.timeInMinutes, (e) => {
-          if (e?.msg) {
-            showBanner(e.msg);
-            try {
-          if (ev.type === 'KAROTA_CLEAR' || (ev.msg && ev.msg.includes('wuce'))) {
-            try { voiceBank.speak('karota'); } catch (e) {}
-          }
-          if (ev.type === 'KAROTA_CHASE' || (ev.msg && ev.msg.includes('chase'))) {
-            try { voiceBank.speak('karota'); } catch (e) {}
-            try { audioEngine.playOneShot(880, 0.15, 'square', 0.08); } catch (e) {}
-            setTimeout(() => { try { audioEngine.playOneShot(660, 0.2, 'square', 0.07); } catch (e) {} }, 180);
-          } } catch (err) {}
-            try { setPrayerAmbient(scene, true); } catch (err) {}
-            try { audioEngine.playOneShot(220, 0.4, 'sine', 0.06); } catch (err) {}
-          }
-        });
-        // Prayer: banner only – do NOT cap maxSpeed (was killing acceleration)
-        audioEngine.updateEngine(kekeController.currentSpeed, kekeController.maxSpeed);
-        try { headlights.update(window.timeInMinutes); } catch (e) {}
-        shiftElapsed += delta;
-        let nearFuel = false;
-        try {
-          nearFuel = fuelStations.stations?.some((s) => s.mesh.position.distanceTo(kekeGroup.position) < 12);
-        } catch (e) {}
-        fatigue.update(delta, kekeController.currentSpeed, (ev) => showBanner(ev), nearFuel);
-        streetEvents.update(delta, (ev) => {
-          showBanner(ev);
-          if (ev.earnings != null) {
+          if (ev && ev.earnings != null) {
             const earn = document.getElementById('earnings');
             if (earn) earn.innerText = ev.earnings;
           }
         });
-        // Fatigue: mild only – never below 22 top speed while driving
-        try {
-          const fatMul = fatigue.getSpeedMul();
-          if (fatMul < 1) kekeController.maxSpeed = Math.max(18, 26 * fatMul);
-        } catch (e) {}
+      } catch (e) {}
+      try { collisionSystem.update?.(delta, showBanner); } catch (e) {}
+      try { fuelManager.update?.(delta); } catch (e) {}
+      try { policeEngine.update?.(showBanner, delta); } catch (e) {}
+      try { streetEvents.update?.(delta, showBanner); } catch (e) {}
+      try { fuelStations.update?.(delta, kekeGroup.position, kekeController.currentSpeed, showBanner); } catch (e) {}
+      try { signalLights.update?.(delta, throttle < -0.1, steer); } catch (e) {}
+      try { headlights.update?.(window.timeInMinutes); } catch (e) {}
+      try { audioEngine.updateEngine?.(kekeController.currentSpeed, kekeController.maxSpeed); } catch (e) {}
 
-        // Clock
-        timeAccum += delta;
-        // Slow day/night (~1 game hour ≈ 3 real minutes)
-        if (timeAccum > 0.5) {
-          window.timeInMinutes = (window.timeInMinutes + 0.4) % 1440;
-          try { achievements.onNight(window.timeInMinutes); } catch (e) {}
-          timeAccum = 0;
-          const hours = Math.floor(window.timeInMinutes / 60);
-          const mins = Math.floor(window.timeInMinutes % 60);
-          const ampm = hours >= 12 ? 'PM' : 'AM';
-          const h12 = hours % 12 || 12;
-          const clockEl = document.getElementById('clock-display');
-          if (clockEl) clockEl.textContent = `${h12}:${mins.toString().padStart(2, '0')} ${ampm}`;
-        }
-
-        const speedDisplay = document.getElementById('speed-display');
-        if (speedDisplay) speedDisplay.innerText = Math.round(kekeController.currentSpeed * 3.6);
-        // Proximity radar targets
-        const radarTargets = [];
-        try {
-          passengerManager.waiting?.forEach((p) => {
-            if (p.mesh) radarTargets.push({ x: p.mesh.position.x, z: p.mesh.position.z, type: 'passenger' });
-          });
-          fuelStations.stations?.forEach((s) => {
-            radarTargets.push({ x: s.mesh.position.x, z: s.z, type: 'fuel' });
-          });
-        } catch (e) {}
-        radar.update(
-          { x: kekeGroup.position.x, z: kekeGroup.position.z, rotY: kekeGroup.rotation.y },
-          radarTargets
-        );
-        const fuelBar = document.getElementById('fuel-bar');
-        if (fuelBar) {
-          const lvl = Math.max(0, Math.min(100, fuelManager.fuel ?? 100));
-          fuelBar.style.width = lvl + '%';
-          fuelBar.style.background = lvl < 20 ? '#f44336' : lvl < 45 ? '#ff9800' : '#4CAF50';
-        }
-        dashHud.update({
-          speed: kekeController.currentSpeed * 3.6,
+      const kmh = Math.round((kekeController.currentSpeed || 0) * 3.6);
+      const spdEl = document.getElementById('speed-display');
+      if (spdEl) spdEl.innerText = String(kmh);
+      try {
+        dashHud.update?.({
+          speed: kmh,
           cash: passengerManager.dailyEarnings,
-          fuel: fuelManager.fuel ?? 100,
-          seatsUsed: passengerManager.onBoard.length,
-          seatsMax: passengerManager.capacity,
-          lives: missionManager.lives,
+          fuel: fuelManager?.fuel ?? 100,
+          seatsUsed: passengerManager.onBoard?.length || 0,
+          seatsMax: passengerManager.capacity || 3,
+          lives: missionManager?.lives ?? 3,
           route: document.getElementById('route-name-display')?.textContent || 'Kano',
-          missionsText: missionManager.getHudText() + '\nStamina ' + fatigue.getPercent() + '%',
-          weather: weatherManager.currentWeather || 'CLEAR',
-          shiftTime: shiftElapsed,
-          startCash: shiftStartCash,
+          missionsText: missionManager?.getHudText?.() || '',
+          weather: 'CLEAR',
+          shiftTime: shiftElapsed || 0,
+          startCash: shiftStartCash || 0,
           notice: passengerManager.getHudStatus?.() || null
         });
+      } catch (e) {}
+
+      shiftElapsed = (shiftElapsed || 0) + delta;
+      timeAccum += delta;
+      if (timeAccum > 0.5) {
+        timeAccum = 0;
+        window.timeInMinutes = (window.timeInMinutes + 0.4) % 1440;
       }
     } catch (err) {
       console.warn('frame', err);
     }
-
-    if (typeof isMobile !== 'undefined' && isMobile) renderer.render(scene, camera); else { try { composer.render(); } catch (e) { renderer.render(scene, camera); } }
+    try { renderer.render(scene, camera); } catch (e) {}
     window.__lastFrameMs = performance.now() - frameStart;
-  }
-
-  animate();
+  };
+  // minimalAnimate already running – hands off to fullFrame
 }
+
 
 bootstrap().catch((e) => {
   console.error('bootstrap failed', e);
