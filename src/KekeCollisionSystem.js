@@ -39,7 +39,7 @@ export class KekeCollisionSystem {
         break;
       }
 
-      this.cooldown = 1.4;
+      this.cooldown = 2.2;
       this.shake = 0.3 + Math.min(0.35, speed / 50);
 
       // Knock player slightly and cut speed

@@ -55,6 +55,15 @@ if (!THREE.CapsuleGeometry) {
 const canvas = document.getElementById('webgl-canvas') || document.createElement('canvas');
 if (!canvas.id) { canvas.id = 'webgl-canvas'; document.body.prepend(canvas); }
 const scene = new THREE.Scene();
+// Baseline lights so GLBs are never pure black
+try {
+  const hemi = new THREE.HemisphereLight(0xb1e1ff, 0xb97a20, 0.85);
+  scene.add(hemi);
+  const sun = new THREE.DirectionalLight(0xfff5e0, 1.15);
+  sun.position.set(30, 50, 20);
+  scene.add(sun);
+} catch (e) {}
+
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 500);
 const _isMob = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) || window.innerWidth < 900;
 const renderer = new THREE.WebGLRenderer({
