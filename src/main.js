@@ -66,11 +66,12 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(_isMob ? 1 : Math.min(window.devicePixelRatio, 1.75));
 renderer.toneMappingExposure = 1.65;
-setupKanoAtmosphere(scene, renderer);
+try { setupKanoAtmosphere(scene, renderer); } catch (e) { console.warn('atmosphere', e); }
 const isMobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) || window.innerWidth < 900;
-const composer = isMobile
-  ? { render: () => renderer.render(scene, camera), setSize: (w,h) => renderer.setSize(w,h) }
-  : setupPostProcessing(renderer, scene, camera);
+let composer = { render: () => renderer.render(scene, camera), setSize: (w,h) => renderer.setSize(w,h) };
+if (!isMobile) {
+  try { composer = setupPostProcessing(renderer, scene, camera); } catch (e) { console.warn('composer', e); }
+}
 if (isMobile) {
   renderer.shadowMap.enabled = false;
   renderer.setPixelRatio(1);
@@ -105,21 +106,43 @@ window.__kanoClaimDaily = null;
 window.__kanoCash = 1500;
 
 window.__kanoStartShift = null;
-document.getElementById('start-game-btn')?.addEventListener('click', (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  hideLoading();
+window.__kanoStartQueued = false;
+function __tryStartShift() {
+  try { hideLoading(); } catch (e) {}
   if (typeof window.__kanoStartShift === 'function') {
     try {
       window.__kanoStartShift();
+      return true;
     } catch (err) {
       console.error('start', err);
-      showBanner('Start error — retry');
+      showBanner('Start error — ' + (err && err.message ? err.message : 'retry'));
+      return true; // don't keep polling forever
     }
-  } else {
-    window.__kanoStartQueued = true;
-    showBanner('Starting… (preparing world)');
   }
+  return false;
+}
+document.getElementById('start-game-btn')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  const btn = document.getElementById('start-game-btn');
+  if (btn) { btn.disabled = false; btn.textContent = 'Start Shift'; }
+  if (__tryStartShift()) return;
+  window.__kanoStartQueued = true;
+  showBanner('Starting…');
+  let n = 0;
+  const id = setInterval(() => {
+    n++;
+    if (__tryStartShift()) {
+      clearInterval(id);
+      window.__kanoStartQueued = false;
+      return;
+    }
+    if (n >= 60) {
+      clearInterval(id);
+      showBanner('Still loading — tap Start Shift again');
+      if (btn) { btn.disabled = false; btn.textContent = 'Start Shift'; }
+    }
+  }, 100);
 });
 
 
@@ -378,9 +401,11 @@ async function bootstrap() {
 
   // Systems
   const kekeController = new KekePhysicsController(kekeGroup);
-  const signalLights = new KekeSignalLights(kekeGroup);
-  const headlights = new KekeHeadlights(kekeGroup);
-  if (kekeModel) kekeController.bindWheels(kekeModel);
+  let signalLights = { update() {} };
+  let headlights = { update() {} };
+  try { signalLights = new KekeSignalLights(kekeGroup); } catch (e) {}
+  try { headlights = new KekeHeadlights(kekeGroup); } catch (e) {}
+  if (kekeModel) try { kekeController.bindWheels(kekeModel); } catch (e) {}
   // Apply driver/keke bonuses
   const driver = charSelect.getDriver();
   const kekeDef = charSelect.getKeke();
@@ -389,8 +414,73 @@ async function bootstrap() {
   const cameraRig = new KekeCameraRig(camera, kekeGroup);
   const flow = new GameFlowManager(scene, camera, kekeGroup, kekeController, cameraRig);
 
+  // PRE-ROAD start: earliest possible playable start
+  window.__kanoStartShift = function earlyStartShift() {
+    try {
+      hideLoading();
+      gameStarted = true;
+      try {
+        kekeGroup.position.set(3.8, 0, 0);
+        kekeController.velocity = 0;
+        kekeController.maxSpeed = 26;
+      } catch (e) {}
+      const menu = document.getElementById('main-menu-overlay');
+      if (menu) menu.style.display = 'none';
+      const mc = document.getElementById('mobile-controls-overlay');
+      if (mc) mc.style.display = 'block';
+      try {
+        flow.state = 'DRIVING';
+        flow.engineStarted = true;
+        cameraRig.setMode?.('chase');
+        cameraRig._snapToTarget?.();
+      } catch (e) {
+        camera.position.set(3.8, 4.2, -11.5);
+        camera.lookAt(3.8, 1, 10);
+      }
+      showBanner('🚗 Drive! Hold ACCEL');
+      window.__kanoStartQueued = false;
+    } catch (err) {
+      console.error(err);
+      showBanner('Start error');
+    }
+  };
+  if (window.__kanoStartQueued) {
+    window.__kanoStartQueued = false;
+    try { window.__kanoStartShift(); } catch (e) {}
+  }
+
+  // Earliest game loop (before traffic/passengers)
+  if (!window.__kanoBootLoop) {
+    window.__kanoBootLoop = true;
+    window.__kanoBootClock = new THREE.Clock();
+    const bootLoop = () => {
+      requestAnimationFrame(bootLoop);
+      if (typeof window.__kanoFullFrame === 'function') {
+        try { window.__kanoFullFrame(); } catch (e) {}
+        return;
+      }
+      const delta = Math.min(window.__kanoBootClock.getDelta(), 0.05);
+      if (!gameStarted) return;
+      try {
+        let throttle = Number(input.throttle) || 0;
+        let steer = Number(input.steering) || 0;
+        if (keys['KeyW'] || keys['ArrowUp']) throttle = 1;
+        if (keys['KeyS'] || keys['ArrowDown']) throttle = -1;
+        if (keys['KeyA'] || keys['ArrowLeft']) steer = -1;
+        if (keys['KeyD'] || keys['ArrowRight']) steer = 1;
+        kekeController.setInput(throttle, steer);
+        kekeController.update(delta);
+        cameraRig.update(delta, kekeController.currentSpeed);
+        try { roadSystem?.update?.(kekeGroup.position.z); } catch (e) {}
+        try { trafficManager?.update?.(delta, false); } catch (e) {}
+        renderer.render(scene, camera);
+      } catch (e) {}
+    };
+    bootLoop();
+  }
+
   const roadSystem = new InfiniteRoadSystem(scene, assetManager);
-  roadSystem.init(); /* procedural */
+  try { roadSystem.init(); } catch (e) { console.warn('road', e); }
 
   const landmarkManager = new KanoLandmarkManager(scene, assetManager);
   /* landmarks off at boot */
@@ -450,6 +540,10 @@ async function bootstrap() {
         sp.textContent = '0 km/h';
         document.body.appendChild(sp);
       }
+      try {
+        const chip = document.getElementById('cash-chip') || document.getElementById('earnings');
+        if (chip) chip.textContent = (chip.id === 'cash-chip' ? 'CASH ₦' : '') + (passengerManager.dailyEarnings || 0);
+      } catch (e) {}
       showBanner('🚗 Drive! Hold ACCEL · ◀ ▶ steer');
       window.__kanoStartQueued = false;
     } catch (err) {
@@ -1045,6 +1139,10 @@ async function bootstrap() {
         sp.textContent = '0 km/h';
         document.body.appendChild(sp);
       }
+      try {
+        const chip = document.getElementById('cash-chip') || document.getElementById('earnings');
+        if (chip) chip.textContent = (chip.id === 'cash-chip' ? 'CASH ₦' : '') + (passengerManager.dailyEarnings || 0);
+      } catch (e) {}
       showBanner('🚗 Drive! Hold ACCEL · ◀ ▶ steer');
     if (!localStorage.getItem('kano_drive_tips')) {
       localStorage.setItem('kano_drive_tips', '1');
@@ -1120,6 +1218,21 @@ window.__kanoFullFrame = function fullFrame() {
       if (keys['KeyD'] || keys['ArrowRight']) steer = 1;
       isHornActive = !!(input.horn);
       if (keys['KeyH'] || keys['Space']) isHornActive = true;
+      if (isHornActive) {
+        try {
+          let h = document.getElementById('kano-horn-flash');
+          if (!h) {
+            h = document.createElement('div');
+            h.id = 'kano-horn-flash';
+            h.style.cssText = 'position:fixed;bottom:240px;right:24px;z-index:60;pointer-events:none;font:900 14px system-ui;color:#00e5ff;text-shadow:0 0 8px #000;';
+            document.body.appendChild(h);
+          }
+          h.textContent = '📢 HONK';
+          h.style.opacity = '1';
+          clearTimeout(window.__hornFlash);
+          window.__hornFlash = setTimeout(() => { h.style.opacity = '0'; }, 300);
+        } catch (e) {}
+      }
 
       kekeController.setInput(throttle, steer);
       kekeController.update(delta);
@@ -1214,20 +1327,46 @@ window.__kanoFullFrame = function fullFrame() {
 bootstrap().catch((e) => {
   console.error('bootstrap failed', e);
   try { hideLoading(); } catch (err) {}
-  showBanner('World ready (fallback) — press Start Shift');
+  showBanner('Fallback mode — press Start Shift');
   const b = document.getElementById('start-game-btn');
   if (b) {
     b.disabled = false;
     b.style.opacity = '1';
     b.textContent = 'Start Shift';
   }
-  // Emergency start if systems partially exist
-  if (!window.__kanoStartShift) {
+  if (typeof window.__kanoStartShift !== 'function') {
     window.__kanoStartShift = () => {
-      showBanner('Reload page — bootstrap incomplete');
+      try {
+        gameStarted = true;
+        const menu = document.getElementById('main-menu-overlay');
+        if (menu) menu.style.display = 'none';
+        const mc = document.getElementById('mobile-controls-overlay');
+        if (mc) mc.style.display = 'block';
+        showBanner('🚗 Drive (fallback)');
+      } catch (err) {
+        showBanner('Refresh the page');
+      }
     };
   }
+  if (window.__kanoStartQueued) {
+    window.__kanoStartQueued = false;
+    try { window.__kanoStartShift(); } catch (err) {}
+  }
 });
+
+// Safety: if bootstrap never finishes in 3s, still allow start
+setTimeout(() => {
+  const b = document.getElementById('start-game-btn');
+  if (b) { b.disabled = false; b.style.opacity = '1'; b.textContent = 'Start Shift'; }
+  if (typeof window.__kanoStartShift !== 'function') {
+    window.__kanoStartShift = () => {
+      gameStarted = true;
+      const menu = document.getElementById('main-menu-overlay');
+      if (menu) menu.style.display = 'none';
+      showBanner('🚗 Limited mode — refresh if world empty');
+    };
+  }
+}, 3000);
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
