@@ -435,7 +435,7 @@ async function bootstrap() {
         camera.position.set(3.8, 4.2, -11.5);
         camera.lookAt(3.8, 1, 10);
       }
-      showBanner('🚗 Drive! Hold ACCEL');
+      showBanner('🚗 Drive! Hold ACCEL · ◀ ▶ steer');
       window.__kanoStartQueued = false;
     } catch (err) {
       console.error('earlyStart', err);
@@ -487,8 +487,10 @@ async function bootstrap() {
     }
   }
   minimalAnimate();
-
-
+  // EARLY mobile controls
+  try {
+    setupMobileControls(input, () => { try { window.__kanoHorn?.(); } catch (e) {} }, () => {});
+  } catch (e) { console.warn('mobile', e); }
 
   passengerManager.negotiationBonus = driver.negotiationBonus || 1;
   passengerManager.tipBonus = driver.tipBonus || 1;
@@ -523,6 +525,8 @@ async function bootstrap() {
   const voiceBank = new HausaVoiceBank(audioEngine);
   audioEngine.setup(camera, kekeGroup);
   audioEngine.enableOnInteraction();
+  window.__kanoHorn = () => { try { audioEngine.playHorn(); } catch (e) {} };
+
 
   const pedestrianManager = new PedestrianManager(scene, kekeController, assetManager);
   // peds deferred until after Start Shift
@@ -970,7 +974,7 @@ async function bootstrap() {
         camera.lookAt(0, 1.2, 6.5);
       }
     } catch (e) {}
-    showBanner('🚗 Drive! Hold ACCEL');
+    showBanner('🚗 Drive! Hold ACCEL · ◀ ▶ steer');
     if (!localStorage.getItem('kano_drive_tips')) {
       localStorage.setItem('kano_drive_tips', '1');
       setTimeout(() => showBanner('◀ ▶ steer · ACCEL gas · BRAKE stop/reverse'), 2200);
