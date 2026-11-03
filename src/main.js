@@ -65,7 +65,7 @@ const renderer = new THREE.WebGLRenderer({
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(_isMob ? 1 : Math.min(window.devicePixelRatio, 1.75));
-renderer.toneMappingExposure = 1.65;
+renderer.toneMappingExposure = 1.85;
 try { setupKanoAtmosphere(scene, renderer); } catch (e) { console.warn('atmosphere', e); }
 const isMobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) || window.innerWidth < 900;
 let composer = { render: () => renderer.render(scene, camera), setSize: (w,h) => renderer.setSize(w,h) };
@@ -426,6 +426,12 @@ async function bootstrap() {
       hideLoading();
       gameStarted = true;
       try {
+        if (typeof missionManager !== 'undefined' && missionManager) {
+          missionManager.lives = Math.max(3, missionManager.lives || 3);
+        }
+        if (typeof collisionSystem !== 'undefined' && collisionSystem?.repair) collisionSystem.repair();
+      } catch (e) {}
+      try {
         kekeGroup.position.set(3.8, 0, 0);
         kekeController.velocity = 0;
         kekeController.maxSpeed = 26;
@@ -452,13 +458,20 @@ async function bootstrap() {
           try {
             const km = await assetManager.loadGLB('/assets/models/keke.glb', { scale: 0.82, timeoutMs: 12000 });
             if (km) {
-              // remove box body
               while (kekeGroup.children.length) kekeGroup.remove(kekeGroup.children[0]);
               km.traverse((n) => {
-                if (n.isMesh) {
-                  n.castShadow = false;
-                  n.receiveShadow = true;
-                }
+                if (!n.isMesh || !n.material) return;
+                n.castShadow = false;
+                n.receiveShadow = true;
+                const mats = Array.isArray(n.material) ? n.material : [n.material];
+                mats.forEach((m) => {
+                  if (!m) return;
+                  if (m.map) {
+                    try { m.map.colorSpace = THREE.SRGBColorSpace; } catch (e) {}
+                  }
+                  m.envMapIntensity = 1.2;
+                  m.needsUpdate = true;
+                });
               });
               kekeGroup.add(km);
               showBanner('✅ Keke model loaded');
@@ -545,6 +558,12 @@ async function bootstrap() {
       hideLoading();
       gameStarted = true;
       try {
+        if (typeof missionManager !== 'undefined' && missionManager) {
+          missionManager.lives = Math.max(3, missionManager.lives || 3);
+        }
+        if (typeof collisionSystem !== 'undefined' && collisionSystem?.repair) collisionSystem.repair();
+      } catch (e) {}
+      try {
         kekeGroup.position.set(3.8, 0, 0);
         kekeGroup.rotation.set(0, 0, 0);
         kekeController.velocity = 0;
@@ -591,13 +610,20 @@ async function bootstrap() {
           try {
             const km = await assetManager.loadGLB('/assets/models/keke.glb', { scale: 0.82, timeoutMs: 12000 });
             if (km) {
-              // remove box body
               while (kekeGroup.children.length) kekeGroup.remove(kekeGroup.children[0]);
               km.traverse((n) => {
-                if (n.isMesh) {
-                  n.castShadow = false;
-                  n.receiveShadow = true;
-                }
+                if (!n.isMesh || !n.material) return;
+                n.castShadow = false;
+                n.receiveShadow = true;
+                const mats = Array.isArray(n.material) ? n.material : [n.material];
+                mats.forEach((m) => {
+                  if (!m) return;
+                  if (m.map) {
+                    try { m.map.colorSpace = THREE.SRGBColorSpace; } catch (e) {}
+                  }
+                  m.envMapIntensity = 1.2;
+                  m.needsUpdate = true;
+                });
               });
               kekeGroup.add(km);
               showBanner('✅ Keke model loaded');
