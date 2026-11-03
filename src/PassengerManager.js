@@ -41,13 +41,11 @@ export class PassengerManager {
   }
 
   async initModels() {
-    // DISABLED – no pedestrian.glb download (keeps start fast)
-    this.pedModel = null;
-    return;
+    if (!this.assets || !this.assets.allowNetwork) return;
     try {
       this.pedModel = await this.assets.loadGLB(
         ASSET_MANIFEST.characters.pedestrian || '/assets/models/pedestrian.glb',
-        { scale: 1.25 }
+        { scale: 1.25, timeoutMs: 10000 }
       );
       if (this.pedModel) {
         this.pedModel.traverse((n) => {

@@ -1,8 +1,7 @@
 import * as THREE from 'three';
 
 /**
- * Traffic + Keke Race rivals — ZERO network at start
- * Procedural NAPEP/cars only (no GLB downloads)
+ * Procedural traffic at start → swap in real GLBs when loaded
  */
 export class DynamicTrafficManager {
   constructor(scene, kekeController, assetManager) {
@@ -13,9 +12,9 @@ export class DynamicTrafficManager {
     this.maxVehicles = 6;
     this.ready = false;
     this.raceMode = false;
+    this.templates = [];
   }
 
-  /** Yellow NAPEP-style keke (procedural) */
   _makeKeke() {
     const g = new THREE.Group();
     const yellow = new THREE.MeshBasicMaterial({ color: 0xffcc00 });
@@ -26,17 +25,6 @@ export class DynamicTrafficManager {
     const roof = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.12, 1.5), black);
     roof.position.set(0, 1.45, -0.15);
     g.add(roof);
-    // simple wheels
-    for (const [x, z] of [
-      [-0.55, 0.7],
-      [0.55, 0.7],
-      [-0.55, -0.7],
-      [0.55, -0.7]
-    ]) {
-      const w = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.4, 0.4), black);
-      w.position.set(x, 0.25, z);
-      g.add(w);
-    }
     return g;
   }
 
@@ -71,26 +59,72 @@ export class DynamicTrafficManager {
   }
 
   _meshFor(preferKeke = false) {
-    if (preferKeke || this.raceMode) {
-      return { mesh: this._makeKeke(), kind: 'keke' };
+    if (this.templates.length && Math.random() > 0.25) {
+      const pick = this.templates[Math.floor(Math.random() * this.templates.length)];
+      try {
+        return { mesh: pick.mesh.clone(true), kind: pick.kind };
+      } catch (e) {}
     }
+    if (preferKeke || this.raceMode) return { mesh: this._makeKeke(), kind: 'keke' };
     const r = Math.random();
     if (r < 0.35) return { mesh: this._makeOkada(), kind: 'okada' };
-    if (r < 0.55) return { mesh: this._makeKeke(), kind: 'keke' };
+    if (r < 0.5) return { mesh: this._makeKeke(), kind: 'keke' };
     return { mesh: this._makeCar(), kind: 'car' };
   }
 
   init() {
     this.ready = true;
     for (let i = 0; i < Math.min(5, this.maxVehicles); i++) this._spawn(true);
-    // NO GLB — never call loadGLB
   }
 
-  /** Race: pack of rival NAPEP kekes */
+  /** Load real GLBs after start – non-blocking */
+  async loadRealModels() {
+    if (!this.assets) return;
+    this.assets.enableNetwork();
+    const list = [
+      { path: '/assets/models/traffic_vehicle.glb', kind: 'car', scale: 1.05 },
+      { path: '/assets/models/okada.glb', kind: 'okada', scale: 0.95 },
+      { path: '/assets/models/Car.glb', kind: 'car', scale: 1.05 },
+      { path: '/assets/models/Taxi.glb', kind: 'car', scale: 1.05 },
+      { path: '/assets/models/SUV.glb', kind: 'van', scale: 1.0 },
+      { path: '/assets/models/Police Car.glb', kind: 'car', scale: 1.05 },
+      { path: '/assets/models/Car-2.glb', kind: 'car', scale: 1.05 }
+    ];
+    for (const c of list) {
+      try {
+        const mesh = await this.assets.loadGLB(c.path, { scale: c.scale, timeoutMs: 10000 });
+        if (!mesh) continue;
+        mesh.traverse((n) => {
+          if (n.isMesh) {
+            n.castShadow = false;
+            n.receiveShadow = false;
+          }
+        });
+        this.templates.push({ mesh, kind: c.kind });
+        console.log('[Traffic] GLB ready', c.path);
+      } catch (e) {}
+    }
+    // Refresh on-screen vehicles with real meshes
+    if (this.templates.length) {
+      this.vehicles.forEach((v) => {
+        try {
+          const next = this._meshFor(v.rival);
+          const pos = v.mesh.position.clone();
+          const rot = v.mesh.rotation.y;
+          this.scene.remove(v.mesh);
+          v.mesh = next.mesh;
+          v.kind = next.kind;
+          v.mesh.position.copy(pos);
+          v.mesh.rotation.y = rot;
+          this.scene.add(v.mesh);
+        } catch (e) {}
+      });
+    }
+  }
+
   startRace(count = 6) {
     this.raceMode = true;
     this.maxVehicles = Math.max(this.maxVehicles, count);
-    // clear soft traffic
     this.vehicles.forEach((v) => {
       try {
         this.scene.remove(v.mesh);
@@ -101,18 +135,15 @@ export class DynamicTrafficManager {
     for (let i = 0; i < count; i++) {
       const { mesh, kind } = this._meshFor(true);
       const lane = (i % 2 === 0 ? 1 : -1) * (2.5 + (i % 3) * 1.2);
-      const z = playerZ + 25 + i * 18 + Math.random() * 8;
-      mesh.position.set(lane, 0, z);
-      mesh.rotation.y = 0;
+      mesh.position.set(lane, 0, playerZ + 25 + i * 18);
       this.scene.add(mesh);
       this.vehicles.push({
         mesh,
         kind: 'keke',
-        speed: 9 + Math.random() * 6 + i * 0.3,
+        speed: 9 + Math.random() * 6,
         laneX: lane,
         opposite: false,
-        rival: true,
-        name: ['Danladi', 'Sule', 'Bala', 'Musa', 'Tunde', 'Chike', 'Emeka', 'Aisha'][i % 8]
+        rival: true
       });
     }
   }
@@ -154,11 +185,9 @@ export class DynamicTrafficManager {
     const playerZ = this.player.group.position.z;
     const pSpeed = this.player.currentSpeed || 0;
     const dt = Math.min(delta, 0.05);
-
     this.vehicles.forEach((v) => {
-      // Race rivals try to hold lead
       if (v.rival && this.raceMode) {
-        const target = 9 + Math.min(8, pSpeed * 0.35) + (Math.random() - 0.5);
+        const target = 9 + Math.min(8, pSpeed * 0.35);
         v.speed += (target - v.speed) * 0.02;
       }
       v.mesh.position.z += v.speed * dt;
@@ -172,9 +201,7 @@ export class DynamicTrafficManager {
       } else {
         v.mesh.position.x = THREE.MathUtils.lerp(v.mesh.position.x, v.laneX, 0.05);
       }
-      const dist = Math.abs(v.mesh.position.z - playerZ);
-      v.mesh.visible = dist < 140;
-
+      v.mesh.visible = Math.abs(v.mesh.position.z - playerZ) < 140;
       if (v.mesh.position.z < playerZ - 55 || v.mesh.position.z > playerZ + 240) {
         try {
           this.scene.remove(v.mesh);
@@ -197,12 +224,6 @@ export class DynamicTrafficManager {
         this.scene.add(v.mesh);
       }
     });
-
-    // Race ranking banner occasionally
-    if (this.raceMode && Math.random() < 0.01) {
-      const ahead = this.vehicles.filter((v) => v.rival && v.mesh.position.z > playerZ).length;
-      window.__kanoRacePlace = ahead + 1;
-    }
   }
 
   getRacePlace() {

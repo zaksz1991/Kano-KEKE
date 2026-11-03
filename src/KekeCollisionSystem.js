@@ -48,10 +48,10 @@ export class KekeCollisionSystem {
       v.mesh.position.x += Math.sign(dx || 1) * 1.8;
       v.laneX = v.mesh.position.x;
 
-      const dmg = 8 + Math.min(20, speed * 0.7);
-      this.engineHealth = Math.max(0, this.engineHealth - dmg);
+      const dmg = 4 + Math.min(12, speed * 0.4);
+      this.engineHealth = Math.max(0, this.engineHealth - dmg * 0.45);
       this.missions?.onCrash();
-      const lives = this.missions?.loseLife?.() ?? 0;
+      const lives = speed > 8 ? (this.missions?.loseLife?.() ?? 0) : (this.missions?.lives ?? 3);
 
       if (hudCallback) {
         hudCallback({

@@ -443,6 +443,38 @@ async function bootstrap() {
         camera.position.set(3.8, 4.2, -11.5);
         camera.lookAt(3.8, 1, 10);
       }
+      
+      // Load YOUR .glb models in background (after start — no menu hang)
+      try {
+        assetManager.enableNetwork();
+        showBanner('Loading your 3D models…');
+        (async () => {
+          try {
+            const km = await assetManager.loadGLB('/assets/models/keke.glb', { scale: 0.82, timeoutMs: 12000 });
+            if (km) {
+              // remove box body
+              while (kekeGroup.children.length) kekeGroup.remove(kekeGroup.children[0]);
+              km.traverse((n) => {
+                if (n.isMesh) {
+                  n.castShadow = false;
+                  n.receiveShadow = true;
+                }
+              });
+              kekeGroup.add(km);
+              showBanner('✅ Keke model loaded');
+            }
+          } catch (e) {}
+          try {
+            await trafficManager.loadRealModels?.();
+            if (trafficManager.templates?.length) showBanner('✅ Traffic models loaded');
+          } catch (e) {}
+          try {
+            passengerManager.assets = assetManager;
+            await passengerManager.initModels?.();
+          } catch (e) {}
+        })();
+      } catch (e) {}
+
       showBanner('🚗 Drive! Hold ACCEL');
       window.__kanoStartQueued = false;
     } catch (err) {
@@ -550,6 +582,38 @@ async function bootstrap() {
         const chip = document.getElementById('cash-chip') || document.getElementById('earnings');
         if (chip) chip.textContent = (chip.id === 'cash-chip' ? 'CASH ₦' : '') + (passengerManager.dailyEarnings || 0);
       } catch (e) {}
+      
+      // Load YOUR .glb models in background (after start — no menu hang)
+      try {
+        assetManager.enableNetwork();
+        showBanner('Loading your 3D models…');
+        (async () => {
+          try {
+            const km = await assetManager.loadGLB('/assets/models/keke.glb', { scale: 0.82, timeoutMs: 12000 });
+            if (km) {
+              // remove box body
+              while (kekeGroup.children.length) kekeGroup.remove(kekeGroup.children[0]);
+              km.traverse((n) => {
+                if (n.isMesh) {
+                  n.castShadow = false;
+                  n.receiveShadow = true;
+                }
+              });
+              kekeGroup.add(km);
+              showBanner('✅ Keke model loaded');
+            }
+          } catch (e) {}
+          try {
+            await trafficManager.loadRealModels?.();
+            if (trafficManager.templates?.length) showBanner('✅ Traffic models loaded');
+          } catch (e) {}
+          try {
+            passengerManager.assets = assetManager;
+            await passengerManager.initModels?.();
+          } catch (e) {}
+        })();
+      } catch (e) {}
+
       showBanner('🚗 Drive! Hold ACCEL · ◀ ▶ steer');
       window.__kanoStartQueued = false;
     } catch (err) {
