@@ -435,6 +435,14 @@ async function bootstrap() {
         camera.position.set(3.8, 4.2, -11.5);
         camera.lookAt(3.8, 1, 10);
       }
+      try { if (typeof dashHud !== 'undefined') dashHud.show?.(); } catch (e) {}
+      try { if (typeof radar !== 'undefined') radar.show?.(); } catch (e) {}
+      try {
+        // Ensure some traffic on the road
+        if (trafficManager.vehicles && trafficManager.vehicles.length < 3) {
+          for (let i = 0; i < 3; i++) trafficManager._spawn?.(false);
+        }
+      } catch (e) {}
       showBanner('🚗 Drive! Hold ACCEL · ◀ ▶ steer');
       window.__kanoStartQueued = false;
     } catch (err) {

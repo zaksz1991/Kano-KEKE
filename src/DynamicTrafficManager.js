@@ -10,7 +10,7 @@ export class DynamicTrafficManager {
     this.player = kekeController;
     this.assets = assetManager;
     this.vehicles = [];
-    this.maxVehicles = 5;
+    this.maxVehicles = 6;
     this.ready = false;
     this.raceMode = false;
   }
@@ -82,7 +82,7 @@ export class DynamicTrafficManager {
 
   init() {
     this.ready = true;
-    for (let i = 0; i < Math.min(4, this.maxVehicles); i++) this._spawn(true);
+    for (let i = 0; i < Math.min(5, this.maxVehicles); i++) this._spawn(true);
     // NO GLB — never call loadGLB
   }
 
