@@ -1,4 +1,3 @@
-document.title = 'KANO KEKE';
 import * as THREE from 'three';
 import { AssetManager } from './AssetManager.js';
 import { setupKanoAtmosphere, updateAtmosphereByTime, setPrayerAmbient } from './KanoAtmosphere.js';
@@ -41,6 +40,7 @@ import { NearMissSystem } from './NearMissSystem.js';
 import { HausaVoiceBank } from './HausaVoiceBank.js';
 import { KekeSignalLights } from './KekeSignalLights.js';
 import { KekeHeadlights } from './KekeHeadlights.js';
+document.title = 'KANO KEKE';
 
 // CapsuleGeometry polyfill for older three builds
 if (!THREE.CapsuleGeometry) {
@@ -245,8 +245,9 @@ document.getElementById('start-game-btn')?.addEventListener('click', (e) => {
 })();
 
 (function wireMenu() {
+  try {
   const routeSelect = document.getElementById('route-select');
-  if (routeSelect) {
+  if (routeSelect && KANO_ROUTES && KANO_ROUTES.length) {
     const level = (() => {
       try {
         return JSON.parse(localStorage.getItem('kano_run_save_v2') || '{}').currentLevel || 1;
@@ -254,6 +255,8 @@ document.getElementById('start-game-btn')?.addEventListener('click', (e) => {
         return 1;
       }
     })();
+    // Keep HTML fallback routes if JS routes fail; only rebuild when we have data
+    const prev = routeSelect.value;
     routeSelect.innerHTML = '';
     KANO_ROUTES.forEach((r) => {
       const opt = document.createElement('option');
@@ -265,8 +268,9 @@ document.getElementById('start-game-btn')?.addEventListener('click', (e) => {
       opt.disabled = locked;
       routeSelect.appendChild(opt);
     });
+    if (prev) routeSelect.value = prev;
   }
-  charSelect.populateUI();
+  try { charSelect.populateUI(); } catch (e) { console.warn('charSelect', e); }
   // Ensure keke select exists
   if (!document.getElementById('keke-select')) {
     const panel = document.querySelector('#selection-panel, .selection-panel');
@@ -277,9 +281,10 @@ document.getElementById('start-game-btn')?.addEventListener('click', (e) => {
       sel.id = 'keke-select';
       wrap.appendChild(sel);
       panel.appendChild(wrap);
-      charSelect.populateUI();
+      try { charSelect.populateUI(); } catch (e) {}
     }
   }
+  } catch (e) { console.warn('wireMenu', e); }
 })();
 
 // Loading
@@ -417,6 +422,7 @@ async function bootstrap() {
   // PRE-ROAD start: earliest possible playable start
   window.__kanoStartShift = function earlyStartShift() {
     try {
+      window.__kanoReady = true;
       hideLoading();
       gameStarted = true;
       try {
