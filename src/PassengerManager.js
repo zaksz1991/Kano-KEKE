@@ -48,6 +48,24 @@ export class PassengerManager {
         { scale: 1.25, timeoutMs: 10000 }
       );
       if (this.pedModel) {
+        console.log('[Passengers] pedestrian.glb ready');
+        // Upgrade existing waiters
+        this.waiting.forEach((p) => {
+          try {
+            if (!p.mesh || p.mesh.userData.isGlb) return;
+            const pos = p.mesh.position.clone();
+            const parent = p.mesh.parent;
+            const glb = this.pedModel.clone(true);
+            glb.position.copy(pos);
+            glb.userData.isGlb = true;
+            // keep pad/flag from old group if group
+            if (parent) {
+              parent.remove(p.mesh);
+              parent.add(glb);
+            }
+            p.mesh = glb;
+          } catch (e) {}
+        });
         this.pedModel.traverse((n) => {
           if (!n.isMesh || !n.material) return;
           const mats = Array.isArray(n.material) ? n.material : [n.material];
@@ -99,7 +117,7 @@ export class PassengerManager {
     }
     // Green pickup pad marker (kano-run style)
     const pad = new THREE.Mesh(
-      new THREE.CircleGeometry(0.7, 16),
+      new THREE.CircleGeometry(1.15, 16),
       new THREE.MeshBasicMaterial({
         color: 0x00e676,
         transparent: true,
