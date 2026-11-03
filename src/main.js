@@ -443,6 +443,13 @@ async function bootstrap() {
           for (let i = 0; i < 3; i++) trafficManager._spawn?.(false);
         }
       } catch (e) {}
+      if (!document.getElementById('kano-speed-big')) {
+        const sp = document.createElement('div');
+        sp.id = 'kano-speed-big';
+        sp.style.cssText = 'position:fixed;bottom:130px;left:50%;transform:translateX(-50%);z-index:55;pointer-events:none;font:900 28px/1 system-ui;color:#ffcc00;text-shadow:0 2px 8px #000;';
+        sp.textContent = '0 km/h';
+        document.body.appendChild(sp);
+      }
       showBanner('🚗 Drive! Hold ACCEL · ◀ ▶ steer');
       window.__kanoStartQueued = false;
     } catch (err) {
@@ -489,6 +496,9 @@ async function bootstrap() {
       try { roadSystem.update?.(kekeGroup.position.z); } catch (e) {}
       try { trafficManager.update?.(delta, false); } catch (e) {}
       try { passengerManager.update?.(delta, showBanner); } catch (e) {}
+      const kmh2 = Math.round((kekeController.currentSpeed || 0) * 3.6);
+      const big2 = document.getElementById('kano-speed-big');
+      if (big2) big2.textContent = kmh2 + ' km/h';
       renderer.render(scene, camera);
     } catch (e) {
       console.warn('minFrame', e);
@@ -982,7 +992,14 @@ async function bootstrap() {
         camera.lookAt(0, 1.2, 6.5);
       }
     } catch (e) {}
-    showBanner('🚗 Drive! Hold ACCEL · ◀ ▶ steer');
+    if (!document.getElementById('kano-speed-big')) {
+        const sp = document.createElement('div');
+        sp.id = 'kano-speed-big';
+        sp.style.cssText = 'position:fixed;bottom:130px;left:50%;transform:translateX(-50%);z-index:55;pointer-events:none;font:900 28px/1 system-ui;color:#ffcc00;text-shadow:0 2px 8px #000;';
+        sp.textContent = '0 km/h';
+        document.body.appendChild(sp);
+      }
+      showBanner('🚗 Drive! Hold ACCEL · ◀ ▶ steer');
     if (!localStorage.getItem('kano_drive_tips')) {
       localStorage.setItem('kano_drive_tips', '1');
       setTimeout(() => showBanner('◀ ▶ steer · ACCEL gas · BRAKE stop/reverse'), 2200);
@@ -1085,6 +1102,8 @@ window.__kanoFullFrame = function fullFrame() {
       const kmh = Math.round((kekeController.currentSpeed || 0) * 3.6);
       const spdEl = document.getElementById('speed-display');
       if (spdEl) spdEl.innerText = String(kmh);
+      const big = document.getElementById('kano-speed-big');
+      if (big) big.textContent = kmh + ' km/h';
       try {
         dashHud.update?.({
           speed: kmh,

@@ -77,7 +77,7 @@ export class FuelStationSystem {
 
     if (playerZ > this._nextZ - 200) {
       this._spawn(this._nextZ);
-      this._nextZ += 180 + Math.random() * 80;
+      this._nextZ += 140 + Math.random() * 60;
     }
 
     for (const st of this.stations) {
