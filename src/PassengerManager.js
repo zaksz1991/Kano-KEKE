@@ -150,7 +150,12 @@ export class PassengerManager {
     const title = titles[Math.floor(Math.random() * titles.length)];
     const dest = DESTINATIONS[Math.floor(Math.random() * DESTINATIONS.length)];
     const seats = Math.random() > 0.85 ? 2 : 1;
-    const baseFare = 180 + Math.floor(Math.random() * 420) + (seats > 1 ? 150 : 0);
+    let baseFare = 180 + Math.floor(Math.random() * 420) + (seats > 1 ? 150 : 0);
+    try {
+      const h = ((window.timeInMinutes || 600) / 60) % 24;
+      if (h >= 19 || h < 6) baseFare = Math.round(baseFare * 1.15); // night fare
+    } catch (e) {}
+
     // Mood affects negotiation
     const mood = Math.random(); // 0 stubborn … 1 generous
     return {
@@ -229,9 +234,15 @@ export class PassengerManager {
     this.nearestPrompt = null;
 
     this._spawnTimer += dt;
-    if (this._spawnTimer > 1.2) {
+    // Rush hours denser (life-sim): morning + evening
+    const mins = (typeof window !== 'undefined' && window.timeInMinutes) ? window.timeInMinutes : 10 * 60;
+    const h = (mins / 60) % 24;
+    const rush = (h >= 7 && h <= 9) || (h >= 16 && h <= 19);
+    const spawnEvery = rush ? 0.85 : 1.35;
+    if (this._spawnTimer > spawnEvery) {
       this._spawnTimer = 0;
       this._spawnWaiter(playerZ);
+      if (rush && Math.random() < 0.4) this._spawnWaiter(playerZ + 15);
     }
 
     // Animate flags / pads
