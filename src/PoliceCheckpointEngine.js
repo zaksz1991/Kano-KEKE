@@ -62,7 +62,7 @@ export class PoliceCheckpointEngine {
     this._raiseBarrier(cp);
     const roll = Math.random();
     if (roll < 0.75) {
-      if (hudCallback) hudCallback({ msg: '🟢 KAROTA: Toh — wuce. Drive safe.', type: 'KAROTA_CLEAR' });
+      if (hudCallback) hudCallback({ msg: '🟢 KAROTA: "Toh, wuce." Drive safe.', type: 'KAROTA_CLEAR' });
     } else if (roll < 0.92) {
       const fine = 200 + Math.floor(Math.random() * 300);
       this.passengers.dailyEarnings = Math.max(0, this.passengers.dailyEarnings - fine);
@@ -80,7 +80,7 @@ export class PoliceCheckpointEngine {
     const dt = Math.min(delta || 0.016, 0.05);
 
     if (playerZ > this._spawnedUntil - 120) {
-      const nextZ = this._spawnedUntil + 450 + Math.random() * 200;
+      const nextZ = this._spawnedUntil + 320 + Math.random() * 160;
       this.spawnCheckpoint(nextZ);
       this._spawnedUntil = nextZ;
     }
@@ -105,7 +105,7 @@ export class PoliceCheckpointEngine {
       const dist = cp.z - playerZ;
       if (dist < 50 && dist > 10 && !this._warned.has(cp)) {
         this._warned.add(cp);
-        if (hudCallback) hudCallback({ msg: '🚧 KAROTA ahead — slow down', type: 'KAROTA_AHEAD' });
+        if (hudCallback) hudCallback({ msg: '🚧 KAROTA checkpoint ahead — SLOW', type: 'KAROTA_AHEAD' });
       }
       if (dist < 8 && dist > -5) {
         if (speed > 14) {

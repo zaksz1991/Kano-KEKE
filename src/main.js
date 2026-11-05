@@ -1362,7 +1362,16 @@ window.__kanoFullFrame = function fullFrame() {
         });
       } catch (e) {}
       try { collisionSystem.update?.(delta, showBanner); } catch (e) {}
-      try { fuelManager.update?.(delta); } catch (e) {}
+      try {
+        fuelManager.update?.(delta, (ev) => {
+          if (ev?.msg) showBanner(ev);
+        });
+      } catch (e) {}
+      try {
+        prayerManager?.update?.(window.timeInMinutes, (ev) => {
+          if (ev?.msg) showBanner(ev);
+        });
+      } catch (e) {}
       try { policeEngine.update?.(showBanner, delta); } catch (e) {}
       try { streetEvents.update?.(delta, showBanner); } catch (e) {}
       try { fuelStations.update?.(delta, kekeGroup.position, kekeController.currentSpeed, showBanner); } catch (e) {}

@@ -12,10 +12,10 @@ export class PrayerTimeManager {
 
     // Minutes from midnight
     this.schedule = [
-      { name: 'Fajr', min: 5 * 60 + 10, msg: '🕌 Fajr — quiet streets. Drive gentle.' },
+      { name: 'Fajr', min: 5 * 60 + 10, msg: '🕌 Fajr — streets quiet. Easy speed, less passengers.' },
       { name: 'Zuhr', min: 12 * 60 + 30, msg: '🕌 Zuhr — many heading to mosque. Watch junctions.' },
       { name: 'Asr', min: 15 * 60 + 45, msg: '🕌 Asr — afternoon prayer. Traffic eases near mosques.' },
-      { name: 'Maghrib', min: 18 * 60 + 25, msg: '🕌 Maghrib — sunset prayer. Lights coming on.' },
+      { name: 'Maghrib', min: 18 * 60 + 25, msg: '🕌 Maghrib — many stop for prayer. Headlights on soon.' },
       { name: 'Isha', min: 19 * 60 + 50, msg: '🕌 Isha — night prayer. Street calm.' }
     ];
   }
