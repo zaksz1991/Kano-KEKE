@@ -41,6 +41,7 @@ export class KanoRoadsideLife {
     else if (roll < 0.7) mesh = this._miniMosque(rand);
     else if (roll < 0.85) mesh = this._waterTank(rand);
     else mesh = this._billboard(rand);
+    mesh.userData.kanoLife = true;
 
     mesh.position.set(x, 0, z);
     mesh.rotation.y = side > 0 ? -Math.PI / 2 + (rand() - 0.5) * 0.2 : Math.PI / 2 + (rand() - 0.5) * 0.2;

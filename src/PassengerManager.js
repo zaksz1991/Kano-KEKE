@@ -258,7 +258,7 @@ export class PassengerManager {
         if (this.onBoard.length + p.seats <= this.capacity) {
           this._acceptNegotiate(p, hudCallback);
         } else if (hudCallback && this._negTimer > 1) {
-          hudCallback({ type: 'NOTICE', msg: 'Keke full — no more seats' });
+          hudCallback({ type: 'NOTICE', msg: '🚫 Keke full — sauke wani first' });
           p.state = 'waiting';
           this.negotiating = null;
         }
