@@ -1345,6 +1345,12 @@ window.__kanoFullFrame = function fullFrame() {
             const earn = document.getElementById('earnings');
             if (earn) earn.innerText = ev.earnings;
           }
+          if (ev && ev.type === 'DROPOFF') {
+            const combo = passengerManager.combo || 0;
+            if (combo === 3) showBanner('🔥 3-drop combo — street legend forming');
+            if (combo === 5) showBanner('🔥🔥 5 combo — Kano king shift!');
+            if (combo === 8) showBanner('👑 8 combo — RuffNeck status');
+          }
           if (ev && (ev.type === 'DROPOFF' || (ev.msg && String(ev.msg).includes('₦')))) {
             try {
               let pop = document.getElementById('kano-fare-pop');
@@ -1410,6 +1416,17 @@ window.__kanoFullFrame = function fullFrame() {
       } catch (e) {}
 
       shiftElapsed = (shiftElapsed || 0) + delta;
+      window.__kanoAutoSave = (window.__kanoAutoSave || 0) + delta;
+      if (window.__kanoAutoSave > 45) {
+        window.__kanoAutoSave = 0;
+        try {
+          SaveSystem.saveGame({
+            cash: passengerManager.dailyEarnings,
+            currentLevel: missionManager?.level || 1
+          });
+        } catch (e) {}
+      }
+
       // Real-life Kano ambient flavour
       window.__kanoLifeT = (window.__kanoLifeT || 0) + delta;
       if (window.__kanoLifeT > 28) {
