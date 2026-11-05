@@ -1323,6 +1323,7 @@ window.__kanoFullFrame = function fullFrame() {
 
       try { roadSystem.update?.(kekeGroup.position.z); } catch (e) {}
       try { trafficManager.update?.(delta, isHornActive); } catch (e) {}
+      try { roadsideLife?.update?.(kekeGroup.position.z); } catch (e) {}
       try {
         if (window.__kanoGameMode === 'race' || trafficManager.raceMode) {
           const place = trafficManager.getRacePlace?.() || 1;
@@ -1392,6 +1393,22 @@ window.__kanoFullFrame = function fullFrame() {
       } catch (e) {}
 
       shiftElapsed = (shiftElapsed || 0) + delta;
+      // Real-life Kano ambient flavour
+      window.__kanoLifeT = (window.__kanoLifeT || 0) + delta;
+      if (window.__kanoLifeT > 28) {
+        window.__kanoLifeT = 0;
+        const lines = [
+          '📢 "Keke! Sabon Gari!"',
+          '🕌 Maghrib soon — watch the road',
+          '🛒 Market traffic near Kantin Kwari',
+          '⛽ PMS queue at the next junction',
+          '🚓 KAROTA may check papers ahead',
+          '🌧️ Dust on the dual carriageway',
+          '🚌 Danfo blocking the slow lane'
+        ];
+        if (Math.random() < 0.55) showBanner(lines[Math.floor(Math.random() * lines.length)]);
+      }
+
       timeAccum += delta;
       if (timeAccum > 0.5) {
         timeAccum = 0;

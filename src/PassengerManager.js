@@ -18,7 +18,10 @@ const DESTINATIONS = [
   'Zoo Road', 'Naibawa', 'Tarauni', 'Dala', 'Kantin Kwari',
   'Kofar Wambai', 'Panshekara', 'Kumbotso', 'Gwale', 'Sharada',
   "Emir's Palace", 'Kurmi Market', 'Bompai', 'Yankaba', 'Kabuga',
-  'BUK Road', 'Murtala Muhammed Way', 'Gyadi-Gyadi'
+  'BUK Road', 'Murtala Muhammed Way', 'Gyadi-Gyadi',
+  'Kofar Ruwa', 'Racecourse', 'Gwagwarwa', 'Badawa', 'Nassarawa',
+  'Hotoro North', 'Dan Agundi', 'Court Road', 'Post Office',
+  'MM Way Junction', 'Triumph Junction', 'Aminu Kano Airport'
 ];
 
 export class PassengerManager {
@@ -190,7 +193,7 @@ export class PassengerManager {
     if (hudCallback) {
       hudCallback({
         type: 'NEGOTIATE',
-        msg: `${p.title}: "${p.destination} — ₦${ask}?" (SLOW to accept · drive off to skip)`
+        msg: `${p.title}: "${p.destination} — ₦${ask}?" · SLOW to agree · "Toh, mu tafi"`
       });
     }
   }
@@ -213,7 +216,7 @@ export class PassengerManager {
     if (hudCallback) {
       hudCallback({
         type: 'BOARD',
-        msg: `${p.title} boarded → ${p.destination} · ₦${finalFare}`,
+        msg: `${p.title}: "Na shiga!" → ${p.destination} · ₦${finalFare}`,
         earnings: this.dailyEarnings
       });
     }
@@ -290,7 +293,7 @@ export class PassengerManager {
         if (hudCallback) {
           hudCallback({
             type: 'AKWAI',
-            msg: `🛑 Akwai! ${p.title} — ${p.destination}. SLOW DOWN`
+            msg: `🛑 Akwai! ${p.title}: "Ina so in sauka a ${p.destination}!" · SLOW`
           });
         }
       }
@@ -304,7 +307,7 @@ export class PassengerManager {
           hudCallback({
             type: 'DROPOFF',
             earnings: this.dailyEarnings,
-            msg: `Dropped ${p.title} at ${p.destination} · +₦${pay} · Combo x${this.combo}`
+            msg: `${p.title}: "Na gode!" · ${p.destination} · +₦${pay} · Combo x${this.combo}`
           });
         }
       } else if (playerZ > p.dropAtZ + 50) {
@@ -314,7 +317,7 @@ export class PassengerManager {
         if (hudCallback) {
           hudCallback({
             type: 'NOTICE',
-            msg: `${p.title} got angry — missed ${p.destination}`
+            msg: `${p.title} ya yi fushi — you passed ${p.destination}`
           });
         }
       }
