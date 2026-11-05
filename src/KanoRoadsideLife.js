@@ -22,11 +22,11 @@ export class KanoRoadsideLife {
   init() {
     // Sparse Kano roadside life (bus stops, vendors, pumps, mini-mosques)
     // Kept low-count for mobile FPS – not full box city
-    this.maxProps = /Android|iPhone|Mobile/i.test(navigator.userAgent) ? 6 : 10;
-    for (let i = 0; i < 6; i++) {
-      this._spawnAt(50 + i * 95);
+    this.maxProps = /Android|iPhone|Mobile/i.test(navigator.userAgent) ? 10 : 16;
+    for (let i = 0; i < 8; i++) {
+      this._spawnAt(40 + i * 75);
     }
-    this._spawnedUntil = 50 + 5 * 95;
+    this._spawnedUntil = 40 + 7 * 75;
   }
 
   _spawnAt(z) {

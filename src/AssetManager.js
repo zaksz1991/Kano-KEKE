@@ -2,106 +2,111 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 /**
- * Loads local .glb files – network allowed AFTER boot (call enableNetwork())
+ * Always loads local GLBs (with timeout). Does not block UI.
  */
 export class AssetManager {
   constructor() {
     this.gltfLoader = new GLTFLoader();
     this.cache = new Map();
-    this.textures = new Map();
-    this.totalToLoad = 0;
-    this.loadedCount = 0;
-    this.onProgress = null;
-    this.allowNetwork = false; // false until after Start Shift
+    this.loading = new Map();
+    this.allowNetwork = true;
   }
 
   enableNetwork() {
     this.allowNetwork = true;
   }
 
-  setProgressCallback(cb) {
-    this.onProgress = cb;
-  }
-
-  _report(path) {
-    this.loadedCount++;
-    if (this.onProgress) {
-      this.onProgress({
-        loaded: this.loadedCount,
-        total: Math.max(1, this.totalToLoad),
-        path,
-        percent: Math.round((this.loadedCount / Math.max(1, this.totalToLoad)) * 100)
-      });
-    }
-  }
-
   async loadGLB(path, options = {}) {
-    if (this.cache.has(path)) {
+    const key = path;
+    if (this.cache.has(key)) {
       try {
-        const clone = this.cache.get(path).clone(true);
-        this._prepareScene(clone, options);
+        const clone = this.cache.get(key).clone(true);
+        this._applyOptions(clone, options);
         return clone;
       } catch (e) {
         return null;
       }
     }
-    if (!this.allowNetwork) return null;
+    if (this.loading.has(key)) {
+      await this.loading.get(key);
+      if (this.cache.has(key)) {
+        const clone = this.cache.get(key).clone(true);
+        this._applyOptions(clone, options);
+        return clone;
+      }
+      return null;
+    }
 
-    return new Promise((resolve) => {
-      const timeout = setTimeout(() => {
-        console.warn('[AssetManager] timeout', path);
-        this._report(path);
+    const job = new Promise((resolve) => {
+      const ms = options.timeoutMs || 15000;
+      const timer = setTimeout(() => {
+        console.warn('[GLB] timeout', path);
         resolve(null);
-      }, options.timeoutMs || 8000);
+      }, ms);
 
       this.gltfLoader.load(
         path,
         (gltf) => {
-          clearTimeout(timeout);
+          clearTimeout(timer);
           try {
-            const scene = gltf.scene;
-            this._prepareScene(scene, options);
-            this.cache.set(path, scene);
-            this._report(path);
-            resolve(scene.clone(true));
+            const root = gltf.scene || gltf.scenes?.[0];
+            if (!root) {
+              resolve(null);
+              return;
+            }
+            this._fixTextures(root);
+            this.cache.set(key, root);
+            resolve(root);
           } catch (e) {
-            this._report(path);
+            console.warn('[GLB] parse', path, e);
             resolve(null);
           }
         },
         undefined,
         (err) => {
-          clearTimeout(timeout);
-          console.warn('[AssetManager] fail', path, err?.message || err);
-          this._report(path);
+          clearTimeout(timer);
+          console.warn('[GLB] error', path, err?.message || err);
           resolve(null);
         }
       );
     });
+
+    this.loading.set(key, job);
+    const root = await job;
+    this.loading.delete(key);
+    if (!root) return null;
+    const clone = root.clone(true);
+    this._applyOptions(clone, options);
+    return clone;
   }
 
-  _prepareScene(root, options = {}) {
-    if (!root) return;
-    const scale = options.scale ?? 1;
-    if (scale !== 1) root.scale.multiplyScalar(scale);
+  _fixTextures(root) {
     root.traverse((n) => {
-      if (!n.isMesh) return;
-      n.castShadow = !!options.castShadow;
-      n.receiveShadow = !!options.receiveShadow;
+      if (!n.isMesh || !n.material) return;
       const mats = Array.isArray(n.material) ? n.material : [n.material];
       mats.forEach((m) => {
         if (!m) return;
-        if (m.map) {
-          try {
-            m.map.colorSpace = THREE.SRGBColorSpace;
-          } catch (e) {}
-        }
+        ['map', 'emissiveMap', 'roughnessMap', 'metalnessMap', 'normalMap'].forEach((k) => {
+          if (m[k]) {
+            try {
+              m[k].colorSpace = k === 'map' || k === 'emissiveMap' ? THREE.SRGBColorSpace : m[k].colorSpace;
+              m[k].needsUpdate = true;
+            } catch (e) {}
+          }
+        });
         m.needsUpdate = true;
       });
     });
   }
 
-  async loadTexture() {
-    return null;
+  _applyOptions(root, options = {}) {
+    if (!root) return;
+    const scale = options.scale ?? 1;
+    if (scale !== 1) root.scale.setScalar(scale);
+    root.traverse((n) => {
+      if (!n.isMesh) return;
+      n.castShadow = !!options.castShadow;
+      n.receiveShadow = options.receiveShadow !== false;
+    });
   }
 }

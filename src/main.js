@@ -423,7 +423,7 @@ async function bootstrap() {
   // Apply driver/keke bonuses
   const driver = charSelect.getDriver();
   const kekeDef = charSelect.getKeke();
-  kekeController.maxSpeed = 26 * (kekeDef.speed || 1) * (driver.speedBonus || 1);
+  kekeController.maxSpeed = 32 * (kekeDef.speed || 1) * (driver.speedBonus || 1);
 
   const cameraRig = new KekeCameraRig(camera, kekeGroup);
   const flow = new GameFlowManager(scene, camera, kekeGroup, kekeController, cameraRig);
@@ -443,7 +443,7 @@ async function bootstrap() {
       try {
         kekeGroup.position.set(3.8, 0, 0);
         kekeController.velocity = 0;
-        kekeController.maxSpeed = 26;
+        kekeController.maxSpeed = 32;
       } catch (e) {}
       const menu = document.getElementById('main-menu-overlay');
       if (menu) menu.style.display = 'none';
@@ -459,43 +459,7 @@ async function bootstrap() {
         camera.lookAt(3.8, 1, 10);
       }
       
-      // Load YOUR .glb models in background (after start — no menu hang)
-      try {
-        assetManager.enableNetwork();
-        showBanner('Loading your 3D models…');
-        (async () => {
-          try {
-            const km = await assetManager.loadGLB('/assets/models/keke.glb', { scale: 0.82, timeoutMs: 12000 });
-            if (km) {
-              while (kekeGroup.children.length) kekeGroup.remove(kekeGroup.children[0]);
-              km.traverse((n) => {
-                if (!n.isMesh || !n.material) return;
-                n.castShadow = false;
-                n.receiveShadow = true;
-                const mats = Array.isArray(n.material) ? n.material : [n.material];
-                mats.forEach((m) => {
-                  if (!m) return;
-                  if (m.map) {
-                    try { m.map.colorSpace = THREE.SRGBColorSpace; } catch (e) {}
-                  }
-                  m.envMapIntensity = 1.2;
-                  m.needsUpdate = true;
-                });
-              });
-              kekeGroup.add(km);
-              showBanner('✅ Keke model loaded');
-            }
-          } catch (e) {}
-          try {
-            await trafficManager.loadRealModels?.();
-            if (trafficManager.templates?.length) showBanner('✅ Traffic models loaded');
-          } catch (e) {}
-          try {
-            passengerManager.assets = assetManager;
-            await passengerManager.initModels?.();
-          } catch (e) {}
-        })();
-      } catch (e) {}
+      try { window.__kanoApplyModels?.(); } catch (e) {}
 
       showBanner('🚗 Drive! Hold ACCEL');
       window.__kanoStartQueued = false;
@@ -560,6 +524,34 @@ async function bootstrap() {
   passengerManager.dailyEarnings = saved.cash ?? 1500;
   passengerManager.capacity = kekeDef.capacity || 3;
 
+  window.__kanoApplyModels = async function applyModels() {
+    try {
+      assetManager.enableNetwork?.();
+      showBanner('Loading 3D models…');
+      const km = await assetManager.loadGLB('/assets/models/keke.glb', { scale: 0.85, timeoutMs: 20000 });
+      if (km) {
+        while (kekeGroup.children.length) kekeGroup.remove(kekeGroup.children[0]);
+        kekeGroup.add(km);
+        showBanner('✅ Keke GLB ready');
+      } else {
+        showBanner('⚠️ keke.glb missing — check /assets/models/');
+      }
+      await trafficManager.loadRealModels?.();
+      if (trafficManager.templates?.length) {
+        showBanner('✅ Traffic GLBs ×' + trafficManager.templates.length);
+      }
+      try {
+        passengerManager.assets = assetManager;
+        await passengerManager.initModels?.();
+        if (passengerManager.pedModel) showBanner('✅ Pedestrian GLB ready');
+      } catch (e) {}
+    } catch (e) {
+      console.error('applyModels', e);
+      showBanner('Model load error — see console');
+    }
+  };
+
+
   // ===== CRITICAL: start works NOW even if rest of bootstrap fails =====
   let gameSystemsReady = true;
   window.__kanoStartShift = function earlyStartShift() {
@@ -576,7 +568,7 @@ async function bootstrap() {
         kekeGroup.position.set(3.8, 0, 0);
         kekeGroup.rotation.set(0, 0, 0);
         kekeController.velocity = 0;
-        kekeController.maxSpeed = 26;
+        kekeController.maxSpeed = 32;
       } catch (e) {}
       const menu = document.getElementById('main-menu-overlay');
       if (menu) menu.style.display = 'none';
@@ -611,44 +603,9 @@ async function bootstrap() {
         if (chip) chip.textContent = (chip.id === 'cash-chip' ? 'CASH ₦' : '') + (passengerManager.dailyEarnings || 0);
       } catch (e) {}
       
-      // Load YOUR .glb models in background (after start — no menu hang)
-      try {
-        assetManager.enableNetwork();
-        showBanner('Loading your 3D models…');
-        (async () => {
-          try {
-            const km = await assetManager.loadGLB('/assets/models/keke.glb', { scale: 0.82, timeoutMs: 12000 });
-            if (km) {
-              while (kekeGroup.children.length) kekeGroup.remove(kekeGroup.children[0]);
-              km.traverse((n) => {
-                if (!n.isMesh || !n.material) return;
-                n.castShadow = false;
-                n.receiveShadow = true;
-                const mats = Array.isArray(n.material) ? n.material : [n.material];
-                mats.forEach((m) => {
-                  if (!m) return;
-                  if (m.map) {
-                    try { m.map.colorSpace = THREE.SRGBColorSpace; } catch (e) {}
-                  }
-                  m.envMapIntensity = 1.2;
-                  m.needsUpdate = true;
-                });
-              });
-              kekeGroup.add(km);
-              showBanner('✅ Keke model loaded');
-            }
-          } catch (e) {}
-          try {
-            await trafficManager.loadRealModels?.();
-            if (trafficManager.templates?.length) showBanner('✅ Traffic models loaded');
-          } catch (e) {}
-          try {
-            passengerManager.assets = assetManager;
-            await passengerManager.initModels?.();
-          } catch (e) {}
-        })();
-      } catch (e) {}
+      try { window.__kanoApplyModels?.(); } catch (e) {}
 
+      try { window.__kanoApplyModels?.(); } catch (e) {}
       showBanner('🚗 Drive! Hold ACCEL · ◀ ▶ steer');
       window.__kanoStartQueued = false;
     } catch (err) {
@@ -1119,6 +1076,7 @@ async function bootstrap() {
     if (window.__kanoStarting) return;
     if (gameStarted && flow?.state === 'DRIVING') return;
     window.__kanoStarting = true;
+    try { setTimeout(() => window.__kanoApplyModels?.(), 300); } catch (e) {}
     setTimeout(() => { window.__kanoStarting = false; }, 1500);
     // Re-read selection
     const ds = document.getElementById('driver-select');
@@ -1127,7 +1085,7 @@ async function bootstrap() {
     if (ks) charSelect.selectKeke(ks.value);
     const d = charSelect.getDriver();
     const k = charSelect.getKeke();
-    kekeController.maxSpeed = 26 * (k.speed || 1) * (d.speedBonus || 1);
+    kekeController.maxSpeed = 32 * (k.speed || 1) * (d.speedBonus || 1);
     passengerManager.capacity = k.capacity || 3;
     passengerManager.negotiationBonus = d.negotiationBonus || 1;
     passengerManager.tipBonus = d.tipBonus || 1;
@@ -1248,6 +1206,7 @@ async function bootstrap() {
         const chip = document.getElementById('cash-chip') || document.getElementById('earnings');
         if (chip) chip.textContent = (chip.id === 'cash-chip' ? 'CASH ₦' : '') + (passengerManager.dailyEarnings || 0);
       } catch (e) {}
+      try { window.__kanoApplyModels?.(); } catch (e) {}
       showBanner('🚗 Drive! Hold ACCEL · ◀ ▶ steer');
     if (!localStorage.getItem('kano_drive_tips')) {
       localStorage.setItem('kano_drive_tips', '1');

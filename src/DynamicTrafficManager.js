@@ -82,13 +82,15 @@ export class DynamicTrafficManager {
     if (!this.assets) return;
     this.assets.enableNetwork();
     const list = [
-      { path: '/assets/models/traffic_vehicle.glb', kind: 'car', scale: 1.05 },
-      { path: '/assets/models/okada.glb', kind: 'okada', scale: 0.95 },
+      { path: '/assets/models/traffic_vehicle.glb', kind: 'car', scale: 1.1 },
+      { path: '/assets/models/okada.glb', kind: 'okada', scale: 1.0 },
       { path: '/assets/models/Car.glb', kind: 'car', scale: 1.05 },
+      { path: '/assets/models/Car-2.glb', kind: 'car', scale: 1.05 },
       { path: '/assets/models/Taxi.glb', kind: 'car', scale: 1.05 },
       { path: '/assets/models/SUV.glb', kind: 'van', scale: 1.0 },
+      { path: '/assets/models/Sports Car.glb', kind: 'car', scale: 1.0 },
       { path: '/assets/models/Police Car.glb', kind: 'car', scale: 1.05 },
-      { path: '/assets/models/Car-2.glb', kind: 'car', scale: 1.05 }
+      { path: '/assets/models/Police%20Car.glb', kind: 'car', scale: 1.05 }
     ];
     for (const c of list) {
       try {

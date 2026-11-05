@@ -1,18 +1,18 @@
 import * as THREE from 'three';
 
 /**
- * Arcade drive – clear acceleration, speed always rises with ACCEL
+ * Responsive arcade drive for KANO KEKE
  */
 export class KekePhysicsController {
   constructor(kekeGroup) {
     this.group = kekeGroup;
     this.velocity = 0;
     this.currentSpeed = 0;
-    this.maxSpeed = 28;
-    this.reverseMax = 5;
-    this.acceleration = 26;
-    this.brakingForce = 34;
-    this.coastFriction = 5;
+    this.maxSpeed = 32;
+    this.reverseMax = 6;
+    this.acceleration = 34;
+    this.brakingForce = 42;
+    this.coastFriction = 4;
     this.throttleInput = 0;
     this.steerInput = 0;
     this.lateral = 0;
@@ -31,14 +31,14 @@ export class KekePhysicsController {
   update(delta) {
     const dt = THREE.MathUtils.clamp(delta || 0.016, 0.001, 0.033);
     const throttle = this.throttleInput;
-    const top = Math.max(18, this.maxSpeed || 28);
+    const top = Math.max(20, this.maxSpeed || 32);
 
     if (throttle > 0.05) {
       if (this.velocity < 0) this.velocity = 0;
       this._brakeHold = 0;
       const ratio = THREE.MathUtils.clamp(this.velocity / top, 0, 1);
-      // Always accelerate while ACCEL held – never flat zero
-      this.velocity += this.acceleration * throttle * (1.2 - ratio * 0.5) * dt;
+      // Strong pull at low speed, still climbs at mid speed
+      this.velocity += this.acceleration * throttle * (1.35 - ratio * 0.55) * dt;
       if (this.velocity > top) this.velocity = top;
     } else if (throttle < -0.05) {
       if (this.velocity > 0.15) {
@@ -48,8 +48,8 @@ export class KekePhysicsController {
       } else {
         this.velocity = 0;
         this._brakeHold += dt;
-        if (this._brakeHold > 0.35) {
-          this.velocity = -Math.min(this.reverseMax, (this._brakeHold - 0.35) * 7);
+        if (this._brakeHold > 0.3) {
+          this.velocity = -Math.min(this.reverseMax, (this._brakeHold - 0.3) * 8);
         }
       }
     } else {
@@ -61,11 +61,10 @@ export class KekePhysicsController {
     if (Math.abs(this.velocity) < 0.08) this.velocity = 0;
     this.currentSpeed = Math.abs(this.velocity);
 
-    // Steer: left=-1 → -X (screen left when camera behind) — was confirmed correct with flip
-    const latMax = 18 / (1 + this.currentSpeed * 0.03);
+    const latMax = 20 / (1 + this.currentSpeed * 0.028);
     const targetLat = -this.steerInput * latMax;
-    this.lateral += (targetLat - this.lateral) * Math.min(1, 14 * dt);
-    if (Math.abs(this.steerInput) < 0.05) this.lateral *= 0.85;
+    this.lateral += (targetLat - this.lateral) * Math.min(1, 16 * dt);
+    if (Math.abs(this.steerInput) < 0.05) this.lateral *= 0.82;
 
     this.group.position.x += this.lateral * dt;
     this.group.position.z += this.velocity * dt;
