@@ -298,16 +298,22 @@ export class PassengerManager {
         }
       }
       if (playerZ >= p.dropAtZ - 8 && speed < 8) {
-        const pay = p.agreedFare || p.baseFare;
+        let pay = p.agreedFare || p.baseFare;
+        let tip = 0;
+        if ((p.mood || 0) > 0.7 && this.combo >= 1) {
+          tip = 50 + Math.floor(Math.random() * 150);
+          pay += tip;
+        }
         this.dailyEarnings += pay;
         this.combo += 1;
         this.score += pay + this.combo * 12;
         this.onBoard = this.onBoard.filter((x) => x !== p);
         if (hudCallback) {
+          const tipMsg = tip ? ` · tip +₦${tip}` : '';
           hudCallback({
             type: 'DROPOFF',
             earnings: this.dailyEarnings,
-            msg: `${p.title}: "Na gode!" · ${p.destination} · +₦${pay} · Combo x${this.combo}`
+            msg: `${p.title}: "Na gode!" · ${p.destination} · +₦${pay}${tipMsg} · Combo x${this.combo}`
           });
         }
       } else if (playerZ > p.dropAtZ + 50) {

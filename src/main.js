@@ -714,7 +714,10 @@ async function bootstrap() {
       if (big) big.remove();
       const rh = document.getElementById('kano-race-hud');
       if (rh) rh.remove();
-      showBanner('✅ Shift ended · ₦' + cash);
+      const drops = passengerManager?.onBoard ? 0 : 0;
+      const fuelLeft = Math.round(fuelManager?.fuel ?? 0);
+      showBanner('✅ Shift ended · ₦' + cash + ' · fuel ' + fuelLeft + '%');
+      setTimeout(() => showBanner('High scores updated · Start again when ready'), 1600);
     } catch (e) {
       console.warn('endShift', e);
       showBanner('Shift ended');
