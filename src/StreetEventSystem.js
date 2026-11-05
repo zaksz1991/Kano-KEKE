@@ -37,7 +37,7 @@ export class StreetEventSystem {
     this.active = 'dispute';
     this._activeT = 6;
     if (hudCallback) {
-      hudCallback({ msg: '😤 Passenger argument! Stay calm — drop them soon for full fare.' });
+      hudCallback({ msg: '😤 Hargitsi in the keke! Stay calm — drop them for full fare.' });
     }
   }
 
@@ -45,13 +45,13 @@ export class StreetEventSystem {
     this.active = 'jam';
     this._activeT = 7;
     this.keke.velocity = Math.max(0, this.keke.velocity * 0.5);
-    if (hudCallback) hudCallback({ msg: '🚦 Traffic jam ahead — ease through slowly.' });
+    if (hudCallback) hudCallback({ msg: '🚦 Go-slow ahead — ease through (Kano style).' });
   }
 
   _startCheckpointRumor(hudCallback) {
     this.active = 'rumor';
     this._activeT = 4;
-    if (hudCallback) hudCallback({ msg: '📢 Word on street: KAROTA checkpoint ahead. Papers ready.' });
+    if (hudCallback) hudCallback({ msg: '📢 Rumours: KAROTA ahead. Papers ready.' });
   }
 
   _startLucky(hudCallback) {

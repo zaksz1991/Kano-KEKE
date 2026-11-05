@@ -1390,7 +1390,14 @@ window.__kanoFullFrame = function fullFrame() {
       try { weatherManager?.update?.(delta, kekeGroup.position, showBanner); } catch (e) {}
       try { fuelStations.update?.(delta, kekeGroup.position, kekeController.currentSpeed, showBanner); } catch (e) {}
       try { signalLights.update?.(delta, throttle < -0.1, steer); } catch (e) {}
-      try { headlights.update?.(window.timeInMinutes); } catch (e) {}
+      try {
+        headlights.update?.(window.timeInMinutes);
+        // Night auto-headlights for life-sim
+        const h = (window.timeInMinutes || 0) / 60;
+        if (h >= 18.5 || h < 6.5) {
+          try { headlights.enabled = true; headlights.manual = true; } catch (e) {}
+        }
+      } catch (e) {}
       try { audioEngine.updateEngine?.(kekeController.currentSpeed, kekeController.maxSpeed); } catch (e) {}
 
       const kmh = Math.round((kekeController.currentSpeed || 0) * 3.6);
