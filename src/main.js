@@ -778,9 +778,7 @@ async function bootstrap() {
     }
   }
   let weatherManager = { update() {}, currentWeather: 'CLEAR', forceWeather() {} };
-  if (!isMobile) {
-    try { weatherManager = new KanoWeatherManager(scene, kekeController, passengerManager); } catch (e) { console.warn('weather', e); }
-  }
+  try { weatherManager = new KanoWeatherManager(scene, kekeController, passengerManager); } catch (e) { console.warn('weather', e); }
   const customizer = new KekeCustomizer(scene, kekeGroup);
   const prayerManager = new PrayerTimeManager({ stamina: 100, stressLevel: 0 });
   const settlementManager = new DailySettlementManager(passengerManager, fuelManager, kekeController, missionManager);
@@ -1374,6 +1372,13 @@ window.__kanoFullFrame = function fullFrame() {
       } catch (e) {}
       try { policeEngine.update?.(showBanner, delta); } catch (e) {}
       try { streetEvents.update?.(delta, showBanner); } catch (e) {}
+      try {
+        fatigue?.update?.(delta, kekeController.currentSpeed, (ev) => {
+          if (ev?.msg) showBanner(ev);
+        }, false);
+      } catch (e) {}
+      try { nearMiss?.update?.(delta, showBanner); } catch (e) {}
+      try { weatherManager?.update?.(delta, kekeGroup.position, showBanner); } catch (e) {}
       try { fuelStations.update?.(delta, kekeGroup.position, kekeController.currentSpeed, showBanner); } catch (e) {}
       try { signalLights.update?.(delta, throttle < -0.1, steer); } catch (e) {}
       try { headlights.update?.(window.timeInMinutes); } catch (e) {}

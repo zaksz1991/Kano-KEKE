@@ -31,8 +31,8 @@ export class DriverFatigueSystem {
         if (hudCallback) {
           hudCallback({
             msg: nearStation
-              ? '☕ Resting at station — stamina recovering fast'
-              : '😌 Parked — stamina recovering'
+              ? '☕ Rest at PMS — stamina recovering fast'
+              : '😌 Ka tsaya — stamina recovering'
           });
         }
       }
@@ -47,7 +47,7 @@ export class DriverFatigueSystem {
           msg:
             this.stamina < 5
               ? '😩 Exhausted! Stop fully to rest.'
-              : '😓 Getting tired — stop a moment to recover.'
+              : '😓 Ka gaji — rest soon — stop a moment to recover.'
         });
       }
     }
