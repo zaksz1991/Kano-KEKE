@@ -694,6 +694,18 @@ async function bootstrap() {
       try {
         result = missionManager.settleShift(cash, fuelManager?.fuel ?? 50);
       } catch (e) {}
+      // Star rating life-sim
+      try {
+        let stars = 1;
+        if (cash >= 1500) stars++;
+        if (cash >= 3000) stars++;
+        if ((passengerManager.combo || 0) >= 3) stars++;
+        if ((fuelManager?.fuel ?? 0) > 20) stars++;
+        if ((missionManager?.lives ?? 0) >= 2) stars++;
+        stars = Math.min(5, stars);
+        const starStr = '★'.repeat(stars) + '☆'.repeat(5 - stars);
+        setTimeout(() => showBanner('Shift rating ' + starStr), 900);
+      } catch (e) {}
       try {
         HighScoreBoard.submit({
           score: result.score || cash,
