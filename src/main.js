@@ -1433,7 +1433,15 @@ window.__kanoFullFrame = function fullFrame() {
           weather: 'CLEAR',
           shiftTime: shiftElapsed || 0,
           startCash: shiftStartCash || 0,
-          notice: passengerManager.getHudStatus?.() || null
+          notice: (() => {
+            const goal = 3000;
+            const cash = passengerManager.dailyEarnings || 0;
+            const left = Math.max(0, goal - cash);
+            const base = passengerManager.getHudStatus?.() || null;
+            if (left > 0 && cash > 0) return (base ? base + ' · ' : '') + 'Goal ₦' + goal + ' (₦' + left + ' left)';
+            if (cash >= goal) return (base ? base + ' · ' : '') + '✅ Daily goal hit';
+            return base;
+          })()
         });
       } catch (e) {}
 
