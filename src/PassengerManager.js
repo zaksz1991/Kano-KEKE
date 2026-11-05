@@ -262,6 +262,17 @@ export class PassengerManager {
     // Negotiation in progress
     if (this.negotiating) {
       this._negTimer += dt;
+      // Passenger raises offer slightly if you keep waiting (patience)
+      if (this._negTimer > 4 && this._negTimer < 4.2 && this.negotiating) {
+        const p = this.negotiating;
+        p.offerFare = Math.round(p.offerFare * 1.08);
+        if (hudCallback) {
+          hudCallback({
+            type: 'NEGOTIATE',
+            msg: `${p.title}: "Toh, ₦${p.offerFare} last!" · SLOW to take`
+          });
+        }
+      }
       const p = this.negotiating;
       const dist = p.mesh ? p.mesh.position.distanceTo(this.keke.group.position) : 99;
       if (speed < 5 && dist < 14) {
