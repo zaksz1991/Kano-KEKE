@@ -226,7 +226,7 @@ export class PassengerManager {
     this.nearestPrompt = null;
 
     this._spawnTimer += dt;
-    if (this._spawnTimer > 1.6) {
+    if (this._spawnTimer > 1.2) {
       this._spawnTimer = 0;
       this._spawnWaiter(playerZ);
     }

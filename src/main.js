@@ -55,6 +55,10 @@ if (!THREE.CapsuleGeometry) {
 const canvas = document.getElementById('webgl-canvas') || document.createElement('canvas');
 if (!canvas.id) { canvas.id = 'webgl-canvas'; document.body.prepend(canvas); }
 const scene = new THREE.Scene();
+try {
+  scene.fog = new THREE.Fog(0x87b5d9, 80, 220);
+} catch (e) {}
+
 // Baseline lights so GLBs are never pure black
 try {
   const hemi = new THREE.HemisphereLight(0xb1e1ff, 0xb97a20, 0.85);
@@ -460,6 +464,14 @@ async function bootstrap() {
       }
       
       try { window.__kanoApplyModels?.(); } catch (e) {}
+
+      
+      try {
+        if (typeof missionManager !== 'undefined' && missionManager?.startShift) {
+          const goals = missionManager.startShift('Kano');
+          if (goals?.length) showBanner('Mission: ' + goals.map(g => g.label).join(' · '));
+        }
+      } catch (e) {}
 
       showBanner('🚗 Drive! Hold ACCEL');
       window.__kanoStartQueued = false;
