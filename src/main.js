@@ -473,6 +473,13 @@ async function bootstrap() {
         }
       } catch (e) {}
 
+      try {
+        const rs = document.getElementById('route-select');
+        const rn = document.getElementById('route-name-display');
+        if (rs && rn && rs.options[rs.selectedIndex]) {
+          rn.textContent = rs.options[rs.selectedIndex].text.split('·')[0].trim().slice(0, 28);
+        }
+      } catch (e) {}
       showBanner('🚗 Drive! Hold ACCEL');
       window.__kanoStartQueued = false;
     } catch (err) {
@@ -996,7 +1003,15 @@ async function bootstrap() {
       audioEngine.playHorn();
     }
     if (e.code === 'KeyR') {
-      /* radio removed */
+      const stations = [
+        '📻 Freedom Radio 99.5',
+        '📻 Express Radio Kano',
+        '📻 Cool FM echoes',
+        '📻 Wazobia vibes',
+        '📻 Off'
+      ];
+      window.__kanoRadioIdx = ((window.__kanoRadioIdx || 0) + 1) % stations.length;
+      showBanner(stations[window.__kanoRadioIdx]);
     }
     if (e.code === 'KeyP' || e.code === 'Escape') {
       if (pauseMenu.isOpen()) {
