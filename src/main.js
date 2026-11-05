@@ -427,7 +427,7 @@ async function bootstrap() {
   // Apply driver/keke bonuses
   const driver = charSelect.getDriver();
   const kekeDef = charSelect.getKeke();
-  kekeController.maxSpeed = 32 * (kekeDef.speed || 1) * (driver.speedBonus || 1);
+  kekeController.maxSpeed = 34 * (kekeDef.speed || 1) * (driver.speedBonus || 1);
 
   const cameraRig = new KekeCameraRig(camera, kekeGroup);
   const flow = new GameFlowManager(scene, camera, kekeGroup, kekeController, cameraRig);
@@ -447,7 +447,7 @@ async function bootstrap() {
       try {
         kekeGroup.position.set(3.8, 0, 0);
         kekeController.velocity = 0;
-        kekeController.maxSpeed = 32;
+        kekeController.maxSpeed = 34;
       } catch (e) {}
       const menu = document.getElementById('main-menu-overlay');
       if (menu) menu.style.display = 'none';
@@ -536,7 +536,12 @@ async function bootstrap() {
   passengerManager.dailyEarnings = saved.cash ?? 1500;
   passengerManager.capacity = kekeDef.capacity || 3;
 
+  // Preload in background so first Start is faster
+  setTimeout(() => { try { window.__kanoApplyModels?.(); } catch (e) {} }, 2500);
   window.__kanoApplyModels = async function applyModels() {
+    if (window.__kanoModelsLoading) return;
+    window.__kanoModelsLoading = true;
+
     try {
       assetManager.enableNetwork?.();
       showBanner('Loading 3D models…');
@@ -557,9 +562,11 @@ async function bootstrap() {
         await passengerManager.initModels?.();
         if (passengerManager.pedModel) showBanner('✅ Pedestrian GLB ready');
       } catch (e) {}
+      window.__kanoModelsLoading = false;
     } catch (e) {
       console.error('applyModels', e);
       showBanner('Model load error — see console');
+      window.__kanoModelsLoading = false;
     }
   };
 
@@ -580,7 +587,7 @@ async function bootstrap() {
         kekeGroup.position.set(3.8, 0, 0);
         kekeGroup.rotation.set(0, 0, 0);
         kekeController.velocity = 0;
-        kekeController.maxSpeed = 32;
+        kekeController.maxSpeed = 34;
       } catch (e) {}
       const menu = document.getElementById('main-menu-overlay');
       if (menu) menu.style.display = 'none';
