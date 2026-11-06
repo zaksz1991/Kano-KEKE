@@ -1606,6 +1606,19 @@ window.__kanoFullFrame = function fullFrame() {
       if (timeAccum > 0.5) {
         timeAccum = 0;
         window.timeInMinutes = (window.timeInMinutes + 0.4) % 1440;
+        // Sky/fog tint by hour
+        try {
+          if (scene.fog) {
+            const h = (window.timeInMinutes / 60) % 24;
+            let col = 0x87b5d9; // day
+            if (h >= 5.5 && h < 7) col = 0xffb074; // dawn
+            else if (h >= 17.5 && h < 19) col = 0xff8a50; // dusk
+            else if (h >= 19 || h < 5.5) col = 0x1a237e; // night
+            scene.fog.color.setHex(col);
+            if (scene.background && scene.background.isColor) scene.background.setHex(col);
+            else scene.background = new THREE.Color(col);
+          }
+        } catch (e) {}
       }
     } catch (err) {
       console.warn('frame', err);
