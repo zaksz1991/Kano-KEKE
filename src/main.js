@@ -117,6 +117,12 @@ window.timeInMinutes = 10 * 60 + 30; // 10:30 AM – bright Kano day like photo
 window.__kanoStartQueued = false;
 window.__kanoClaimDaily = null;
 window.__kanoCash = 1500;
+window.__kanoSavings = 0;
+try {
+  const sv = JSON.parse(localStorage.getItem('kano_run_save_v2') || '{}');
+  window.__kanoSavings = sv.savings || 0;
+} catch (e) {}
+
 
 window.__kanoStartShift = null;
 window.__kanoStartQueued = false;
@@ -427,7 +433,7 @@ async function bootstrap() {
   // Apply driver/keke bonuses
   const driver = charSelect.getDriver();
   const kekeDef = charSelect.getKeke();
-  kekeController.maxSpeed = 34 * (kekeDef.speed || 1) * (driver.speedBonus || 1);
+  kekeController.maxSpeed = 36 * (kekeDef.speed || 1) * (driver.speedBonus || 1);
 
   const cameraRig = new KekeCameraRig(camera, kekeGroup);
   const flow = new GameFlowManager(scene, camera, kekeGroup, kekeController, cameraRig);
@@ -447,7 +453,7 @@ async function bootstrap() {
       try {
         kekeGroup.position.set(3.8, 0, 0);
         kekeController.velocity = 0;
-        kekeController.maxSpeed = 34;
+        kekeController.maxSpeed = 36;
       } catch (e) {}
       const menu = document.getElementById('main-menu-overlay');
       if (menu) menu.style.display = 'none';
@@ -546,7 +552,6 @@ async function bootstrap() {
   // Preload in background so first Start is faster
   setTimeout(() => { try { window.__kanoApplyModels?.(); } catch (e) {} }, 2500);
   window.__kanoApplyModels = async function applyModels() {
-    if (window.__kanoModelsLoading) return;
     window.__kanoModelsLoading = true;
 
     try {
@@ -594,7 +599,7 @@ async function bootstrap() {
         kekeGroup.position.set(3.8, 0, 0);
         kekeGroup.rotation.set(0, 0, 0);
         kekeController.velocity = 0;
-        kekeController.maxSpeed = 34;
+        kekeController.maxSpeed = 36;
       } catch (e) {}
       const menu = document.getElementById('main-menu-overlay');
       if (menu) menu.style.display = 'none';
@@ -1071,6 +1076,23 @@ async function bootstrap() {
     if (e.code === 'KeyE') {
       passengerManager.acceptDeal((ev) => showBanner(ev));
     }
+    if (e.code === 'KeyB') {
+      try {
+        if ((passengerManager.dailyEarnings || 0) >= 500) {
+          passengerManager.dailyEarnings -= 500;
+          window.__kanoSavings = (window.__kanoSavings || 0) + 500;
+          SaveSystem.saveGame({
+            cash: passengerManager.dailyEarnings,
+            savings: window.__kanoSavings
+          });
+          showBanner('🏦 Saved ₦500 · Total savings ₦' + window.__kanoSavings);
+          const earn = document.getElementById('earnings');
+          if (earn) earn.innerText = passengerManager.dailyEarnings;
+        } else {
+          showBanner('Need ₦500 cash to bank');
+        }
+      } catch (err) {}
+    }
     if (e.code === 'KeyN') {
       try { window.__kanoEndShift?.(); } catch (err) {}
       return;
@@ -1195,7 +1217,7 @@ async function bootstrap() {
       if (naija.race) {
         try {
           trafficManager.maxVehicles = isMobile ? 5 : 7;
-          trafficManager.startRace?.(6);
+          trafficManager.startRace?.(7);
           showBanner('🏁 RACE: pass rival kekes — first to distance wins');
         } catch (e) {}
       }

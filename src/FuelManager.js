@@ -34,7 +34,7 @@ export class FuelManager {
 
     if (this.fuel <= 0 && !this.isOut) {
       this.isOut = true;
-      this.keke.maxSpeed = 4;
+      this.keke.maxSpeed = Math.max(6, (this.baseMaxSpeed || 36) * 0.15);
       if (hudCallback) hudCallback({ type: 'OUT_OF_FUEL', msg: '🛑 Fuel finish! Crawl to nearest PMS.' });
     }
   }

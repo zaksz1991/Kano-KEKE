@@ -98,6 +98,7 @@ export class PassengerManager {
     const g = new THREE.Group();
     if (this.pedModel) {
       const mesh = this.pedModel.clone(true);
+      mesh.userData.isGlb = true;
       mesh.scale.setScalar(1.3 + Math.random() * 0.25);
       g.add(mesh);
     } else {
