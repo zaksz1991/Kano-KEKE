@@ -1369,6 +1369,7 @@ window.__kanoFullFrame = function fullFrame() {
             document.body.appendChild(h);
           }
           h.textContent = '📢 HONK';
+          try { if (navigator.vibrate) navigator.vibrate(30); } catch (e) {}
           h.style.opacity = '1';
           clearTimeout(window.__hornFlash);
           window.__hornFlash = setTimeout(() => { h.style.opacity = '0'; }, 300);
@@ -1444,7 +1445,16 @@ window.__kanoFullFrame = function fullFrame() {
           }
         });
       } catch (e) {}
-      try { collisionSystem.update?.(delta, showBanner); } catch (e) {}
+      try {
+        collisionSystem.update?.(delta, (msg) => {
+          showBanner(msg);
+          try {
+            if (navigator.vibrate && String(msg).toLowerCase().includes('crash')) {
+              navigator.vibrate([40, 30, 40]);
+            }
+          } catch (e) {}
+        });
+      } catch (e) {}
       try {
         fuelManager.update?.(delta, (ev) => {
           if (ev?.msg) showBanner(ev);
