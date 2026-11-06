@@ -682,6 +682,14 @@ async function bootstrap() {
       if (keys['KeyD'] || keys['ArrowRight']) steer = 1;
       kekeController.setInput(throttle, steer);
       kekeController.update(delta);
+      // Reverse cue
+      if (throttle < -0.5 && (kekeController.velocity || 0) < -0.5) {
+        if (!window.__revBanner || performance.now() - window.__revBanner > 2500) {
+          window.__revBanner = performance.now();
+          showBanner('⏪ Reverse');
+        }
+      }
+
       cameraRig.update(delta, kekeController.currentSpeed);
       try { roadSystem.update?.(kekeGroup.position.z); } catch (e) {}
       try { trafficManager.update?.(delta, false); } catch (e) {}
@@ -1386,6 +1394,14 @@ window.__kanoFullFrame = function fullFrame() {
 
       kekeController.setInput(throttle, steer);
       kekeController.update(delta);
+      // Reverse cue
+      if (throttle < -0.5 && (kekeController.velocity || 0) < -0.5) {
+        if (!window.__revBanner || performance.now() - window.__revBanner > 2500) {
+          window.__revBanner = performance.now();
+          showBanner('⏪ Reverse');
+        }
+      }
+
       cameraRig.update(delta, kekeController.currentSpeed);
 
       try { roadSystem.update?.(kekeGroup.position.z); } catch (e) {}
