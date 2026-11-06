@@ -703,6 +703,12 @@ async function bootstrap() {
     }
   }
 
+  window.__kanoCycleCam = () => {
+    try {
+      const mode = cameraRig.cycleMode?.() || 'chase';
+      showBanner('📷 ' + String(mode).toUpperCase());
+    } catch (e) {}
+  };
   window.__kanoEndShift = () => {
     try {
       const cash = passengerManager?.dailyEarnings ?? 0;

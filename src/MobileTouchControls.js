@@ -17,6 +17,7 @@ export function setupMobileControls(inputState, onHorn, onRadio) {
     <button type="button" id="touch-left" style="position:absolute;bottom:145px;left:18px;width:88px;height:88px;border-radius:50%;border:3px solid #fff;background:rgba(30,30,30,0.8);color:#fff;font-size:28px;pointer-events:auto;touch-action:none;user-select:none;">◀</button>
     <button type="button" id="touch-right" style="position:absolute;bottom:145px;left:118px;width:88px;height:88px;border-radius:50%;border:3px solid #fff;background:rgba(30,30,30,0.8);color:#fff;font-size:28px;pointer-events:auto;touch-action:none;user-select:none;">▶</button>
     <button type="button" id="touch-horn" style="position:absolute;bottom:145px;right:18px;width:72px;height:72px;border-radius:50%;border:2px solid #00bcd4;background:rgba(0,150,180,0.85);color:#fff;font-weight:900;font-size:12px;pointer-events:auto;touch-action:none;user-select:none;">HORN</button>
+    <button type="button" id="touch-cam" style="position:absolute;top:12px;left:76px;width:56px;height:40px;border-radius:10px;border:2px solid #80deea;background:rgba(0,40,50,0.55);color:#80deea;font-weight:900;font-size:11px;pointer-events:auto;touch-action:none;user-select:none;z-index:90;">CAM</button>
     <button type="button" id="touch-end" style="position:absolute;top:12px;left:12px;width:56px;height:40px;border-radius:10px;border:2px solid #ff5252;background:rgba(80,0,0,0.55);color:#ff8a80;font-weight:900;font-size:11px;pointer-events:auto;touch-action:none;user-select:none;z-index:90;">END</button>
     <button type="button" id="touch-pause" style="position:absolute;top:12px;right:12px;width:56px;height:40px;border-radius:10px;border:2px solid #fff;background:rgba(0,0,0,0.55);color:#fff;font-weight:900;font-size:12px;pointer-events:auto;touch-action:none;user-select:none;z-index:90;">II</button>
   `;
@@ -85,6 +86,10 @@ export function setupMobileControls(inputState, onHorn, onRadio) {
   document.getElementById('touch-end')?.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     if (typeof window.__kanoEndShift === 'function') window.__kanoEndShift();
+  });
+  document.getElementById('touch-cam')?.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    if (typeof window.__kanoCycleCam === 'function') window.__kanoCycleCam();
   });
 
   // Expose for debug
