@@ -1218,6 +1218,8 @@ async function bootstrap() {
       if (naija.race) {
         try {
           trafficManager.maxVehicles = isMobile ? 5 : 7;
+          window.__kanoRaceWon = false;
+          window.__kanoRaceLead = 0;
           trafficManager.startRace?.(7);
           try { window.__kanoGameMode = 'race'; } catch (e) {}
           setTimeout(() => showBanner('🏁 Pass yellow kekes — climb to P1'), 1200);
@@ -1388,6 +1390,17 @@ window.__kanoFullFrame = function fullFrame() {
             document.body.appendChild(rh);
           }
           rh.textContent = '🏁 P' + place;
+          // Win: hold P1 for a stretch
+          if (place === 1) {
+            window.__kanoRaceLead = (window.__kanoRaceLead || 0) + delta;
+            if (window.__kanoRaceLead > 12 && !window.__kanoRaceWon) {
+              window.__kanoRaceWon = true;
+              showBanner('🏆 NAPEP RACE WIN — P1 locked!');
+              try { passengerManager.dailyEarnings += 2500; } catch (e) {}
+            }
+          } else {
+            window.__kanoRaceLead = 0;
+          }
         }
       } catch (e) {}
       try {
