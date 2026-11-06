@@ -303,6 +303,12 @@ export class PassengerManager {
           this._startNegotiate(p, hudCallback);
           break;
         }
+      } else if (dist < 22 && speed >= 12) {
+        this.nearestPrompt = `${p.title}: "Keke! Slow down!" · ${p.destination}`;
+        if (!p._shouted && dist < 14) {
+          p._shouted = true;
+          if (hudCallback) hudCallback({ msg: `${p.title}: "Keke na! ${p.destination}!"` });
+        }
       } else if (dist < 18 && speed < 12) {
         this.nearestPrompt = `${p.title} · ${p.destination} · ~₦${p.baseFare}`;
       }
