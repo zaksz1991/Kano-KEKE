@@ -1012,6 +1012,16 @@ async function bootstrap() {
   if (mobileEl) mobileEl.style.display = 'none';
 
   window.__kanoTogglePause = () => {
+    try {
+      if (!paused) {
+        const cash = passengerManager?.dailyEarnings ?? 0;
+        const fuel = Math.round(fuelManager?.fuel ?? 0);
+        const seats = (passengerManager?.onBoard?.length || 0) + '/' + (passengerManager?.capacity || 3);
+        const kmh = Math.round((kekeController?.currentSpeed || 0) * 3.6);
+        showBanner('⏸ PAUSED · ₦' + cash + ' · Fuel ' + fuel + '% · Seats ' + seats + ' · ' + kmh + 'km/h');
+      }
+    } catch (e) {}
+
     if (pauseMenu.isOpen()) {
       pauseMenu.hide();
       paused = false;
