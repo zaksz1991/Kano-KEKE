@@ -445,6 +445,7 @@ async function bootstrap() {
       window.__kanoReady = true;
       hideLoading();
       gameStarted = true;
+      window.__kanoDistBonus = 0;
       try {
         if (typeof missionManager !== 'undefined' && missionManager) {
           missionManager.lives = Math.max(3, missionManager.lives || 3);
@@ -590,6 +591,7 @@ async function bootstrap() {
     try {
       hideLoading();
       gameStarted = true;
+      window.__kanoDistBonus = 0;
       try {
         if (typeof missionManager !== 'undefined' && missionManager) {
           missionManager.lives = Math.max(3, missionManager.lives || 3);
@@ -1219,6 +1221,7 @@ async function bootstrap() {
         try {
           trafficManager.maxVehicles = isMobile ? 5 : 7;
           window.__kanoRaceWon = false;
+          window.__kanoDistBonus = 0;
           window.__kanoRaceLead = 0;
           trafficManager.startRace?.(7);
           try { window.__kanoGameMode = 'race'; } catch (e) {}
@@ -1496,6 +1499,21 @@ window.__kanoFullFrame = function fullFrame() {
       } catch (e) {}
 
       shiftElapsed = (shiftElapsed || 0) + delta;
+      // Distance milestones (life-sim / career)
+      try {
+        const z = Math.abs(kekeGroup.position.z || 0);
+        window.__kanoDistBonus = window.__kanoDistBonus || 0;
+        const thresholds = [500, 1200, 2500, 4000];
+        for (const th of thresholds) {
+          if (z > th && window.__kanoDistBonus < th) {
+            window.__kanoDistBonus = th;
+            const bonus = 200 + Math.floor(th / 20);
+            passengerManager.dailyEarnings += bonus;
+            showBanner('📍 ' + th + 'm along route · +₦' + bonus);
+          }
+        }
+      } catch (e) {}
+
       window.__kanoAutoSave = (window.__kanoAutoSave || 0) + delta;
       if (window.__kanoAutoSave > 45) {
         window.__kanoAutoSave = 0;
