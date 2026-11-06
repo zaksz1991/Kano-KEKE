@@ -62,7 +62,8 @@ export class PoliceCheckpointEngine {
     this._raiseBarrier(cp);
     const roll = Math.random();
     if (roll < 0.75) {
-      if (hudCallback) hudCallback({ msg: '🟢 KAROTA: "Toh, wuce." Drive safe.', type: 'KAROTA_CLEAR' });
+      try { this.passengers.dailyEarnings = (this.passengers.dailyEarnings || 0) + 50; } catch (e) {}
+      if (hudCallback) hudCallback({ msg: '🟢 KAROTA: "Toh, wuce." · +₦50 respect', type: 'KAROTA_CLEAR', earnings: this.passengers.dailyEarnings });
     } else if (roll < 0.92) {
       const fine = 200 + Math.floor(Math.random() * 300);
       this.passengers.dailyEarnings = Math.max(0, this.passengers.dailyEarnings - fine);
