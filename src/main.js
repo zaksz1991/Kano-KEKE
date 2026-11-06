@@ -1372,6 +1372,14 @@ window.__kanoFullFrame = function fullFrame() {
           h.style.opacity = '1';
           clearTimeout(window.__hornFlash);
           window.__hornFlash = setTimeout(() => { h.style.opacity = '0'; }, 300);
+          // Brief overtake push
+          if (kekeController.currentSpeed > 4 && !(window.__hornBoost > performance.now())) {
+            window.__hornBoost = performance.now() + 900;
+            kekeController.velocity = Math.min(
+              kekeController.maxSpeed || 36,
+              (kekeController.velocity || 0) + 2.2
+            );
+          }
         } catch (e) {}
       }
 
