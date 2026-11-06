@@ -182,7 +182,7 @@ export class PassengerManager {
     const mesh = this._makePerson();
     const px = this.keke.group.position.x;
     const side = px >= 0 ? (Math.random() > 0.3 ? 1 : -1) : Math.random() > 0.3 ? -1 : 1;
-    mesh.position.set(side * (9.5 + Math.random() * 1.5), 0, playerZ + 20 + Math.random() * 70);
+    mesh.position.set(side * (8.8 + Math.random() * 1.2), 0, playerZ + 18 + Math.random() * 55);
     mesh.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
     this.scene.add(mesh);
     p.mesh = mesh;

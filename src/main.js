@@ -56,7 +56,8 @@ const canvas = document.getElementById('webgl-canvas') || document.createElement
 if (!canvas.id) { canvas.id = 'webgl-canvas'; document.body.prepend(canvas); }
 const scene = new THREE.Scene();
 try {
-  scene.fog = new THREE.Fog(0x87b5d9, 80, 220);
+  const _mobFog = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) || window.innerWidth < 900;
+  scene.fog = new THREE.Fog(0x87b5d9, _mobFog ? 60 : 90, _mobFog ? 160 : 240);
 } catch (e) {}
 
 // Baseline lights so GLBs are never pure black
@@ -1218,6 +1219,8 @@ async function bootstrap() {
         try {
           trafficManager.maxVehicles = isMobile ? 5 : 7;
           trafficManager.startRace?.(7);
+          try { window.__kanoGameMode = 'race'; } catch (e) {}
+          setTimeout(() => showBanner('🏁 Pass yellow kekes — climb to P1'), 1200);
           showBanner('🏁 RACE: pass rival kekes — first to distance wins');
         } catch (e) {}
       }
