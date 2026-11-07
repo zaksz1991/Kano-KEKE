@@ -345,16 +345,24 @@ export class PassengerManager {
           tip = 50 + Math.floor(Math.random() * 150);
           pay += tip;
         }
+        // Smooth drop bonus if nearly stopped
+        if (speed < 3) {
+          const smooth = 30 + Math.floor(Math.random() * 40);
+          pay += smooth;
+          tip += smooth;
+          p._smooth = true;
+        }
         this.dailyEarnings += pay;
         this.combo += 1;
         this.score += pay + this.combo * 12;
         this.onBoard = this.onBoard.filter((x) => x !== p);
         if (hudCallback) {
           const tipMsg = tip ? ` · tip +₦${tip}` : '';
+          const smoothMsg = p._smooth ? ' · SMOOTH' : '';
           hudCallback({
             type: 'DROPOFF',
             earnings: this.dailyEarnings,
-            msg: `${p.title}: "Na gode!" · ${p.destination} · +₦${pay}${tipMsg} · Combo x${this.combo}`
+            msg: `${p.title}: "Na gode!" · ${p.destination} · +₦${pay}${tipMsg}${smoothMsg} · Combo x${this.combo}`
           });
         }
       } else if (playerZ > p.dropAtZ + 50) {
