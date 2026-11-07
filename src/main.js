@@ -808,6 +808,10 @@ async function bootstrap() {
       } catch (e) {}
       showBanner('✅ Shift ended · ₦' + cash + ' · fuel ' + fuelLeft + '%');
       setTimeout(() => showBanner('High scores updated · Start again when ready'), 1600);
+      try {
+        const b = document.getElementById('start-game-btn');
+        if (b) { b.textContent = 'Start Next Shift'; b.disabled = false; b.style.opacity = '1'; }
+      } catch (e) {}
     } catch (e) {
       console.warn('endShift', e);
       showBanner('Shift ended');
