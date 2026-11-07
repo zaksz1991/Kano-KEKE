@@ -119,6 +119,8 @@ window.__kanoStartQueued = false;
 window.__kanoClaimDaily = null;
 window.__kanoCash = 1500;
 window.__kanoSavings = 0;
+window.__kanoStreak = 0;
+
 try {
   const sv = JSON.parse(localStorage.getItem('kano_run_save_v2') || '{}');
   window.__kanoSavings = sv.savings || 0;
@@ -773,6 +775,26 @@ async function bootstrap() {
       if (rh) rh.remove();
       const drops = passengerManager?.onBoard ? 0 : 0;
       const fuelLeft = Math.round(fuelManager?.fuel ?? 0);
+      // Play streak (calendar days WAT)
+      try {
+        const dayKey = new Date(Date.now() + 3600000).toISOString().slice(0, 10);
+        const prev = localStorage.getItem('kano_last_play_day');
+        let streak = parseInt(localStorage.getItem('kano_play_streak') || '0', 10);
+        if (prev !== dayKey) {
+          const prevT = prev ? Date.parse(prev + 'T12:00:00Z') : 0;
+          const curT = Date.parse(dayKey + 'T12:00:00Z');
+          if (prevT && curT - prevT <= 90000000) streak += 1;
+          else streak = 1;
+          localStorage.setItem('kano_last_play_day', dayKey);
+          localStorage.setItem('kano_play_streak', String(streak));
+        }
+        window.__kanoStreak = streak;
+        if (streak >= 2) {
+          const bonus = Math.min(500, streak * 50);
+          passengerManager.dailyEarnings += bonus;
+          showBanner('🔥 ' + streak + '-day streak · +₦' + bonus);
+        }
+      } catch (e) {}
       showBanner('✅ Shift ended · ₦' + cash + ' · fuel ' + fuelLeft + '%');
       setTimeout(() => showBanner('High scores updated · Start again when ready'), 1600);
     } catch (e) {
