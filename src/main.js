@@ -639,8 +639,8 @@ async function bootstrap() {
       if (!document.getElementById('kano-speed-big')) {
         const sp = document.createElement('div');
         sp.id = 'kano-speed-big';
-        sp.style.cssText = 'position:fixed;bottom:130px;left:50%;transform:translateX(-50%);z-index:55;pointer-events:none;font:900 28px/1 system-ui;color:#ffcc00;text-shadow:0 2px 8px #000;';
-        sp.textContent = '0 km/h';
+        sp.style.cssText = 'position:fixed;bottom:130px;left:50%;transform:translateX(-50%);z-index:55;pointer-events:none;font:900 28px/1 system-ui;color:#ffcc00;text-shadow:0 2px 8px #000;text-align:center;';
+        sp.innerHTML = '0 km/h<div id="kano-mission-line" style="font:700 11px system-ui;color:#80cbc4;margin-top:4px;"></div>';
         document.body.appendChild(sp);
       }
       try {
@@ -1365,8 +1365,8 @@ async function bootstrap() {
     if (!document.getElementById('kano-speed-big')) {
         const sp = document.createElement('div');
         sp.id = 'kano-speed-big';
-        sp.style.cssText = 'position:fixed;bottom:130px;left:50%;transform:translateX(-50%);z-index:55;pointer-events:none;font:900 28px/1 system-ui;color:#ffcc00;text-shadow:0 2px 8px #000;';
-        sp.textContent = '0 km/h';
+        sp.style.cssText = 'position:fixed;bottom:130px;left:50%;transform:translateX(-50%);z-index:55;pointer-events:none;font:900 28px/1 system-ui;color:#ffcc00;text-shadow:0 2px 8px #000;text-align:center;';
+        sp.innerHTML = '0 km/h<div id="kano-mission-line" style="font:700 11px system-ui;color:#80cbc4;margin-top:4px;"></div>';
         document.body.appendChild(sp);
       }
       try {
@@ -1625,7 +1625,19 @@ window.__kanoFullFrame = function fullFrame() {
       const spdEl = document.getElementById('speed-display');
       if (spdEl) spdEl.innerText = String(kmh);
       const big = document.getElementById('kano-speed-big');
-      if (big) big.textContent = kmh + ' km/h';
+      if (big) {
+        const ml = document.getElementById('kano-mission-line');
+        const main = kmh + ' km/h';
+        if (ml) {
+          big.childNodes[0].textContent = main;
+          try {
+            const g = (missionManager?.shiftGoals || []).find((x) => !x.done);
+            ml.textContent = g ? g.label + ' ' + Math.min(g.progress, g.target) + '/' + g.target : 'Missions clear';
+          } catch (e) { ml.textContent = ''; }
+        } else {
+          big.textContent = main;
+        }
+      }
       try {
         dashHud.update?.({
           speed: kmh,
