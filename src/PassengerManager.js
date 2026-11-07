@@ -35,6 +35,7 @@ export class PassengerManager {
     this.capacity = 3;
     this.dailyEarnings = 1500;
     this.combo = 0;
+    this._shiftBoards = 0;
     this.score = 0;
     this.maxWaiting = 8;
     this._spawnTimer = 0;
@@ -215,6 +216,13 @@ export class PassengerManager {
     p.dropAtZ = this.keke.group.position.z + p.tripDist;
     this.onBoard.push(p);
     p._fullLoad = willFill;
+    this._shiftBoards = (this._shiftBoards || 0) + 1;
+    if (this._shiftBoards <= 3) {
+      finalFare = Math.round(finalFare * 1.1);
+      p.agreedFare = finalFare;
+      p._earlyBird = true;
+    }
+
     this.waiting = this.waiting.filter((w) => w !== p);
     this.negotiating = null;
     if (p.mesh) {
@@ -226,7 +234,7 @@ export class PassengerManager {
     if (hudCallback) {
       hudCallback({
         type: 'BOARD',
-        msg: `${p.title}: "Na shiga!" → ${p.destination} · ₦${finalFare}` + (p._fullLoad ? " · FULL LOAD +" : ""),
+        msg: `${p.title}: "Na shiga!" → ${p.destination} · ₦${finalFare}` + (p._fullLoad ? " · FULL LOAD +" : "") + (p._earlyBird ? " · EARLY +" : ""),
         earnings: this.dailyEarnings
       });
     }
@@ -352,6 +360,7 @@ export class PassengerManager {
       } else if (playerZ > p.dropAtZ + 50) {
         // Missed drop — partial pay, reset combo
         this.combo = 0;
+    this._shiftBoards = 0;
         this.onBoard = this.onBoard.filter((x) => x !== p);
         if (hudCallback) {
           hudCallback({
