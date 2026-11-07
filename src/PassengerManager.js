@@ -206,11 +206,15 @@ export class PassengerManager {
 
   _acceptNegotiate(p, hudCallback) {
     // Driver bonus applied by caller via capacity; fare bump by mood
-    const finalFare = Math.round(p.offerFare * (1 + p.mood * 0.15));
+    let finalFare = Math.round(p.offerFare * (1 + p.mood * 0.15));
+    // Full-load bonus when this boarding fills the keke
+    const willFill = (this.onBoard.length + (p.seats || 1)) >= (this.capacity || 3);
+    if (willFill) finalFare = Math.round(finalFare * 1.2);
     p.agreedFare = finalFare;
     p.state = 'boarded';
     p.dropAtZ = this.keke.group.position.z + p.tripDist;
     this.onBoard.push(p);
+    p._fullLoad = willFill;
     this.waiting = this.waiting.filter((w) => w !== p);
     this.negotiating = null;
     if (p.mesh) {
@@ -222,7 +226,7 @@ export class PassengerManager {
     if (hudCallback) {
       hudCallback({
         type: 'BOARD',
-        msg: `${p.title}: "Na shiga!" → ${p.destination} · ₦${finalFare}`,
+        msg: `${p.title}: "Na shiga!" → ${p.destination} · ₦${finalFare}` + (p._fullLoad ? " · FULL LOAD +" : ""),
         earnings: this.dailyEarnings
       });
     }
