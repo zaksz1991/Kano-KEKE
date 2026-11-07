@@ -1681,7 +1681,13 @@ window.__kanoFullFrame = function fullFrame() {
           '🌧️ Dust on the dual carriageway',
           '🚌 Danfo blocking the slow lane'
         ];
-        if (Math.random() < 0.55) showBanner(lines[Math.floor(Math.random() * lines.length)]);
+        if (Math.random() < 0.45) showBanner(lines[Math.floor(Math.random() * lines.length)]);
+        else {
+          try {
+            const np = passengerManager.nearestPrompt || passengerManager.getHudStatus?.();
+            if (np) showBanner('👂 ' + np);
+          } catch (e) {}
+        }
         // Occasional Gari Rush micro-challenge
         if (Math.random() < 0.22 && !window.__kanoGariRush) {
           window.__kanoGariRush = 45; // seconds
