@@ -1636,6 +1636,14 @@ window.__kanoFullFrame = function fullFrame() {
             scene.fog.color.setHex(col);
             if (scene.background && scene.background.isColor) scene.background.setHex(col);
             else scene.background = new THREE.Color(col);
+            // Tighter fog at night for visibility challenge
+            if (h >= 19 || h < 5.5) {
+              scene.fog.near = 40;
+              scene.fog.far = 140;
+            } else {
+              scene.fog.near = 70;
+              scene.fog.far = 220;
+            }
           }
         } catch (e) {}
       }
