@@ -574,7 +574,14 @@ async function bootstrap() {
       try {
         passengerManager.assets = assetManager;
         await passengerManager.initModels?.();
-        if (passengerManager.pedModel) showBanner('✅ Pedestrian GLB ready');
+        if (passengerManager.pedModel) showBanner('✅ Passenger GLB ready');
+      } catch (e) {}
+      try {
+        pedestrianManager.assets = assetManager;
+        pedestrianManager.scene = scene;
+        pedestrianManager.keke = kekeController;
+        await pedestrianManager.init?.();
+        if (pedestrianManager.template) showBanner('✅ Sidewalk peds GLB');
       } catch (e) {}
       window.__kanoModelsLoading = false;
     } catch (e) {
@@ -1027,7 +1034,9 @@ async function bootstrap() {
         const fuel = Math.round(fuelManager?.fuel ?? 0);
         const seats = (passengerManager?.onBoard?.length || 0) + '/' + (passengerManager?.capacity || 3);
         const kmh = Math.round((kekeController?.currentSpeed || 0) * 3.6);
-        showBanner('⏸ PAUSED · ₦' + cash + ' · Fuel ' + fuel + '% · Seats ' + seats + ' · ' + kmh + 'km/h');
+        const mins = Math.max(1, Math.round((shiftElapsed || 1) / 60));
+        const epm = Math.round(cash / mins);
+        showBanner('⏸ ₦' + cash + ' · ₦' + epm + '/min · Fuel ' + fuel + '% · Seats ' + seats);
       }
     } catch (e) {}
 
@@ -1464,6 +1473,13 @@ window.__kanoFullFrame = function fullFrame() {
             if (earn) earn.innerText = ev.earnings;
           }
           if (ev && ev.type === 'DROPOFF') {
+            try {
+              const fareMatch = String(ev.msg || '').match(/₦(\d+)/);
+              const fare = fareMatch ? parseInt(fareMatch[1], 10) : 200;
+              missionManager?.onDropoff?.(fare);
+              _updateMissionHud?.(missionManager);
+            } catch (e) {}
+
             const combo = passengerManager.combo || 0;
             if (combo === 3) showBanner('🔥 3-drop combo — street legend forming');
             if (combo === 5) showBanner('🔥🔥 5 combo — Kano king shift!');
@@ -1514,6 +1530,7 @@ window.__kanoFullFrame = function fullFrame() {
         }, false);
       } catch (e) {}
       try { nearMiss?.update?.(delta, showBanner); } catch (e) {}
+      try { pedestrianManager?.update?.(delta); } catch (e) {}
       try { weatherManager?.update?.(delta, kekeGroup.position, showBanner); } catch (e) {}
       try {
         const targets = [];
