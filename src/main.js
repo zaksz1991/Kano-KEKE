@@ -1495,6 +1495,7 @@ window.__kanoFullFrame = function fullFrame() {
             if (earn) earn.innerText = ev.earnings;
           }
           if (ev && ev.type === 'DROPOFF') {
+            if (window.__kanoGariRush > 0) window.__kanoGariDrops = (window.__kanoGariDrops || 0) + 1;
             try {
               const fareMatch = String(ev.msg || '').match(/₦(\d+)/);
               const fare = fareMatch ? parseInt(fareMatch[1], 10) : 200;
@@ -1658,6 +1659,24 @@ window.__kanoFullFrame = function fullFrame() {
           '🚌 Danfo blocking the slow lane'
         ];
         if (Math.random() < 0.55) showBanner(lines[Math.floor(Math.random() * lines.length)]);
+        // Occasional Gari Rush micro-challenge
+        if (Math.random() < 0.22 && !window.__kanoGariRush) {
+          window.__kanoGariRush = 45; // seconds
+          window.__kanoGariDrops = 0;
+          showBanner('⚡ GARI RUSH: drop 2 passengers in 45s!');
+        }
+      }
+      if (window.__kanoGariRush > 0) {
+        window.__kanoGariRush -= delta;
+        if (window.__kanoGariRush <= 0) {
+          window.__kanoGariRush = 0;
+          if ((window.__kanoGariDrops || 0) >= 2) {
+            passengerManager.dailyEarnings += 800;
+            showBanner('⚡ GARI RUSH CLEAR · +₦800');
+          } else {
+            showBanner('⚡ Gari Rush failed');
+          }
+        }
       }
 
       timeAccum += delta;
