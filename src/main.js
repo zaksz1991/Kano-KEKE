@@ -448,6 +448,7 @@ async function bootstrap() {
       hideLoading();
       gameStarted = true;
       window.__kanoDistBonus = 0;
+      window.__kanoAllMissionsDone = false;
       try {
         if (typeof missionManager !== 'undefined' && missionManager) {
           missionManager.lives = Math.max(3, missionManager.lives || 3);
@@ -601,6 +602,7 @@ async function bootstrap() {
       hideLoading();
       gameStarted = true;
       window.__kanoDistBonus = 0;
+      window.__kanoAllMissionsDone = false;
       try {
         if (typeof missionManager !== 'undefined' && missionManager) {
           missionManager.lives = Math.max(3, missionManager.lives || 3);
@@ -1309,6 +1311,7 @@ async function bootstrap() {
           trafficManager.maxVehicles = isMobile ? 5 : 7;
           window.__kanoRaceWon = false;
           window.__kanoDistBonus = 0;
+      window.__kanoAllMissionsDone = false;
           window.__kanoRaceLead = 0;
           trafficManager.startRace?.(7);
           try { window.__kanoGameMode = 'race'; } catch (e) {}
@@ -1524,6 +1527,13 @@ window.__kanoFullFrame = function fullFrame() {
               const fare = fareMatch ? parseInt(fareMatch[1], 10) : 200;
               missionManager?.onDropoff?.(fare);
               _updateMissionHud?.(missionManager);
+              const goals = missionManager?.shiftGoals || [];
+              if (goals.length && goals.every((g) => g.done) && !window.__kanoAllMissionsDone) {
+                window.__kanoAllMissionsDone = true;
+                const bonus = 600;
+                passengerManager.dailyEarnings += bonus;
+                showBanner('🎯 All shift missions clear · +₦' + bonus);
+              }
             } catch (e) {}
 
             const combo = passengerManager.combo || 0;
