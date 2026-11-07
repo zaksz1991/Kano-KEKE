@@ -795,6 +795,15 @@ async function bootstrap() {
           showBanner('🔥 ' + streak + '-day streak · +₦' + bonus);
         }
       } catch (e) {}
+      try {
+        const dayKey = new Date(Date.now() + 3600000).toISOString().slice(0, 10);
+        const bestKey = 'kano_best_' + dayKey;
+        const prevBest = parseInt(localStorage.getItem(bestKey) || '0', 10);
+        if (cash > prevBest) {
+          localStorage.setItem(bestKey, String(cash));
+          setTimeout(() => showBanner('🥇 New best today · ₦' + cash), 2000);
+        }
+      } catch (e) {}
       showBanner('✅ Shift ended · ₦' + cash + ' · fuel ' + fuelLeft + '%');
       setTimeout(() => showBanner('High scores updated · Start again when ready'), 1600);
     } catch (e) {
@@ -830,6 +839,20 @@ async function bootstrap() {
   const missionBoard = new MissionBoardUI(missionManager, charSelect);
   try { missionBoard.showPreview(); } catch (e) {}
   try { HighScoreBoard.renderOnMenu(); } catch (e) {}
+  try {
+    const dayKey = new Date(Date.now() + 3600000).toISOString().slice(0, 10);
+    const best = parseInt(localStorage.getItem('kano_best_' + dayKey) || '0', 10);
+    if (best > 0) {
+      let el = document.getElementById('kano-best-today');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'kano-best-today';
+        el.style.cssText = 'color:#ffcc00;font-weight:800;font-size:13px;margin:6px 16px;';
+        document.getElementById('main-menu-overlay')?.querySelector('.menu-buttons')?.prepend(el);
+      }
+      el.textContent = '🥇 Best today · ₦' + best;
+    }
+  } catch (e) {}
 
   const collisionSystem = new KekeCollisionSystem(kekeGroup, kekeController, trafficManager, missionManager);
   const nearMiss = new NearMissSystem(kekeGroup, kekeController, trafficManager, missionManager);
