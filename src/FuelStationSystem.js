@@ -104,6 +104,11 @@ export class FuelStationSystem {
           continue;
         }
         this.passengers.dailyEarnings -= cost;
+        // Small engine refresh with fill (life-sim mechanic)
+        try {
+          if (window.__kanoRepairEngine) window.__kanoRepairEngine();
+        } catch (e) {}
+
         this.fuel.fuel = 100;
         this.fuel.isOut = false;
         if (this.fuel.keke) this.fuel.keke.maxSpeed = Math.max(this.fuel.keke.maxSpeed, 22);

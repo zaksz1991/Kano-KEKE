@@ -703,6 +703,15 @@ async function bootstrap() {
     }
   }
 
+  window.__kanoRepairEngine = () => {
+    try {
+      collisionSystem?.repair?.();
+      if (missionManager && missionManager.lives < 3) {
+        missionManager.lives = Math.min(3, (missionManager.lives || 0) + 1);
+      }
+      showBanner('🔧 Mechanic at PMS — engine topped up');
+    } catch (e) {}
+  };
   window.__kanoCycleCam = () => {
     try {
       const mode = cameraRig.cycleMode?.() || 'chase';
