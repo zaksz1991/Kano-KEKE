@@ -1128,6 +1128,10 @@ async function bootstrap() {
       const mc = document.getElementById('mobile-controls-overlay');
       if (mc) mc.style.display = 'block';
       showBanner('▶ Resumed');
+      if (!localStorage.getItem('kano_q_tip')) {
+        localStorage.setItem('kano_q_tip', '1');
+        setTimeout(() => showBanner('Tip: Pause menu → Quality LOW if phone lags'), 1200);
+      }
     } else if (gameStarted) {
       paused = true;
       if (flow.state === 'DRIVING') flow.setState('PAUSED');
@@ -1164,6 +1168,10 @@ async function bootstrap() {
         const mc = document.getElementById('mobile-controls-overlay');
         if (mc) mc.style.display = 'block';
         showBanner('▶ Resumed');
+      if (!localStorage.getItem('kano_q_tip')) {
+        localStorage.setItem('kano_q_tip', '1');
+        setTimeout(() => showBanner('Tip: Pause menu → Quality LOW if phone lags'), 1200);
+      }
       } else if (gameStarted) {
         paused = true;
         if (flow.state === 'DRIVING') flow.setState('PAUSED');
