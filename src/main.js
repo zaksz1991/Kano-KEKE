@@ -761,6 +761,10 @@ async function bootstrap() {
         } else if (result?.xpGain) {
           setTimeout(() => showBanner('✨ +' + result.xpGain + ' XP'), 1400);
         }
+        try {
+          const rank = missionManager.rankForScore?.(result?.score || cash) || '';
+          if (rank) setTimeout(() => showBanner('🏅 ' + rank), 2800);
+        } catch (e) {}
       } catch (e) {}
       // Star rating life-sim
       try {
