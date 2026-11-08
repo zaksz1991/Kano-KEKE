@@ -94,7 +94,9 @@ export class FuelStationSystem {
           continue;
         }
         const need = 100 - level;
-        const cost = Math.max(200, Math.round(need * 12));
+        // PMS price fluctuates (scarcity / station)
+        const rate = 11 + Math.floor(Math.random() * 5); // 11–15 per %
+        const cost = Math.max(200, Math.round(need * rate));
         const cash = this.passengers.dailyEarnings || 0;
         if (cash < cost) {
           if (performance.now() - this.lastMsg > 4000) {
@@ -115,7 +117,7 @@ export class FuelStationSystem {
         this._cooldown = 8;
         if (hudCallback) {
           hudCallback({
-            msg: `⛽ Filled up! −₦${cost}`,
+            msg: `⛽ PMS ₦${rate}/% · Filled −₦${cost}`,
             type: 'REFUEL',
             earnings: this.passengers.dailyEarnings
           });
