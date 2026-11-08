@@ -1754,7 +1754,11 @@ window.__kanoFullFrame = function fullFrame() {
           '⛽ PMS queue at the next junction',
           '🚓 KAROTA may check papers ahead',
           '🌧️ Dust on the dual carriageway',
-          '🚌 Danfo blocking the slow lane'
+          '🚌 Danfo blocking the slow lane',
+          '📻 Indomie keep the driver strong',
+          '📻 Gino — taste don land for Kano',
+          '📢 "Naibawa straight! Hotoro!"',
+          '🛒 Kurmi market busy — expect slow traffic'
         ];
         if (Math.random() < 0.45) showBanner(lines[Math.floor(Math.random() * lines.length)]);
         else {
