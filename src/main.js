@@ -1753,8 +1753,13 @@ window.__kanoFullFrame = function fullFrame() {
         try {
           SaveSystem.saveGame({
             cash: passengerManager.dailyEarnings,
-            currentLevel: missionManager?.level || 1
+            currentLevel: missionManager?.level || 1,
+            savings: window.__kanoSavings || 0
           });
+          window.__kanoSaveCount = (window.__kanoSaveCount || 0) + 1;
+          if (window.__kanoSaveCount % 4 === 0) {
+            showBanner('💾 Progress saved');
+          }
         } catch (e) {}
       }
 
