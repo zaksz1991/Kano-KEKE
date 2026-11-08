@@ -756,6 +756,11 @@ async function bootstrap() {
       let result = { score: cash, level: 1 };
       try {
         result = missionManager.settleShift(cash, fuelManager?.fuel ?? 50);
+        if (result?.leveled) {
+          setTimeout(() => showBanner('⬆️ LEVEL UP · Lv' + result.level + '!'), 1400);
+        } else if (result?.xpGain) {
+          setTimeout(() => showBanner('✨ +' + result.xpGain + ' XP'), 1400);
+        }
       } catch (e) {}
       // Star rating life-sim
       try {
