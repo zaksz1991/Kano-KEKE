@@ -1605,6 +1605,10 @@ window.__kanoFullFrame = function fullFrame() {
       try {
         fuelManager.update?.(delta, (ev) => {
           if (ev?.msg) showBanner(ev);
+          if (ev?.type === 'OUT_OF_FUEL' && !window.__fuelCrawl) {
+            window.__fuelCrawl = true;
+            showBanner('🛑 Crawl to PMS — radar yellow blip');
+          }
         });
       } catch (e) {}
       try {
