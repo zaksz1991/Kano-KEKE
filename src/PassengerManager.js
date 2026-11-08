@@ -158,6 +158,13 @@ export class PassengerManager {
       if (h >= 19 || h < 6) baseFare = Math.round(baseFare * 1.15); // night fare
       if (window.__kanoMarketDay) baseFare = Math.round(baseFare * 1.15);
     } catch (e) {}
+    try {
+      const routeTxt = (document.getElementById('route-select')?.selectedOptions?.[0]?.text || '').toLowerCase();
+      if (routeTxt && dest && routeTxt.includes(String(dest).toLowerCase().split(' ')[0])) {
+        baseFare = Math.round(baseFare * 1.12);
+        // mark later via destination string match on accept
+      }
+    } catch (e) {}
 
     // Mood affects negotiation
     const mood = Math.random(); // 0 stubborn … 1 generous
@@ -223,6 +230,15 @@ export class PassengerManager {
       p.agreedFare = finalFare;
       p._earlyBird = true;
     }
+    try {
+      const routeTxt = (document.getElementById('route-select')?.selectedOptions?.[0]?.text || '').toLowerCase();
+      const d = String(p.destination || '').toLowerCase();
+      if (routeTxt && d && routeTxt.includes(d.split(' ')[0])) {
+        finalFare = Math.round(finalFare * 1.12);
+        p.agreedFare = finalFare;
+        p._routeSynergy = true;
+      }
+    } catch (e) {}
 
     this.waiting = this.waiting.filter((w) => w !== p);
     this.negotiating = null;
@@ -235,7 +251,7 @@ export class PassengerManager {
     if (hudCallback) {
       hudCallback({
         type: 'BOARD',
-        msg: `${p.title}: "Na shiga!" → ${p.destination} · ₦${finalFare}` + (p._fullLoad ? " · FULL LOAD +" : "") + (p._earlyBird ? " · EARLY +" : ""),
+        msg: `${p.title}: "Na shiga!" → ${p.destination} · ₦${finalFare}` + (p._fullLoad ? " · FULL LOAD +" : "") + (p._earlyBird ? " · EARLY +" : "") + (p._routeSynergy ? " · ROUTE +" : ""),
         earnings: this.dailyEarnings
       });
     }
