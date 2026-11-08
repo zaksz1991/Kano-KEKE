@@ -714,6 +714,18 @@ async function bootstrap() {
       } catch (e) {}
       kekeController.setInput(throttle, steer);
       kekeController.update(delta);
+      // Wrong-way soft warning (dual carriageway: stay on right-ish +x)
+      try {
+        if (window.__kanoRoadMode !== 'single' && kekeGroup.position.x < -1.5 && kekeController.currentSpeed > 6) {
+          window.__wrongWayT = (window.__wrongWayT || 0) + delta;
+          if (window.__wrongWayT > 4) {
+            window.__wrongWayT = 0;
+            showBanner('⚠️ Keep right on dual carriageway');
+          }
+        } else {
+          window.__wrongWayT = 0;
+        }
+      } catch (e) {}
       // Reverse cue
       if (throttle < -0.5 && (kekeController.velocity || 0) < -0.5) {
         if (!window.__revBanner || performance.now() - window.__revBanner > 2500) {
@@ -1533,6 +1545,18 @@ window.__kanoFullFrame = function fullFrame() {
       } catch (e) {}
       kekeController.setInput(throttle, steer);
       kekeController.update(delta);
+      // Wrong-way soft warning (dual carriageway: stay on right-ish +x)
+      try {
+        if (window.__kanoRoadMode !== 'single' && kekeGroup.position.x < -1.5 && kekeController.currentSpeed > 6) {
+          window.__wrongWayT = (window.__wrongWayT || 0) + delta;
+          if (window.__wrongWayT > 4) {
+            window.__wrongWayT = 0;
+            showBanner('⚠️ Keep right on dual carriageway');
+          }
+        } else {
+          window.__wrongWayT = 0;
+        }
+      } catch (e) {}
       // Reverse cue
       if (throttle < -0.5 && (kekeController.velocity || 0) < -0.5) {
         if (!window.__revBanner || performance.now() - window.__revBanner > 2500) {
