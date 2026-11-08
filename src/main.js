@@ -1547,6 +1547,13 @@ window.__kanoFullFrame = function fullFrame() {
             const earn = document.getElementById('earnings');
             if (earn) earn.innerText = ev.earnings;
           }
+          if (ev && ev.type === 'BOARD') {
+            try {
+              const used = passengerManager.onBoard?.length || 0;
+              const max = passengerManager.capacity || 3;
+              showBanner('🪑 Seats ' + used + '/' + max);
+            } catch (e) {}
+          }
           if (ev && ev.type === 'DROPOFF') {
             if (window.__kanoGariRush > 0) window.__kanoGariDrops = (window.__kanoGariDrops || 0) + 1;
             try {
