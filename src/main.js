@@ -698,6 +698,14 @@ async function bootstrap() {
       if (keys['KeyS'] || keys['ArrowDown']) throttle = -1;
       if (keys['KeyA'] || keys['ArrowLeft']) steer = -1;
       if (keys['KeyD'] || keys['ArrowRight']) steer = 1;
+      // Wet road grip when raining
+      try {
+        const w = weatherManager?.currentWeather || '';
+        if (String(w).toUpperCase().includes('RAIN') || String(w).toUpperCase().includes('STORM')) {
+          steer *= 0.82;
+          if (throttle > 0) throttle *= 0.9;
+        }
+      } catch (e) {}
       kekeController.setInput(throttle, steer);
       kekeController.update(delta);
       // Reverse cue
@@ -1485,6 +1493,14 @@ window.__kanoFullFrame = function fullFrame() {
         } catch (e) {}
       }
 
+      // Wet road grip when raining
+      try {
+        const w = weatherManager?.currentWeather || '';
+        if (String(w).toUpperCase().includes('RAIN') || String(w).toUpperCase().includes('STORM')) {
+          steer *= 0.82;
+          if (throttle > 0) throttle *= 0.9;
+        }
+      } catch (e) {}
       kekeController.setInput(throttle, steer);
       kekeController.update(delta);
       // Reverse cue
