@@ -758,6 +758,13 @@ async function bootstrap() {
         result = missionManager.settleShift(cash, fuelManager?.fuel ?? 50);
         if (result?.leveled) {
           setTimeout(() => showBanner('⬆️ LEVEL UP · Lv' + result.level + '!'), 1400);
+          try {
+            const unlocked = charSelect.syncUnlocksByLevel?.(result.level) || [];
+            if (unlocked.length) {
+              setTimeout(() => showBanner('🔓 Unlocked: ' + unlocked.join(', ')), 2600);
+              charSelect.populateUI?.();
+            }
+          } catch (e) {}
         } else if (result?.xpGain) {
           setTimeout(() => showBanner('✨ +' + result.xpGain + ' XP'), 1400);
         }
