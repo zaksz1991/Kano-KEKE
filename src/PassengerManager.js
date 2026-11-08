@@ -354,6 +354,9 @@ export class PassengerManager {
             msg: `🛑 Akwai! ${p.title}: "Ina so in sauka a ${p.destination}!" · SLOW`
           });
         }
+        if (speed > 14 && this.combo >= 2 && hudCallback && dz < 25) {
+          hudCallback({ msg: '⚠️ Combo at risk — SLOW for Akwai!' });
+        }
       }
       if (playerZ >= p.dropAtZ - 8 && speed < 8) {
         let pay = p.agreedFare || p.baseFare;
