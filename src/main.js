@@ -498,7 +498,13 @@ async function bootstrap() {
           showBanner('🛒 Market day — fares +15%');
         }
       } catch (e) {}
-      showBanner('🚗 Drive! Hold ACCEL');
+      try {
+        const dn = charSelect.getDriver?.()?.name || 'RuffNeck';
+        const lv = missionManager?.level || 1;
+        showBanner('🚗 ' + dn + ' · Lv' + lv + ' · Hold ACCEL');
+      } catch (e) {
+        showBanner('🚗 Drive! Hold ACCEL');
+      }
       window.__kanoStartQueued = false;
     } catch (err) {
       console.error(err);
