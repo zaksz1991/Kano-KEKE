@@ -491,6 +491,13 @@ async function bootstrap() {
           rn.textContent = rs.options[rs.selectedIndex].text.split('·')[0].trim().slice(0, 28);
         }
       } catch (e) {}
+      try {
+        const dow = new Date(Date.now() + 3600000).getUTCDay(); // WAT approx
+        window.__kanoMarketDay = (dow === 0 || dow === 5); // Sun/Fri
+        if (window.__kanoMarketDay) {
+          showBanner('🛒 Market day — fares +15%');
+        }
+      } catch (e) {}
       showBanner('🚗 Drive! Hold ACCEL');
       window.__kanoStartQueued = false;
     } catch (err) {

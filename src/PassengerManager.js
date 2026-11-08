@@ -156,6 +156,7 @@ export class PassengerManager {
     try {
       const h = ((window.timeInMinutes || 600) / 60) % 24;
       if (h >= 19 || h < 6) baseFare = Math.round(baseFare * 1.15); // night fare
+      if (window.__kanoMarketDay) baseFare = Math.round(baseFare * 1.15);
     } catch (e) {}
 
     // Mood affects negotiation
