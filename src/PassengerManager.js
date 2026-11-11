@@ -154,6 +154,8 @@ export class PassengerManager {
     const dest = DESTINATIONS[Math.floor(Math.random() * DESTINATIONS.length)];
     const seats = Math.random() > 0.85 ? 2 : 1;
     let baseFare = 180 + Math.floor(Math.random() * 420) + (seats > 1 ? 150 : 0);
+    const vip = Math.random() < 0.12;
+    if (vip) baseFare = Math.round(baseFare * 1.5);
     try {
       const h = ((window.timeInMinutes || 600) / 60) % 24;
       if (h >= 19 || h < 6) baseFare = Math.round(baseFare * 1.15); // night fare
@@ -170,8 +172,9 @@ export class PassengerManager {
     // Mood affects negotiation
     const mood = Math.random(); // 0 stubborn … 1 generous
     return {
-      title,
+      title: vip ? ('VIP ' + title) : title,
       gender: female ? 'female' : 'male',
+      vip,
       destination: dest,
       seats,
       baseFare,

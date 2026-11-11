@@ -1437,6 +1437,26 @@ async function bootstrap() {
         try {
           trafficManager.maxVehicles = isMobile ? 5 : 7;
           window.__kanoRaceWon = false;
+          window.__kanoTimeAttack = 0;
+          window.__kanoMatchDrop = false;
+          window.__kanoPotholeHard = false;
+          try {
+            const mode = document.getElementById('game-mode-select')?.value || 'career';
+            window.__kanoGameMode = mode;
+            if (mode === 'time_attack') {
+              window.__kanoTimeAttack = 180;
+              showBanner('Time Attack 3:00');
+            }
+            if (mode === 'match_drop') {
+              window.__kanoMatchDrop = true;
+              showBanner('Match Drop — route destinations pay more');
+            }
+            if (mode === 'potholes') {
+              window.__kanoPotholeHard = true;
+              showBanner('Potholes Challenge');
+            }
+          } catch (e) {}
+
           window.__kanoDistBonus = 0;
       window.__kanoAllMissionsDone = false;
           window.__kanoRaceLead = 0;
@@ -1851,7 +1871,33 @@ window.__kanoFullFrame = function fullFrame() {
       } catch (e) {}
 
       shiftElapsed = (shiftElapsed || 0) + delta;
+      if (window.__kanoTimeAttack > 0) {
+        window.__kanoTimeAttack -= delta;
+        if (window.__kanoTimeAttack <= 0) {
+          window.__kanoTimeAttack = 0;
+          showBanner('Time up — settling');
+          try { window.__kanoEndShift?.(); } catch (e) {}
+        }
+      }
+
       window.__kanoHeat = Math.max(0, (window.__kanoHeat || 0) - delta * 0.35);
+      window.__kanoPotholeT = (window.__kanoPotholeT || 0) + delta;
+      if (window.__kanoPotholeT > 7 && (kekeController.currentSpeed || 0) > 10) {
+        window.__kanoPotholeT = 0;
+        const chance = window.__kanoPotholeHard ? 0.35 : 0.18;
+        if (Math.random() < chance) {
+          try {
+            cameraRig.setShake?.(0.35);
+            if (typeof maintenance !== 'undefined' && maintenance) {
+              maintenance.tyreHealth = Math.max(20, (maintenance.tyreHealth || 100) - 8);
+              maintenance.engineTemp = Math.min(120, (maintenance.engineTemp || 80) + 4);
+            }
+            kekeController.velocity *= 0.82;
+            showBanner('Pothole! Slow down');
+          } catch (e) {}
+        }
+      }
+
 
       // Distance milestones (life-sim / career)
       try {
