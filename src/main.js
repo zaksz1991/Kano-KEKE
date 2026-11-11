@@ -563,6 +563,17 @@ async function bootstrap() {
         if (keys['KeyD'] || keys['ArrowRight']) steer = 1;
         kekeController.setInput(throttle, steer);
         kekeController.update(delta);
+      // Idle curb wait (kano-run)
+      try {
+        if ((kekeController.currentSpeed || 0) < 0.4) {
+          window.__kanoIdleT = (window.__kanoIdleT || 0) + delta;
+          if (window.__kanoIdleT > 6 && window.__kanoIdleT < 6.2) {
+            showBanner('Waiting for passengers…');
+          }
+        } else {
+          window.__kanoIdleT = 0;
+        }
+      } catch (e) {}
         cameraRig.update(delta, kekeController.currentSpeed);
         try { roadSystem?.update?.(kekeGroup.position.z); } catch (e) {}
         try { trafficManager?.update?.(delta, false); } catch (e) {}
@@ -752,6 +763,17 @@ async function bootstrap() {
       } catch (e) {}
       kekeController.setInput(throttle, steer);
       kekeController.update(delta);
+      // Idle curb wait (kano-run)
+      try {
+        if ((kekeController.currentSpeed || 0) < 0.4) {
+          window.__kanoIdleT = (window.__kanoIdleT || 0) + delta;
+          if (window.__kanoIdleT > 6 && window.__kanoIdleT < 6.2) {
+            showBanner('Waiting for passengers…');
+          }
+        } else {
+          window.__kanoIdleT = 0;
+        }
+      } catch (e) {}
       // Wrong-way soft warning (dual carriageway: stay on right-ish +x)
       try {
         if (window.__kanoRoadMode !== 'single' && kekeGroup.position.x < -1.5 && kekeController.currentSpeed > 6) {
@@ -1658,6 +1680,17 @@ window.__kanoFullFrame = function fullFrame() {
       } catch (e) {}
       kekeController.setInput(throttle, steer);
       kekeController.update(delta);
+      // Idle curb wait (kano-run)
+      try {
+        if ((kekeController.currentSpeed || 0) < 0.4) {
+          window.__kanoIdleT = (window.__kanoIdleT || 0) + delta;
+          if (window.__kanoIdleT > 6 && window.__kanoIdleT < 6.2) {
+            showBanner('Waiting for passengers…');
+          }
+        } else {
+          window.__kanoIdleT = 0;
+        }
+      } catch (e) {}
       // Wrong-way soft warning (dual carriageway: stay on right-ish +x)
       try {
         if (window.__kanoRoadMode !== 'single' && kekeGroup.position.x < -1.5 && kekeController.currentSpeed > 6) {
