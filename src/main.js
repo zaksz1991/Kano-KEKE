@@ -1682,6 +1682,28 @@ window.__kanoFullFrame = function fullFrame() {
 
       try { roadSystem.update?.(kekeGroup.position.z); } catch (e) {}
       try { trafficManager.update?.(delta, isHornActive); } catch (e) {}
+      // Near-miss skill (kano-run style)
+      try {
+        const pz = kekeGroup.position.z;
+        const px = kekeGroup.position.x;
+        const spd = kekeController.currentSpeed || 0;
+        if (spd > 8 && trafficManager.vehicles) {
+          for (const v of trafficManager.vehicles) {
+            if (!v.mesh) continue;
+            const dx = Math.abs(v.mesh.position.x - px);
+            const dz = Math.abs(v.mesh.position.z - pz);
+            if (dx < 2.8 && dz < 5 && dz > 1.2) {
+              const id = v.mesh.id || v.mesh.uuid;
+              window.__kanoNearMiss = window.__kanoNearMiss || {};
+              if (!window.__kanoNearMiss[id] || performance.now() - window.__kanoNearMiss[id] > 4000) {
+                window.__kanoNearMiss[id] = performance.now();
+                passengerManager.score = (passengerManager.score || 0) + 40;
+                if (Math.random() < 0.4) showBanner('Near miss +40');
+              }
+            }
+          }
+        }
+      } catch (e) {}
       try { roadsideLife?.update?.(kekeGroup.position.z); } catch (e) {}
       try {
         if (window.__kanoGameMode === 'race' || trafficManager.raceMode) {
