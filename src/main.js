@@ -1800,9 +1800,13 @@ window.__kanoFullFrame = function fullFrame() {
             try {
               const fareMatch = String(ev.msg || '').match(/₦(\d+)/);
               const fare = fareMatch ? parseInt(fareMatch[1], 10) : 200;
+              const before = (missionManager?.shiftGoals || []).map((g) => g.done);
               missionManager?.onDropoff?.(fare);
               _updateMissionHud?.(missionManager);
               const goals = missionManager?.shiftGoals || [];
+              goals.forEach((g, i) => {
+                if (g.done && !before[i]) showBanner('✓ ' + g.label);
+              });
               if (goals.length && goals.every((g) => g.done) && !window.__kanoAllMissionsDone) {
                 window.__kanoAllMissionsDone = true;
                 const bonus = 600;
