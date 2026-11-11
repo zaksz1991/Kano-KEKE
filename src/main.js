@@ -1225,13 +1225,15 @@ async function bootstrap() {
     }
     if (e.code === 'KeyR') {
       const stations = [
+        '📻 VISION FM 92.1',
         '📻 Freedom Radio 99.5',
         '📻 Express Radio Kano',
-        '📻 Cool FM echoes',
-        '📻 Wazobia vibes',
+        '📻 Cool FM',
+        '📻 Wazobia',
         '📻 Off'
       ];
       window.__kanoRadioIdx = ((window.__kanoRadioIdx || 0) + 1) % stations.length;
+      window.__kanoRadioName = stations[window.__kanoRadioIdx].replace('📻 ','');
       showBanner(stations[window.__kanoRadioIdx]);
     }
     if (e.code === 'KeyP' || e.code === 'Escape') {
@@ -1454,6 +1456,19 @@ async function bootstrap() {
             if (mode === 'potholes') {
               window.__kanoPotholeHard = true;
               showBanner('Potholes Challenge');
+            }
+            if (mode === 'fuel_challenge') {
+              window.__kanoFuelChallenge = true;
+              try { fuelManager.fuel = 35; } catch (e) {}
+              showBanner('Fuel Challenge — start at 35%');
+            } else {
+              window.__kanoFuelChallenge = false;
+            }
+            if (mode === 'free_roam') {
+              window.__kanoFreeRoam = true;
+              showBanner('Free Roam — no mission pressure');
+            } else {
+              window.__kanoFreeRoam = false;
             }
           } catch (e) {}
 
@@ -1829,7 +1844,8 @@ window.__kanoFullFrame = function fullFrame() {
           const cap = passengerManager.capacity || 3;
           const cond = maintenance?.getCondition?.() ?? 100;
           const heat = Math.round(window.__kanoHeat || 0);
-          strip.textContent = 'PAX ' + pax + '/' + cap + ' · COND ' + cond + '% · HEAT ' + heat + '% · ₦' + (passengerManager.dailyEarnings || 0);
+          const radio = window.__kanoRadioName || 'RADIO OFF';
+          strip.textContent = 'PAX ' + pax + '/' + cap + ' · COND ' + cond + '% · HEAT ' + heat + '% · ' + radio + ' · ₦' + (passengerManager.dailyEarnings || 0);
         }
       } catch (e) {}
       if (big) {
