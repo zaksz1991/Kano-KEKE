@@ -1906,7 +1906,11 @@ window.__kanoFullFrame = function fullFrame() {
           const heat = Math.round(window.__kanoHeat || 0);
           const radio = window.__kanoRadioName || 'RADIO OFF';
           const km = (Math.abs(kekeGroup.position.z || 0) / 1000).toFixed(2);
-          strip.textContent = km + 'km · PAX ' + pax + '/' + cap + ' · COND ' + cond + '% · HEAT ' + heat + '% · ' + radio;
+          let status = 'OK';
+          if (cond < 40 || heat > 60) status = 'WARN';
+          if (cond < 25 || heat > 80) status = 'CRIT';
+          if ((fuelManager?.fuel ?? 100) < 15) status = 'LOW FUEL';
+          strip.textContent = km + 'km · PAX ' + pax + '/' + cap + ' · ' + status + ' · H' + heat + ' · ' + radio;
 
         }
       } catch (e) {}
