@@ -1867,7 +1867,9 @@ window.__kanoFullFrame = function fullFrame() {
           const cond = maintenance?.getCondition?.() ?? 100;
           const heat = Math.round(window.__kanoHeat || 0);
           const radio = window.__kanoRadioName || 'RADIO OFF';
-          strip.textContent = 'PAX ' + pax + '/' + cap + ' · COND ' + cond + '% · HEAT ' + heat + '% · ' + radio + ' · ₦' + (passengerManager.dailyEarnings || 0);
+          const km = (Math.abs(kekeGroup.position.z || 0) / 1000).toFixed(2);
+          strip.textContent = km + 'km · PAX ' + pax + '/' + cap + ' · COND ' + cond + '% · HEAT ' + heat + '% · ' + radio;
+
         }
       } catch (e) {}
       if (big) {
