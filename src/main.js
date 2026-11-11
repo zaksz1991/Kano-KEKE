@@ -528,7 +528,7 @@ async function bootstrap() {
       try {
         const dn = charSelect.getDriver?.()?.name || 'RuffNeck';
         const lv = missionManager?.level || 1;
-        showBanner('🚗 ' + dn + ' · Lv' + lv + ' · Hold ACCEL');
+        showBanner('🚗 ' + dn + ' · HAUSA Lv' + lv + ' · Hold ACCEL');
       } catch (e) {
         showBanner('🚗 Drive! Hold ACCEL');
       }
@@ -1929,7 +1929,10 @@ window.__kanoFullFrame = function fullFrame() {
           try {
             const lives = missionManager?.lives ?? 3;
             const h = document.getElementById('kano-hearts');
-            if (h) h.textContent = '♥'.repeat(Math.max(0, lives)) + '♡'.repeat(Math.max(0, 3 - lives));
+            if (h) {
+              const lv = missionManager?.level || 1;
+              h.textContent = '♥'.repeat(Math.max(0, lives)) + '♡'.repeat(Math.max(0, 3 - lives)) + ' · L' + lv;
+            }
           } catch (e) {}
 
         }
