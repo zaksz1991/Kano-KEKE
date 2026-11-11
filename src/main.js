@@ -1910,7 +1910,8 @@ window.__kanoFullFrame = function fullFrame() {
           if (cond < 40 || heat > 60) status = 'WARN';
           if (cond < 25 || heat > 80) status = 'CRIT';
           if ((fuelManager?.fuel ?? 100) < 15) status = 'LOW FUEL';
-          strip.textContent = km + 'km · PAX ' + pax + '/' + cap + ' · ' + status + ' · H' + heat + ' · ' + radio;
+          const combo = passengerManager.combo || 0;
+          strip.textContent = km + 'km · PAX ' + pax + '/' + cap + ' · x' + combo + ' · ' + status + ' · H' + heat;
 
         }
       } catch (e) {}
