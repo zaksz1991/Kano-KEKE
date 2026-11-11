@@ -703,6 +703,13 @@ async function bootstrap() {
       try { window.__kanoApplyModels?.(); } catch (e) {}
 
       try { window.__kanoApplyModels?.(); } catch (e) {}
+      if (!document.getElementById('kano-hearts')) {
+        const hearts = document.createElement('div');
+        hearts.id = 'kano-hearts';
+        hearts.style.cssText = 'position:fixed;top:12px;right:12px;z-index:55;pointer-events:none;font:900 16px system-ui;color:#ff5252;text-shadow:0 1px 4px #000;';
+        hearts.textContent = '♥♥♥';
+        document.body.appendChild(hearts);
+      }
       if (!document.getElementById('kano-life-strip')) {
         const strip = document.createElement('div');
         strip.id = 'kano-life-strip';
@@ -1562,6 +1569,13 @@ async function bootstrap() {
         if (chip) chip.textContent = (chip.id === 'cash-chip' ? 'CASH ₦' : '') + (passengerManager.dailyEarnings || 0);
       } catch (e) {}
       try { window.__kanoApplyModels?.(); } catch (e) {}
+      if (!document.getElementById('kano-hearts')) {
+        const hearts = document.createElement('div');
+        hearts.id = 'kano-hearts';
+        hearts.style.cssText = 'position:fixed;top:12px;right:12px;z-index:55;pointer-events:none;font:900 16px system-ui;color:#ff5252;text-shadow:0 1px 4px #000;';
+        hearts.textContent = '♥♥♥';
+        document.body.appendChild(hearts);
+      }
       if (!document.getElementById('kano-life-strip')) {
         const strip = document.createElement('div');
         strip.id = 'kano-life-strip';
@@ -1912,6 +1926,11 @@ window.__kanoFullFrame = function fullFrame() {
           if ((fuelManager?.fuel ?? 100) < 15) status = 'LOW FUEL';
           const combo = passengerManager.combo || 0;
           strip.textContent = km + 'km · PAX ' + pax + '/' + cap + ' · x' + combo + ' · ' + status + ' · H' + heat;
+          try {
+            const lives = missionManager?.lives ?? 3;
+            const h = document.getElementById('kano-hearts');
+            if (h) h.textContent = '♥'.repeat(Math.max(0, lives)) + '♡'.repeat(Math.max(0, 3 - lives));
+          } catch (e) {}
 
         }
       } catch (e) {}
