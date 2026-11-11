@@ -475,6 +475,7 @@ async function bootstrap() {
       gameStarted = true;
       window.__kanoDistBonus = 0;
       window.__kanoAllMissionsDone = false;
+      window.__kanoDrops = 0;
       try {
         if (typeof missionManager !== 'undefined' && missionManager) {
           missionManager.lives = Math.max(3, missionManager.lives || 3);
@@ -653,6 +654,7 @@ async function bootstrap() {
       gameStarted = true;
       window.__kanoDistBonus = 0;
       window.__kanoAllMissionsDone = false;
+      window.__kanoDrops = 0;
       try {
         if (typeof missionManager !== 'undefined' && missionManager) {
           missionManager.lives = Math.max(3, missionManager.lives || 3);
@@ -884,8 +886,7 @@ async function bootstrap() {
       if (big) big.remove();
       const rh = document.getElementById('kano-race-hud');
       if (rh) rh.remove();
-      const drops = passengerManager?.onBoard ? 0 : 0;
-      const fuelLeft = Math.round(fuelManager?.fuel ?? 0);
+            const fuelLeft = Math.round(fuelManager?.fuel ?? 0);
       // Play streak (calendar days WAT)
       try {
         const dayKey = new Date(Date.now() + 3600000).toISOString().slice(0, 10);
@@ -926,7 +927,9 @@ async function bootstrap() {
         });
         setTimeout(() => showBanner('🏦 Banked wallet ₦' + window.__kanoBanked), 3200);
       } catch (e) {}
-      showBanner('✅ Shift ended · ₦' + cash + ' · fuel ' + fuelLeft + '%');
+      const dropCount = window.__kanoDrops || 0;
+      const km = (Math.abs(kekeGroup.position.z || 0) / 1000).toFixed(2);
+      showBanner('✅ Run · ₦' + cash + ' · ' + dropCount + ' drops · ' + km + 'km · fuel ' + fuelLeft + '%');
       setTimeout(() => showBanner('High scores updated · Start again when ready'), 1600);
       try {
         const b = document.getElementById('start-game-btn');
@@ -1496,6 +1499,7 @@ async function bootstrap() {
 
           window.__kanoDistBonus = 0;
       window.__kanoAllMissionsDone = false;
+      window.__kanoDrops = 0;
           window.__kanoRaceLead = 0;
           trafficManager.startRace?.(7);
           try { window.__kanoGameMode = 'race'; } catch (e) {}
@@ -1777,6 +1781,7 @@ window.__kanoFullFrame = function fullFrame() {
             } catch (e) {}
           }
           if (ev && ev.type === 'DROPOFF') {
+            window.__kanoDrops = (window.__kanoDrops || 0) + 1;
             if (window.__kanoGariRush > 0) window.__kanoGariDrops = (window.__kanoGariDrops || 0) + 1;
             try {
               const fareMatch = String(ev.msg || '').match(/₦(\d+)/);
