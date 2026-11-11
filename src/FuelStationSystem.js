@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 
 /**
- * PMS stations on dual-road shoulder – slow to refuel
+ * PMS + CNG stations — Kano real areas for CNG
+ * Jaen Sharada, Kwandila Maiduguri Rd, Hotoro, Gwarzo Gadon Kaya
  */
 export class FuelStationSystem {
   constructor(scene, fuelManager, passengerManager) {
@@ -9,27 +10,36 @@ export class FuelStationSystem {
     this.fuel = fuelManager;
     this.passengers = passengerManager;
     this.stations = [];
-    this._nextZ = 150;
+    this._nextZ = 120;
     this._cooldown = 0;
     this.lastMsg = 0;
+    this.cngNames = [
+      'CNG · Jaen Sharada',
+      'CNG · Kwandila Maiduguri Rd',
+      'CNG · Hotoro',
+      'CNG · Gwarzo Gadon Kaya'
+    ];
+    this._cngIdx = 0;
   }
 
   init() {
-    for (let i = 0; i < 3; i++) {
-      this._spawn(this._nextZ);
-      this._nextZ += 190 + Math.random() * 70;
-    }
+    this._spawn(80, 'pms');
+    this._spawn(200, 'cng');
+    this._spawn(340, 'pms');
+    this._spawn(480, 'cng');
+    this._nextZ = 600;
   }
 
-  _spawn(z) {
-    // Outer shoulder of dual carriageway
+  _spawn(z, forceType = null) {
+    const isCng = forceType === 'cng' || (forceType !== 'pms' && Math.random() < 0.4);
     const side = Math.random() > 0.5 ? 1 : -1;
     const g = new THREE.Group();
     g.position.set(side * 13.5, 0, z);
 
+    const canopyColor = isCng ? 0x0277bd : 0xf9a825;
     const canopy = new THREE.Mesh(
       new THREE.BoxGeometry(6.5, 0.25, 4.5),
-      new THREE.MeshStandardMaterial({ color: 0xf9a825, roughness: 0.55 })
+      new THREE.MeshStandardMaterial({ color: canopyColor, roughness: 0.55 })
     );
     canopy.position.y = 3.9;
     g.add(canopy);
@@ -45,88 +55,124 @@ export class FuelStationSystem {
 
     const pump = new THREE.Mesh(
       new THREE.BoxGeometry(0.7, 1.6, 0.5),
-      new THREE.MeshStandardMaterial({ color: 0xc62828, roughness: 0.5 })
+      new THREE.MeshStandardMaterial({
+        color: isCng ? 0x01579b : 0xc62828,
+        roughness: 0.5
+      })
     );
     pump.position.set(0, 0.8, 1.1);
     g.add(pump);
 
-    // PMS sign
     const sign = new THREE.Mesh(
-      new THREE.BoxGeometry(2.2, 0.65, 0.1),
-      new THREE.MeshStandardMaterial({ color: 0x1b5e20, emissive: 0x2e7d32, emissiveIntensity: 0.25 })
+      new THREE.BoxGeometry(2.6, 0.7, 0.1),
+      new THREE.MeshStandardMaterial({
+        color: isCng ? 0x01579b : 0x1b5e20,
+        emissive: isCng ? 0x0288d1 : 0x2e7d32,
+        emissiveIntensity: 0.3
+      })
     );
     sign.position.set(0, 4.4, 0);
     g.add(sign);
 
-    // Approach marker on road edge
     const disc = new THREE.Mesh(
       new THREE.CircleGeometry(2.0, 12),
-      new THREE.MeshBasicMaterial({ color: 0x00e676, transparent: true, opacity: 0.55 })
+      new THREE.MeshBasicMaterial({
+        color: isCng ? 0x29b6f6 : 0x00e676,
+        transparent: true,
+        opacity: 0.55,
+        depthWrite: false
+      })
     );
     disc.rotation.x = -Math.PI / 2;
     disc.position.set(-side * 3.5, 0.04, 0);
     g.add(disc);
 
+    let label = isCng ? this.cngNames[this._cngIdx % this.cngNames.length] : 'PMS Station';
+    if (isCng) this._cngIdx++;
+
     this.scene.add(g);
-    this.stations.push({ mesh: g, z, side });
+    this.stations.push({ mesh: g, z, side, type: isCng ? 'cng' : 'pms', label });
   }
 
-  update(delta, playerPos, speed, hudCallback) {
+  update(delta, playerPos, speed, hudCallback, opts = {}) {
     this._cooldown = Math.max(0, this._cooldown - delta);
     const playerZ = playerPos.z;
+    const maintenance = opts.maintenance;
+    const batterySys = opts.batterySys;
 
     if (playerZ > this._nextZ - 200) {
-      this._spawn(this._nextZ);
-      this._nextZ += 110 + Math.random() * 50;
+      this._spawn(this._nextZ, Math.random() < 0.45 ? 'cng' : 'pms');
+      this._nextZ += 100 + Math.random() * 55;
     }
 
     for (const st of this.stations) {
       const dist = st.mesh.position.distanceTo(playerPos);
       st.mesh.visible = Math.abs(st.z - playerZ) < 180;
 
-      if (dist < 11 && speed < 4.5 && this._cooldown <= 0) {
+      if (dist < 12 && speed < 4.5 && this._cooldown <= 0) {
+        // Cool engine whenever you stop at any station
+        if (maintenance?.engineTemp > 90) {
+          maintenance.radiateCool?.(20);
+          maintenance.engineTemp = Math.max(75, (maintenance.engineTemp || 100) - 25);
+          maintenance._overheatWarned = false;
+        }
+
+        if (batterySys?.converted) {
+          batterySys.rechargeAtStation?.(35);
+          this._cooldown = 6;
+          if (hudCallback) {
+            hudCallback({
+              msg: `⚡ ${st.label} — battery ${Math.round(batterySys.batteryPct)}%`
+            });
+          }
+          try {
+            if (window.__kanoRepairEngine) window.__kanoRepairEngine();
+          } catch (e) {}
+          continue;
+        }
+
         const level = this.fuel.fuel ?? 50;
         if (level >= 98) {
-          if (performance.now() - this.lastMsg > 4000) {
+          if (performance.now() - this.lastMsg > 5000) {
             this.lastMsg = performance.now();
-            if (hudCallback) hudCallback({ msg: '⛽ Tank already full' });
+            if (hudCallback) hudCallback({ msg: `⛽ ${st.label} — tank full · engine cooled` });
           }
+          this._cooldown = 3;
           continue;
         }
         const need = 100 - level;
-        // PMS price fluctuates (scarcity / station)
-        const rate = 11 + Math.floor(Math.random() * 5); // 11–15 per %
-        const cost = Math.max(200, Math.round(need * rate));
+        const rate = st.type === 'cng' ? 8 + Math.floor(Math.random() * 4) : 11 + Math.floor(Math.random() * 5);
+        const cost = Math.max(180, Math.round(need * rate));
         const cash = this.passengers.dailyEarnings || 0;
         if (cash < cost) {
           if (performance.now() - this.lastMsg > 4000) {
             this.lastMsg = performance.now();
-            if (hudCallback) hudCallback({ msg: `⛽ Need ₦${cost} to fill` });
+            if (hudCallback) hudCallback({ msg: `⛽ ${st.label}: need ₦${cost}` });
           }
           continue;
         }
         this.passengers.dailyEarnings -= cost;
-        // Small engine refresh with fill (life-sim mechanic)
         try {
           if (window.__kanoRepairEngine) window.__kanoRepairEngine();
         } catch (e) {}
-
         this.fuel.fuel = 100;
         this.fuel.isOut = false;
-        if (this.fuel.keke) this.fuel.keke.maxSpeed = Math.max(this.fuel.keke.maxSpeed, 22);
+        if (this.fuel.keke) this.fuel.keke.maxSpeed = Math.max(this.fuel.keke.maxSpeed, 28);
+        if (maintenance) {
+          maintenance.engineTemp = 75;
+          maintenance._overheatWarned = false;
+        }
         this._cooldown = 8;
         if (hudCallback) {
           hudCallback({
-            msg: `⛽ PMS ₦${rate}/% · Filled −₦${cost}`,
+            msg: `⛽ ${st.label} · ₦${rate}/% · −₦${cost} · cooled`,
             type: 'REFUEL',
             earnings: this.passengers.dailyEarnings
           });
         }
-      } else if (dist < 16 && speed < 7) {
-        if (performance.now() - this.lastMsg > 5000) {
-          this.lastMsg = performance.now();
-          if (hudCallback) hudCallback({ msg: '⛽ PMS ahead — slow down to refuel' });
-        }
+      } else if (dist < 28 && speed > 8 && performance.now() - this.lastMsg > 6000) {
+        this.lastMsg = performance.now();
+        if (hudCallback) hudCallback({ msg: `📍 ${st.label} ahead — SLOW to fill` });
       }
     }
   }

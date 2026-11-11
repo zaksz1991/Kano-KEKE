@@ -7,6 +7,7 @@ import { KekeCameraRig } from './KekeCameraRig.js';
 import { InfiniteRoadSystem } from './InfiniteRoadSystem.js';
 import { PassengerManager } from './PassengerManager.js';
 import { FuelManager } from './FuelManager.js';
+import { KekeMaintenanceEngine } from './KekeMaintenanceEngine.js';
 import { DynamicTrafficManager } from './DynamicTrafficManager.js';
 import { PoliceCheckpointEngine } from './PoliceCheckpointEngine.js';
 import { KanoAudioEngine } from './KanoAudioEngine.js';
@@ -29,6 +30,7 @@ import { KekeSeatOccupancy } from './KekeSeatOccupancy.js';
 import { DashHUD } from './DashHUD.js';
 import { KanoRoadsideLife } from './KanoRoadsideLife.js';
 import { FuelStationSystem } from './FuelStationSystem.js';
+import { ElectricBatterySystem } from './ElectricBatterySystem.js';
 import { ProximityRadar } from './ProximityRadar.js';
 import { HighScoreBoard } from './HighScoreBoard.js';
 import { PauseMenu } from './PauseMenu.js';
@@ -349,21 +351,39 @@ function saveShiftProgress() {
 }
 
 function showBanner(msg) {
-  const now = performance.now();
-  if (window.__bannerT && now - window.__bannerT < 400) return; // rate limit
-  window.__bannerT = now;
-  const banner = document.getElementById('notification-banner');
-  const text = document.getElementById('banner-text');
-  if (!banner || !text) return;
-  text.textContent = typeof msg === 'string' ? msg : (msg?.msg || '');
-  banner.style.display = 'block';
-  banner.style.opacity = '1';
-  banner.style.transform = 'translateY(0)';
-  clearTimeout(window.__bannerHide);
-  window.__bannerHide = setTimeout(() => {
-    banner.style.opacity = '0';
-    banner.style.transform = 'translateY(-12px)';
-  }, 2800);
+  const textMsg = typeof msg === 'string' ? msg : (msg?.msg || '');
+  if (!textMsg) return;
+  window.__bannerQueue = window.__bannerQueue || [];
+  // Dedupe identical / spam
+  if (window.__bannerQueue[window.__bannerQueue.length - 1] === textMsg) return;
+  if (window.__bannerQueue.length > 4) window.__bannerQueue.shift();
+  window.__bannerQueue.push(textMsg);
+  if (window.__bannerBusy) return;
+  window.__bannerBusy = true;
+  const pump = () => {
+    const next = window.__bannerQueue.shift();
+    if (!next) {
+      window.__bannerBusy = false;
+      return;
+    }
+    const banner = document.getElementById('notification-banner');
+    const text = document.getElementById('banner-text');
+    if (!banner || !text) {
+      window.__bannerBusy = false;
+      return;
+    }
+    text.textContent = next;
+    banner.style.display = 'block';
+    banner.style.opacity = '1';
+    banner.style.transform = 'translateY(0)';
+    clearTimeout(window.__bannerHide);
+    window.__bannerHide = setTimeout(() => {
+      banner.style.opacity = '0';
+      banner.style.transform = 'translateY(-12px)';
+      setTimeout(pump, 220);
+    }, 2200);
+  };
+  pump();
 }
 
 
@@ -914,8 +934,14 @@ async function bootstrap() {
 
 
   const fuelManager = new FuelManager(kekeController);
+  const maintenance = new KekeMaintenanceEngine(kekeController, fuelManager);
+
   const streetEvents = new StreetEventSystem(kekeController, passengerManager, fuelManager);
   const fuelStations = new FuelStationSystem(scene, fuelManager, passengerManager);
+  const batterySystem = new ElectricBatterySystem(kekeController, passengerManager);
+  try { batterySystem.load(saved); } catch (e) {}
+  window.__kanoBattery = batterySystem;
+
   try { fuelStations.init(); } catch (e) { console.warn('fuel stations', e); }
   const policeEngine = new PoliceCheckpointEngine(scene, kekeController, passengerManager);
   policeEngine.spawnCheckpoint(200);
@@ -1228,6 +1254,17 @@ async function bootstrap() {
     }
     if (e.code === 'KeyE') {
       passengerManager.acceptDeal((ev) => showBanner(ev));
+    }
+    if (e.code === 'KeyV') {
+      try { window.__kanoBattery?.convertEngine?.(showBanner); } catch (err) {}
+    }
+    if (e.code === 'KeyY') {
+      try { window.__kanoBattery?.rentBattery?.(showBanner); } catch (err) {}
+    }
+    if (e.code === 'KeyU') {
+      try {
+        maintenance?.waterCool?.(passengerManager, (m) => showBanner(typeof m === 'string' ? m : m));
+      } catch (err) {}
     }
     if (e.code === 'KeyB') {
       try {
@@ -1701,7 +1738,14 @@ window.__kanoFullFrame = function fullFrame() {
           targets
         );
       } catch (e) {}
-      try { fuelStations.update?.(delta, kekeGroup.position, kekeController.currentSpeed, showBanner); } catch (e) {}
+      try {
+        fuelStations.update?.(delta, kekeGroup.position, kekeController.currentSpeed, showBanner, {
+          maintenance,
+          batterySys: batterySystem
+        });
+      } catch (e) {}
+      try { batterySystem?.update?.(delta, kekeController.currentSpeed, showBanner); } catch (e) {}
+      try { maintenance?.update?.(delta, kekeController.currentSpeed, showBanner); } catch (e) {}
       try { signalLights.update?.(delta, throttle < -0.1, steer); } catch (e) {}
       try {
         headlights.update?.(window.timeInMinutes);
@@ -1789,7 +1833,7 @@ window.__kanoFullFrame = function fullFrame() {
 
       // Real-life Kano ambient flavour
       window.__kanoLifeT = (window.__kanoLifeT || 0) + delta;
-      if (window.__kanoLifeT > 28) {
+      if (window.__kanoLifeT > 42) {
         window.__kanoLifeT = 0;
         const lines = [
           '📢 "Keke! Sabon Gari!"',

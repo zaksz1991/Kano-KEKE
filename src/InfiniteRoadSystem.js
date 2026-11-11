@@ -112,8 +112,8 @@ export class InfiniteRoadSystem {
       map: this.roadTexture || null
     });
 
-    const yellow = new THREE.MeshBasicMaterial({ color: 0xffb300 });
-    const white = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const yellow = new THREE.MeshBasicMaterial({ color: 0xffb300, depthWrite: false });
+    const white = new THREE.MeshBasicMaterial({ color: 0xffffff, depthWrite: false });
     const dual = this.roadMode !== 'single';
 
     if (dual) {
@@ -196,16 +196,16 @@ export class InfiniteRoadSystem {
     const kB = new THREE.MeshBasicMaterial({ color: 0x111111 });
     for (const side of [-1, 1]) {
       // Outer kerb
-      for (let z = -L / 2 + 1.2; z < L / 2; z += 4.5) {
+      for (let z = -L / 2 + 1.2; z < L / 2; z += 6.5) {
         const mat = Math.floor((z + L) / 3.2) % 2 === 0 ? kW : kB;
-        const kerb = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.18, 2.9), mat);
+        const kerb = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.18, 4.8), mat);
         kerb.position.set(side * 9.0, 0.1, z);
         group.add(kerb);
       }
       // Median kerb
-      for (let z = -L / 2 + 1.2; z < L / 2; z += 4.5) {
+      for (let z = -L / 2 + 1.2; z < L / 2; z += 6.5) {
         const mat = Math.floor((z + L) / 3.2) % 2 === 0 ? kW : kB;
-        const kerb = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.16, 2.9), mat);
+        const kerb = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.16, 4.8), mat);
         kerb.position.set(side * 0.78, 0.12, z);
         group.add(kerb);
       }
@@ -286,7 +286,7 @@ export class InfiniteRoadSystem {
       }
       // Red/white curb stripe feel
       for (const side of [-1, 1]) {
-        for (let z = -8; z < 8; z += 2.2) {
+        for (let z = -8; z < 8; z += 3.5) {
           const stripe = new THREE.Mesh(
             new THREE.BoxGeometry(0.2, 0.35, 1.8),
             Math.floor((z + 10) / 2.2) % 2 === 0 ? redWhite : new THREE.MeshBasicMaterial({ color: 0xfafafa })
