@@ -31,6 +31,7 @@ export class PassengerManager {
     this.assets = assetManager;
     this.pedModel = null;
     this.waiting = [];
+    this._dropPads = [];
     this.onBoard = [];
     this.capacity = 3;
     this.dailyEarnings = 1500;
@@ -222,6 +223,19 @@ export class PassengerManager {
     p.agreedFare = finalFare;
     p.state = 'boarded';
     p.dropAtZ = this.keke.group.position.z + p.tripDist;
+    // Gold drop-off pad (kano-run style)
+    try {
+      const pad = new THREE.Mesh(
+        new THREE.CircleGeometry(1.4, 16),
+        new THREE.MeshBasicMaterial({ color: 0xffd54f, transparent: true, opacity: 0.7, depthWrite: false })
+      );
+      pad.rotation.x = -Math.PI / 2;
+      const side = (this.keke.group.position.x >= 0 ? 1 : -1);
+      pad.position.set(side * 8.5, 0.06, p.dropAtZ);
+      this.scene.add(pad);
+      p.dropPad = pad;
+      this._dropPads.push(pad);
+    } catch (e) {}
     this.onBoard.push(p);
     p._fullLoad = willFill;
     this._shiftBoards = (this._shiftBoards || 0) + 1;
@@ -375,6 +389,12 @@ export class PassengerManager {
         this.dailyEarnings += pay;
         this.combo += 1;
         this.score += pay + this.combo * 12;
+        try {
+          if (p.dropPad) {
+            this.scene.remove(p.dropPad);
+            this._dropPads = this._dropPads.filter((x) => x !== p.dropPad);
+          }
+        } catch (e) {}
         this.onBoard = this.onBoard.filter((x) => x !== p);
         if (hudCallback) {
           const tipMsg = tip ? ` · tip +₦${tip}` : '';

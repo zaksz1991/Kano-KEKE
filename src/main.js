@@ -120,6 +120,12 @@ window.timeInMinutes = 10 * 60 + 30; // 10:30 AM – bright Kano day like photo
 window.__kanoStartQueued = false;
 window.__kanoClaimDaily = null;
 window.__kanoCash = 1500;
+window.__kanoBanked = 0;
+try {
+  const sv0 = JSON.parse(localStorage.getItem('kano_run_save_v2') || '{}');
+  window.__kanoBanked = sv0.banked || sv0.savings || 0;
+} catch (e) {}
+
 window.__kanoSavings = 0;
 window.__kanoStreak = 0;
 
@@ -684,6 +690,13 @@ async function bootstrap() {
       try { window.__kanoApplyModels?.(); } catch (e) {}
 
       try { window.__kanoApplyModels?.(); } catch (e) {}
+      if (!document.getElementById('kano-life-strip')) {
+        const strip = document.createElement('div');
+        strip.id = 'kano-life-strip';
+        strip.style.cssText = 'position:fixed;top:48px;left:50%;transform:translateX(-50%);z-index:54;pointer-events:none;font:700 11px/1.3 system-ui;color:#eee;background:rgba(0,0,0,0.55);padding:6px 12px;border-radius:10px;white-space:nowrap;max-width:95vw;overflow:hidden;';
+        strip.textContent = 'PAX 0/3 · COND 100% · HEAT 0%';
+        document.body.appendChild(strip);
+      }
       showBanner('🚗 Drive! Hold ACCEL · ◀ ▶ steer');
       window.__kanoStartQueued = false;
     } catch (err) {
@@ -731,6 +744,11 @@ async function bootstrap() {
           steer *= 0.82;
           if (throttle > 0) throttle *= 0.9;
         }
+      } catch (e) {}
+      // Load penalty when seats full (kano-run parity)
+      try {
+        const load = (passengerManager.onBoard?.length || 0) / Math.max(1, passengerManager.capacity || 3);
+        if (load > 0.5 && throttle > 0) throttle *= 1 - load * 0.18;
       } catch (e) {}
       kekeController.setInput(throttle, steer);
       kekeController.update(delta);
@@ -874,6 +892,17 @@ async function bootstrap() {
           localStorage.setItem(bestKey, String(cash));
           setTimeout(() => showBanner('🥇 New best today · ₦' + cash), 2000);
         }
+      } catch (e) {}
+      // Bank run earnings into wallet (kano-run style)
+      try {
+        window.__kanoBanked = (window.__kanoBanked || 0) + Math.max(0, cash - 500);
+        SaveSystem.saveGame({
+          cash: 1500,
+          banked: window.__kanoBanked,
+          savings: window.__kanoSavings || 0,
+          currentLevel: result.level || 1
+        });
+        setTimeout(() => showBanner('🏦 Banked wallet ₦' + window.__kanoBanked), 3200);
       } catch (e) {}
       showBanner('✅ Shift ended · ₦' + cash + ' · fuel ' + fuelLeft + '%');
       setTimeout(() => showBanner('High scores updated · Start again when ready'), 1600);
@@ -1472,6 +1501,13 @@ async function bootstrap() {
         if (chip) chip.textContent = (chip.id === 'cash-chip' ? 'CASH ₦' : '') + (passengerManager.dailyEarnings || 0);
       } catch (e) {}
       try { window.__kanoApplyModels?.(); } catch (e) {}
+      if (!document.getElementById('kano-life-strip')) {
+        const strip = document.createElement('div');
+        strip.id = 'kano-life-strip';
+        strip.style.cssText = 'position:fixed;top:48px;left:50%;transform:translateX(-50%);z-index:54;pointer-events:none;font:700 11px/1.3 system-ui;color:#eee;background:rgba(0,0,0,0.55);padding:6px 12px;border-radius:10px;white-space:nowrap;max-width:95vw;overflow:hidden;';
+        strip.textContent = 'PAX 0/3 · COND 100% · HEAT 0%';
+        document.body.appendChild(strip);
+      }
       showBanner('🚗 Drive! Hold ACCEL · ◀ ▶ steer');
     if (!localStorage.getItem('kano_drive_tips')) {
       localStorage.setItem('kano_drive_tips', '1');
@@ -1579,6 +1615,11 @@ window.__kanoFullFrame = function fullFrame() {
           steer *= 0.82;
           if (throttle > 0) throttle *= 0.9;
         }
+      } catch (e) {}
+      // Load penalty when seats full (kano-run parity)
+      try {
+        const load = (passengerManager.onBoard?.length || 0) / Math.max(1, passengerManager.capacity || 3);
+        if (load > 0.5 && throttle > 0) throttle *= 1 - load * 0.18;
       } catch (e) {}
       kekeController.setInput(throttle, steer);
       kekeController.update(delta);
@@ -1761,6 +1802,16 @@ window.__kanoFullFrame = function fullFrame() {
       const spdEl = document.getElementById('speed-display');
       if (spdEl) spdEl.innerText = String(kmh);
       const big = document.getElementById('kano-speed-big');
+      try {
+        const strip = document.getElementById('kano-life-strip');
+        if (strip) {
+          const pax = (passengerManager.onBoard?.length || 0);
+          const cap = passengerManager.capacity || 3;
+          const cond = maintenance?.getCondition?.() ?? 100;
+          const heat = Math.round(window.__kanoHeat || 0);
+          strip.textContent = 'PAX ' + pax + '/' + cap + ' · COND ' + cond + '% · HEAT ' + heat + '% · ₦' + (passengerManager.dailyEarnings || 0);
+        }
+      } catch (e) {}
       if (big) {
         const ml = document.getElementById('kano-mission-line');
         const main = kmh + ' km/h';
@@ -1800,6 +1851,8 @@ window.__kanoFullFrame = function fullFrame() {
       } catch (e) {}
 
       shiftElapsed = (shiftElapsed || 0) + delta;
+      window.__kanoHeat = Math.max(0, (window.__kanoHeat || 0) - delta * 0.35);
+
       // Distance milestones (life-sim / career)
       try {
         const z = Math.abs(kekeGroup.position.z || 0);

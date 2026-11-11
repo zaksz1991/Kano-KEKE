@@ -87,6 +87,12 @@ export class KekeMaintenanceEngine {
   }
 
   /** Full service at mechanic / PMS */
+  getCondition() {
+    // Blend oil + inverse temp stress
+    const heatPenalty = Math.max(0, (this.engineTemp - 90) * 1.5);
+    return Math.max(0, Math.min(100, Math.round((this.oilLevel * 0.6 + this.tyreHealth * 0.4) - heatPenalty)));
+  }
+
   servicingRepair(cost, passengerManager, hudCallback) {
     if (passengerManager.dailyEarnings >= cost) {
       passengerManager.dailyEarnings -= cost;

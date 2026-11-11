@@ -242,6 +242,7 @@ export class PoliceCheckpointEngine {
         this.chase = null;
         mesh.visible = false;
         this.keke.maxSpeed = Math.max(this.keke.maxSpeed, 28);
+        try { window.__kanoHeat = Math.min(100, (window.__kanoHeat || 0) + 15); } catch (e) {}
         if (hudCallback) {
           hudCallback({
             msg: `🚔 Caught — fine ₦${fine}`,
@@ -254,6 +255,7 @@ export class PoliceCheckpointEngine {
         this.chase = null;
         mesh.visible = false;
         this.keke.maxSpeed = Math.max(this.keke.maxSpeed, 28);
+        try { window.__kanoHeat = Math.max(0, (window.__kanoHeat || 0) - 5); } catch (e) {}
         if (hudCallback) hudCallback({ msg: '🟢 Lost KAROTA — next time slow down' });
       }
       return;
@@ -274,6 +276,9 @@ export class PoliceCheckpointEngine {
           cp.cleared = true;
           this._raiseBarrier(cp);
           this._startChase(hudCallback);
+          try {
+            window.__kanoHeat = Math.min(100, (window.__kanoHeat || 0) + 25);
+          } catch (e) {}
         } else if (speed < 3.2) {
           this._resolveStop(cp, hudCallback);
         } else if (!cp._passed) {
