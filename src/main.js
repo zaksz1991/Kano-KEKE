@@ -1973,7 +1973,14 @@ window.__kanoFullFrame = function fullFrame() {
           if (cond < 25 || heat > 80) status = 'CRIT';
           if ((fuelManager?.fuel ?? 100) < 15) status = 'LOW FUEL';
           const combo = passengerManager.combo || 0;
-          strip.textContent = km + 'km · PAX ' + pax + '/' + cap + ' · x' + combo + ' · ' + status + ' · H' + heat;
+          let extra = '';
+          if (window.__kanoTimeAttack > 0) {
+            const s = Math.ceil(window.__kanoTimeAttack);
+            const mm = Math.floor(s / 60);
+            const ss = String(s % 60).padStart(2, '0');
+            extra = ' · ⏱' + mm + ':' + ss;
+          }
+          strip.textContent = km + 'km · PAX ' + pax + '/' + cap + ' · x' + combo + ' · ' + status + extra;
           try {
             const lives = missionManager?.lives ?? 3;
             const h = document.getElementById('kano-hearts');
