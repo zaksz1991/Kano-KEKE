@@ -2139,6 +2139,11 @@ window.__kanoFullFrame = function fullFrame() {
             if (h >= 5.5 && h < 7) col = 0xffb074; // dawn
             else if (h >= 17.5 && h < 19) col = 0xff8a50; // dusk
             else if (h >= 19 || h < 5.5) col = 0x1a237e; // night
+            if (!window.__kanoNightAnnounced && h >= 19 && h < 19.5) {
+              window.__kanoNightAnnounced = true;
+              showBanner('Night shift — fares up, fog in, headlights on');
+            }
+            if (h >= 6 && h < 18) window.__kanoNightAnnounced = false;
             scene.fog.color.setHex(col);
             if (scene.background && scene.background.isColor) scene.background.setHex(col);
             else scene.background = new THREE.Color(col);
