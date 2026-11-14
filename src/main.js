@@ -717,6 +717,12 @@ async function bootstrap() {
         strip.textContent = 'PAX 0/3 · COND 100% · HEAT 0%';
         document.body.appendChild(strip);
       }
+      try {
+        const h = Math.floor((window.timeInMinutes || 360) / 60) % 24;
+        if (h < 10) showBanner('Morning shift — market routes busy');
+        else if (h < 16) showBanner('Afternoon shift — watch KAROTA');
+        else showBanner('Evening shift — night fares soon');
+      } catch (e) {}
       showBanner('🚗 Drive! Hold ACCEL · ◀ ▶ steer');
       window.__kanoStartQueued = false;
     } catch (err) {
@@ -1610,6 +1616,12 @@ async function bootstrap() {
         strip.textContent = 'PAX 0/3 · COND 100% · HEAT 0%';
         document.body.appendChild(strip);
       }
+      try {
+        const h = Math.floor((window.timeInMinutes || 360) / 60) % 24;
+        if (h < 10) showBanner('Morning shift — market routes busy');
+        else if (h < 16) showBanner('Afternoon shift — watch KAROTA');
+        else showBanner('Evening shift — night fares soon');
+      } catch (e) {}
       showBanner('🚗 Drive! Hold ACCEL · ◀ ▶ steer');
     if (!localStorage.getItem('kano_drive_tips')) {
       localStorage.setItem('kano_drive_tips', '1');
