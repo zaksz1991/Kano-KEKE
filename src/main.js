@@ -952,6 +952,12 @@ async function bootstrap() {
       } catch (e) {}
       const dropCount = window.__kanoDrops || 0;
       const km = (Math.abs(kekeGroup.position.z || 0) / 1000).toFixed(2);
+      if (window.__kanoFuelChallenge && fuelLeft >= 10 && parseFloat(km) >= 0.4) {
+        const bonus = 1200;
+        passengerManager.dailyEarnings += bonus;
+        cash = passengerManager.dailyEarnings;
+        showBanner('Fuel Challenge clear · +₦' + bonus);
+      }
       showBanner('✅ Run · ₦' + cash + ' · ' + dropCount + ' drops · ' + km + 'km · fuel ' + fuelLeft + '%');
       setTimeout(() => showBanner('High scores updated · Start again when ready'), 1600);
       try {
