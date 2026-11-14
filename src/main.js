@@ -1695,6 +1695,7 @@ window.__kanoFullFrame = function fullFrame() {
             document.body.appendChild(h);
           }
           h.textContent = '📢 HONK';
+          window.__kanoHornPulse = true;
           try { if (navigator.vibrate) navigator.vibrate(30); } catch (e) {}
           h.style.opacity = '1';
           clearTimeout(window.__hornFlash);

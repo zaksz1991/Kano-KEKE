@@ -41,6 +41,18 @@ export class PassengerManager {
     this.maxWaiting = 8;
     this._spawnTimer = 0;
     this.nearestPrompt = null;
+    // Horn attract (optional external flag)
+    if (window.__kanoHornPulse && this.waiting.length) {
+      window.__kanoHornPulse = false;
+      const pz = this.keke.group.position.z;
+      this.waiting.forEach((p) => {
+        if (!p.mesh) return;
+        if (Math.abs(p.mesh.position.z - pz) < 35) {
+          p.flagPhase = (p.flagPhase || 0) + 2;
+        }
+      });
+    }
+
     this.negotiating = null;
     this._negTimer = 0;
   }
@@ -279,6 +291,18 @@ export class PassengerManager {
     const playerZ = this.keke.group.position.z;
     const speed = this.keke.currentSpeed || 0;
     this.nearestPrompt = null;
+    // Horn attract (optional external flag)
+    if (window.__kanoHornPulse && this.waiting.length) {
+      window.__kanoHornPulse = false;
+      const pz = this.keke.group.position.z;
+      this.waiting.forEach((p) => {
+        if (!p.mesh) return;
+        if (Math.abs(p.mesh.position.z - pz) < 35) {
+          p.flagPhase = (p.flagPhase || 0) + 2;
+        }
+      });
+    }
+
 
     this._spawnTimer += dt;
     // Rush hours denser (life-sim): morning + evening
