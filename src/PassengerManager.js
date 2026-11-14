@@ -388,6 +388,10 @@ export class PassengerManager {
     for (const p of [...this.onBoard]) {
       if (p.dropAtZ == null) continue;
       const dz = p.dropAtZ - playerZ;
+      if (dz < 55 && dz > 40 && !p._nearCall) {
+        p._nearCall = true;
+        if (hudCallback) hudCallback({ msg: '📍 Approaching ' + p.destination });
+      }
       if (dz < 40 && dz > 0) {
         if (hudCallback) {
           hudCallback({
