@@ -401,10 +401,11 @@ window.__kanoShowTips = function showTipsForced() {
   if (localStorage.getItem('kano_tips_seen')) return;
   localStorage.setItem('kano_tips_seen', '1');
   const tips = [
-    'Hold ACCEL to skip intro & drive',
-    'Slow near roadside people to pick up',
-    'R = Radio · C = Garage · N = End shift',
-    'Brake when passenger says Akwai!'
+    'Hold ACCEL to drive · BRAKE to stop / reverse',
+    'GREEN pad = pick up · GOLD pad = drop off (almost stop)',
+    'KAROTA: SLOW to clear · bolt and they chase',
+    'R radio · M mechanic · U water cool · V/Y electric battery',
+    'CNG/PMS blue or green canopy — SLOW to fill'
   ];
   let i = 0;
   const tick = () => {
