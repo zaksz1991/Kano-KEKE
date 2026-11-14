@@ -1128,7 +1128,7 @@ async function bootstrap() {
         <div style="font-size:28px;">💥</div>
         <h2 style="color:#ff5252;margin:8px 0;">KEKE WRECKED</h2>
         <p style="color:#b0bec5;font-size:14px;line-height:1.5;">Engine down. Lives left: <b>${lives}</b><br/>Continues: <b>${continues}</b></p>
-        <button id="btn-continue-pay" style="width:100%;margin:8px 0;padding:14px;border:none;border-radius:10px;font-weight:900;background:#ffcc00;color:#000;cursor:pointer;">CONTINUE — ₦1,500</button>
+        <button id="btn-continue-pay" style="width:100%;margin:8px 0;padding:14px;border:none;border-radius:10px;font-weight:900;background:#ffcc00;color:#000;cursor:pointer;">USE LIFE SAVER — ₦1,500</button>
         <button id="btn-continue-end" style="width:100%;margin:4px 0;padding:12px;border:1px solid #666;border-radius:10px;font-weight:700;background:#333;color:#fff;cursor:pointer;">END SHIFT</button>
       </div>`;
     document.body.appendChild(m);
@@ -1153,7 +1153,7 @@ async function bootstrap() {
 
   window.__kanoBuyContinue = () => {
     const r = missionManager.buyContinue(passengerManager.dailyEarnings, 1500);
-    if (!r.ok) { showBanner('Need ₦1,500 for continue'); return false; }
+    if (!r.ok) { showBanner('Need ₦1,500 for Life Saver'); return false; }
     passengerManager.dailyEarnings -= r.cost;
     const earn = document.getElementById('earnings');
     if (earn) earn.innerText = passengerManager.dailyEarnings;
