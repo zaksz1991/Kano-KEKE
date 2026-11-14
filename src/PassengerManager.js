@@ -251,7 +251,7 @@ export class PassengerManager {
       const routeTxt = (document.getElementById('route-select')?.selectedOptions?.[0]?.text || '').toLowerCase();
       const d = String(p.destination || '').toLowerCase();
       if (routeTxt && d && routeTxt.includes(d.split(' ')[0])) {
-        finalFare = Math.round(finalFare * 1.12);
+        finalFare = Math.round(finalFare * (window.__kanoMatchDrop ? 1.28 : 1.12));
         p.agreedFare = finalFare;
         p._routeSynergy = true;
       }
@@ -268,7 +268,7 @@ export class PassengerManager {
     if (hudCallback) {
       hudCallback({
         type: 'BOARD',
-        msg: `${p.title}: "Na shiga!" → ${p.destination} · ₦${finalFare}` + (p._fullLoad ? " · FULL LOAD +" : "") + (p._earlyBird ? " · EARLY +" : "") + (p._routeSynergy ? " · ROUTE +" : ""),
+        msg: `${p.title}: "Na shiga!" → ${p.destination} · ₦${finalFare}` + (p._fullLoad ? " · FULL LOAD +" : "") + (p._earlyBird ? " · EARLY +" : "") + (p._routeSynergy ? " · ROUTE +" : "") + (window.__kanoMatchDrop && p._routeSynergy ? " · MATCH" : ""),
         earnings: this.dailyEarnings
       });
     }
