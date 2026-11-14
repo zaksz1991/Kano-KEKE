@@ -1042,6 +1042,19 @@ async function bootstrap() {
             el.after(sc);
           }
           sc.textContent = '⭐ Best score · ' + (hs[0].score || 0) + ' pts · ' + (hs[0].driver || '');
+          try {
+            const rank = missionManager?.rankForScore?.(hs[0].score || 0) || '';
+            if (rank) {
+              let nr = document.getElementById('kano-naija-rank');
+              if (!nr) {
+                nr = document.createElement('div');
+                nr.id = 'kano-naija-rank';
+                nr.style.cssText = 'color:#ce93d8;font-weight:800;font-size:12px;margin:4px 16px;';
+                sc.after(nr);
+              }
+              nr.textContent = '🏅 Naija Rank · ' + rank;
+            }
+          } catch (e) {}
         }
       } catch (e) {}
     }
