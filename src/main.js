@@ -1031,6 +1031,19 @@ async function bootstrap() {
         document.getElementById('main-menu-overlay')?.querySelector('.menu-buttons')?.prepend(el);
       }
       el.textContent = '🥇 Best today · ₦' + best;
+      try {
+        const hs = HighScoreBoard.load?.() || [];
+        if (hs[0]) {
+          let sc = document.getElementById('kano-best-score');
+          if (!sc) {
+            sc = document.createElement('div');
+            sc.id = 'kano-best-score';
+            sc.style.cssText = 'color:#90caf9;font-weight:700;font-size:12px;margin:4px 16px;';
+            el.after(sc);
+          }
+          sc.textContent = '⭐ Best score · ' + (hs[0].score || 0) + ' pts · ' + (hs[0].driver || '');
+        }
+      } catch (e) {}
     }
   } catch (e) {}
 
