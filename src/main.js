@@ -512,7 +512,8 @@ async function bootstrap() {
       try {
         if (typeof missionManager !== 'undefined' && missionManager?.startShift) {
           const goals = missionManager.startShift('Kano');
-          if (goals?.length) showBanner('Mission: ' + goals.map(g => g.label).join(' · '));
+          if (goals?.length && !window.__kanoFreeRoam) showBanner('Mission: ' + goals.map(g => g.label).join(' · '));
+          if (window.__kanoFreeRoam) showBanner('Free Roam — drive Kano your way');
         }
       } catch (e) {}
 
