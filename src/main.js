@@ -393,7 +393,11 @@ function showBanner(msg) {
 }
 
 
-function showFirstRunTips() {
+window.__kanoShowTips = function showTipsForced() {
+    localStorage.removeItem('kano_tips_seen');
+    showFirstRunTips();
+  };
+  function showFirstRunTips() {
   if (localStorage.getItem('kano_tips_seen')) return;
   localStorage.setItem('kano_tips_seen', '1');
   const tips = [
@@ -1003,6 +1007,16 @@ async function bootstrap() {
   const missionBoard = new MissionBoardUI(missionManager, charSelect);
   try { missionBoard.showPreview(); } catch (e) {}
   try { HighScoreBoard.renderOnMenu(); } catch (e) {}
+  try {
+    if (!document.getElementById('how-to-btn')) {
+      const b = document.createElement('button');
+      b.id = 'how-to-btn';
+      b.textContent = 'How to Play';
+      b.style.cssText = 'margin:8px 16px;padding:10px 14px;border-radius:10px;border:1px solid #80cbc4;background:rgba(0,0,0,0.5);color:#80cbc4;font-weight:800;cursor:pointer;';
+      b.onclick = () => window.__kanoShowTips?.();
+      document.getElementById('main-menu-overlay')?.querySelector('.menu-buttons')?.appendChild(b);
+    }
+  } catch (e) {}
   try {
     const dayKey = new Date(Date.now() + 3600000).toISOString().slice(0, 10);
     const best = parseInt(localStorage.getItem('kano_best_' + dayKey) || '0', 10);
