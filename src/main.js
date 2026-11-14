@@ -770,6 +770,22 @@ async function bootstrap() {
         const load = (passengerManager.onBoard?.length || 0) / Math.max(1, passengerManager.capacity || 3);
         if (load > 0.5 && throttle > 0) throttle *= 1 - load * 0.18;
       } catch (e) {}
+      // Soft pull-over toward nearest waiting passenger when slow
+      try {
+        if ((kekeController.currentSpeed || 0) < 6 && passengerManager.waiting?.length) {
+          let best = null, bestD = 25;
+          const pz = kekeGroup.position.z, px = kekeGroup.position.x;
+          for (const p of passengerManager.waiting) {
+            if (!p.mesh) continue;
+            const d = Math.hypot(p.mesh.position.x - px, p.mesh.position.z - pz);
+            if (d < bestD) { bestD = d; best = p; }
+          }
+          if (best?.mesh) {
+            const side = Math.sign(best.mesh.position.x - px) || 1;
+            steer = THREE.MathUtils.clamp(steer + side * 0.15, -1, 1);
+          }
+        }
+      } catch (e) {}
       kekeController.setInput(throttle, steer);
       kekeController.update(delta);
       // Idle curb wait (kano-run)
@@ -1324,6 +1340,11 @@ async function bootstrap() {
     if (e.code === 'KeyY') {
       try { window.__kanoBattery?.rentBattery?.(showBanner); } catch (err) {}
     }
+    if (e.code === 'KeyM') {
+      try {
+        maintenance?.servicingRepair?.(800, passengerManager, (m) => showBanner(typeof m === 'string' ? m : m?.msg || m));
+      } catch (err) {}
+    }
     if (e.code === 'KeyU') {
       try {
         maintenance?.waterCool?.(passengerManager, (m) => showBanner(typeof m === 'string' ? m : m));
@@ -1696,6 +1717,22 @@ window.__kanoFullFrame = function fullFrame() {
         const load = (passengerManager.onBoard?.length || 0) / Math.max(1, passengerManager.capacity || 3);
         if (load > 0.5 && throttle > 0) throttle *= 1 - load * 0.18;
       } catch (e) {}
+      // Soft pull-over toward nearest waiting passenger when slow
+      try {
+        if ((kekeController.currentSpeed || 0) < 6 && passengerManager.waiting?.length) {
+          let best = null, bestD = 25;
+          const pz = kekeGroup.position.z, px = kekeGroup.position.x;
+          for (const p of passengerManager.waiting) {
+            if (!p.mesh) continue;
+            const d = Math.hypot(p.mesh.position.x - px, p.mesh.position.z - pz);
+            if (d < bestD) { bestD = d; best = p; }
+          }
+          if (best?.mesh) {
+            const side = Math.sign(best.mesh.position.x - px) || 1;
+            steer = THREE.MathUtils.clamp(steer + side * 0.15, -1, 1);
+          }
+        }
+      } catch (e) {}
       kekeController.setInput(throttle, steer);
       kekeController.update(delta);
       // Idle curb wait (kano-run)
@@ -1900,6 +1937,13 @@ window.__kanoFullFrame = function fullFrame() {
       } catch (e) {}
       try { batterySystem?.update?.(delta, kekeController.currentSpeed, showBanner); } catch (e) {}
       try { maintenance?.update?.(delta, kekeController.currentSpeed, showBanner); } catch (e) {}
+      try {
+        const cond = maintenance?.getCondition?.() ?? 100;
+        if (cond < 45 && (kekeController.currentSpeed || 0) < 2 && (window.__mechTip || 0) + 15000 < performance.now()) {
+          window.__mechTip = performance.now();
+          showBanner('🔧 Low condition — M for service ₦800 or cool at PMS');
+        }
+      } catch (e) {}
       try { signalLights.update?.(delta, throttle < -0.1, steer); } catch (e) {}
       try {
         headlights.update?.(window.timeInMinutes);
