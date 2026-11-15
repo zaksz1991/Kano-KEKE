@@ -2041,6 +2041,9 @@ window.__kanoFullFrame = function fullFrame() {
             const ss = String(s % 60).padStart(2, '0');
             extra = ' · ⏱' + mm + ':' + ss;
           }
+          if (window.__kanoFuelChallenge) {
+            extra += ' · F' + Math.round(fuelManager?.fuel ?? 0) + '%';
+          }
           strip.textContent = km + 'km · PAX ' + pax + '/' + cap + ' · x' + combo + ' · ' + status + extra;
           try {
             const lives = missionManager?.lives ?? 3;
