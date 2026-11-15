@@ -971,7 +971,8 @@ async function bootstrap() {
         showBanner('Fuel Challenge clear · +₦' + bonus);
       }
       const mins = Math.max(1, Math.round((shiftElapsed || 0) / 60));
-      showBanner('✅ Run · ₦' + cash + ' · ' + dropCount + ' drops · ' + km + 'km · ' + mins + 'm · F' + fuelLeft + '%');
+      const epm = Math.round(cash / mins);
+      showBanner('✅ Run · ₦' + cash + ' · ' + dropCount + ' drops · ' + km + 'km · ' + mins + 'm · ₦' + epm + '/min');
       setTimeout(() => showBanner('High scores updated · Start again when ready'), 1600);
       try {
         const b = document.getElementById('start-game-btn');
