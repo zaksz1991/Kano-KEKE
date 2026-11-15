@@ -2105,6 +2105,11 @@ window.__kanoFullFrame = function fullFrame() {
       }
 
       window.__kanoHeat = Math.max(0, (window.__kanoHeat || 0) - delta * 0.35);
+      if ((window.__kanoHeat || 0) > 70 && !(window.__heatWarn > performance.now())) {
+        window.__heatWarn = performance.now() + 20000;
+        showBanner('HEAT high — cool off, stop running KAROTA');
+      }
+
       window.__kanoPotholeT = (window.__kanoPotholeT || 0) + delta;
       if (window.__kanoPotholeT > 7 && (kekeController.currentSpeed || 0) > 10) {
         window.__kanoPotholeT = 0;
