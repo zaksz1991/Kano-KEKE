@@ -433,7 +433,7 @@ export class PassengerManager {
           hudCallback({
             type: 'DROPOFF',
             earnings: this.dailyEarnings,
-            msg: `${p.title}: "Na gode!" · ${p.destination} · +₦${pay}${tipMsg}${smoothMsg} · Combo x${this.combo}`
+            msg: `${p.title}: "${['Na gode!', 'Sai anjima!', 'Allah ya sakawa!'][Math.floor(Math.random()*3)]}" · ${p.destination} · +₦${pay}${tipMsg}${smoothMsg} · Combo x${this.combo}`
           });
         }
       } else if (playerZ > p.dropAtZ + 50) {
