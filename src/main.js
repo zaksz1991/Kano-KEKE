@@ -970,7 +970,8 @@ async function bootstrap() {
         cash = passengerManager.dailyEarnings;
         showBanner('Fuel Challenge clear · +₦' + bonus);
       }
-      showBanner('✅ Run · ₦' + cash + ' · ' + dropCount + ' drops · ' + km + 'km · fuel ' + fuelLeft + '%');
+      const mins = Math.max(1, Math.round((shiftElapsed || 0) / 60));
+      showBanner('✅ Run · ₦' + cash + ' · ' + dropCount + ' drops · ' + km + 'km · ' + mins + 'm · F' + fuelLeft + '%');
       setTimeout(() => showBanner('High scores updated · Start again when ready'), 1600);
       try {
         const b = document.getElementById('start-game-btn');
