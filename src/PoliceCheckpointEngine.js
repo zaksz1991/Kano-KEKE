@@ -164,7 +164,9 @@ export class PoliceCheckpointEngine {
       } catch (e) {}
       if (hudCallback) {
         hudCallback({
-          msg: '🟢 KAROTA: "Toh, wuce." · +₦50 respect',
+          msg: (Math.random() < 0.5
+            ? '🟢 KAROTA: "Toh, wuce." · +₦50 respect'
+            : '🟢 KAROTA: "Lafiya? Toh, wuce." · +₦50 respect'),
           type: 'KAROTA_CLEAR',
           earnings: this.passengers.dailyEarnings
         });
