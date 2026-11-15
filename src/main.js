@@ -2163,7 +2163,7 @@ window.__kanoFullFrame = function fullFrame() {
 
       // Real-life Kano ambient flavour
       window.__kanoLifeT = (window.__kanoLifeT || 0) + delta;
-      if (window.__kanoLifeT > 42) {
+      if (window.__kanoLifeT > (window.__kanoFreeRoam ? 55 : 42)) {
         window.__kanoLifeT = 0;
         const lines = [
           '📢 "Keke! Sabon Gari!"',
