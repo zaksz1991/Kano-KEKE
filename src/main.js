@@ -861,6 +861,13 @@ async function bootstrap() {
   };
   window.__kanoEndShift = () => {
     try {
+      if (!window.__endConfirm) {
+        window.__endConfirm = true;
+        showBanner('Press END again to finish shift');
+        setTimeout(() => { window.__endConfirm = false; }, 3000);
+        return;
+      }
+      window.__endConfirm = false;
       const cash = passengerManager?.dailyEarnings ?? 0;
       let result = { score: cash, level: 1 };
       try {
