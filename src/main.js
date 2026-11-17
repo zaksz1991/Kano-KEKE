@@ -358,7 +358,7 @@ function saveShiftProgress() {
   } catch (e) {}
 }
 
-function showBanner(msg) {
+window.showBanner = function showBanner(msg) {
   const textMsg = typeof msg === 'string' ? msg : (msg?.msg || '');
   if (!textMsg) return;
   window.__bannerQueue = window.__bannerQueue || [];
