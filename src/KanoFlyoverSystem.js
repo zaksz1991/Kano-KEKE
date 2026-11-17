@@ -97,6 +97,13 @@ export class KanoFlyoverSystem {
           window.showBanner?.('🛤️ ' + (inst.name || 'Kano flyover') + ' ahead');
         } catch (e) {}
       }
+      // Under the deck
+      if (Math.abs(dz) < 18 && !inst._underSaid) {
+        inst._underSaid = true;
+        try {
+          window.showBanner?.('Passing under ' + (inst.name || 'flyover'));
+        } catch (e) {}
+      }
       return true;
     });
     while (this._nextZ < playerZ + 500 && this.instances.length < this.maxVisible + 1) {
