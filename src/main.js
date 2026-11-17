@@ -29,6 +29,7 @@ import { MissionBoardUI } from './MissionBoardUI.js';
 import { KekeSeatOccupancy } from './KekeSeatOccupancy.js';
 import { DashHUD } from './DashHUD.js';
 import { KanoRoadsideLife } from './KanoRoadsideLife.js';
+import { KenneyRoadProps } from './KenneyRoadProps.js';
 import { FuelStationSystem } from './FuelStationSystem.js';
 import { ElectricBatterySystem } from './ElectricBatterySystem.js';
 import { ProximityRadar } from './ProximityRadar.js';
@@ -643,6 +644,10 @@ async function bootstrap() {
         await pedestrianManager.init?.();
         if (pedestrianManager.template) showBanner('✅ Sidewalk peds GLB');
       } catch (e) {}
+      try {
+        await window.__kanoKenney?.init?.();
+        if (window.__kanoKenney?.ready) showBanner('✅ Kenney road props');
+      } catch (e) {}
       window.__kanoModelsLoading = false;
     } catch (e) {
       console.error('applyModels', e);
@@ -1013,6 +1018,9 @@ async function bootstrap() {
   let shiftStartCash = 0;
   const roadsideLife = new KanoRoadsideLife(scene);
   try { roadsideLife.init(); } catch (e) { console.warn('roadside', e); }
+  const kenneyProps = new KenneyRoadProps(scene, assetManager);
+  window.__kanoKenney = kenneyProps;
+
   const missionManager = new MissionManager();
   missionManager.loadProgress(saved);
   const missionBoard = new MissionBoardUI(missionManager, charSelect);
@@ -1863,6 +1871,7 @@ window.__kanoFullFrame = function fullFrame() {
         }
       } catch (e) {}
       try { roadsideLife?.update?.(kekeGroup.position.z); } catch (e) {}
+      try { window.__kanoKenney?.update?.(kekeGroup.position.z); } catch (e) {}
       try {
         if (window.__kanoGameMode === 'race' || trafficManager.raceMode) {
           const place = trafficManager.getRacePlace?.() || 1;
