@@ -110,10 +110,12 @@ export class PassengerManager {
 
   _makePerson() {
     const g = new THREE.Group();
-    if (this.pedModel) {
-      const mesh = this.pedModel.clone(true);
+    const useHijab = this.hijabModel && Math.random() < 0.45;
+    const src = useHijab ? this.hijabModel : this.pedModel;
+    if (src) {
+      const mesh = src.clone(true);
       mesh.userData.isGlb = true;
-      mesh.scale.setScalar(1.3 + Math.random() * 0.25);
+      mesh.scale.setScalar(useHijab ? 1.05 + Math.random() * 0.15 : 1.3 + Math.random() * 0.25);
       g.add(mesh);
     } else {
       const body = new THREE.Mesh(

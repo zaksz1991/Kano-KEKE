@@ -24,6 +24,13 @@ export class PedestrianManager {
         timeoutMs: 15000
       });
       if (this.template) console.log('[Peds] pedestrian.glb ready');
+      try {
+        this.hijab = await this.assets.loadGLB('/assets/models/women_in_hijab.glb', {
+          scale: 1.05,
+          timeoutMs: 18000
+        });
+        if (this.hijab) console.log('[Peds] women_in_hijab.glb ready');
+      } catch (e) { this.hijab = null; }
     } catch (e) {
       console.warn('[Peds]', e);
     }
@@ -35,9 +42,10 @@ export class PedestrianManager {
   }
 
   _makeMesh() {
-    if (this.template) {
+    const src = (this.hijab && Math.random() < 0.4) ? this.hijab : this.template;
+    if (src) {
       try {
-        return this.template.clone(true);
+        return src.clone(true);
       } catch (e) {}
     }
     // Minimal humanoid (only if GLB missing)

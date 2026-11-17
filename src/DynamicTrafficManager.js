@@ -56,6 +56,7 @@ export class DynamicTrafficManager {
       if (k) this._kekeTpl = k;
     } catch (e) {}
     const list = [
+      { path: '/assets/models/Mitsubishi_L200.glb', kind: 'pickup', scale: 1.0 },
       { path: '/assets/models/traffic_vehicle.glb', kind: 'car', scale: 1.05 },
       { path: '/assets/models/okada.glb', kind: 'okada', scale: 1.0 },
       { path: '/assets/models/Car.glb', kind: 'car', scale: 1.05 },
@@ -131,7 +132,7 @@ export class DynamicTrafficManager {
     mesh.position.set(lane, 0, z);
     mesh.rotation.y = opposite ? Math.PI : 0;
     this.scene.add(mesh);
-    const base = kind === 'okada' ? 12 : kind === 'keke' ? 11 : 9;
+    const base = kind === 'okada' ? 12 : kind === 'keke' ? 11 : kind === 'pickup' ? 10 : 9;
     this.vehicles.push({
       mesh,
       kind,
