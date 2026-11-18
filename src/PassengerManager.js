@@ -209,7 +209,7 @@ export class PassengerManager {
     const mesh = this._makePerson();
     const px = this.keke.group.position.x;
     const side = px >= 0 ? (Math.random() > 0.3 ? 1 : -1) : Math.random() > 0.3 ? -1 : 1;
-    mesh.position.set(side * (8.8 + Math.random() * 1.2), 0, playerZ + 18 + Math.random() * 55);
+    mesh.position.set(side * (8.2 + Math.random() * 1.0), 0, playerZ + 12 + Math.random() * 40);
     mesh.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
     this.scene.add(mesh);
     p.mesh = mesh;
@@ -311,7 +311,7 @@ export class PassengerManager {
     const mins = (typeof window !== 'undefined' && window.timeInMinutes) ? window.timeInMinutes : 10 * 60;
     const h = (mins / 60) % 24;
     const rush = (h >= 7 && h <= 9) || (h >= 16 && h <= 19);
-    const spawnEvery = rush ? 0.85 : 1.35;
+    const spawnEvery = rush ? 0.7 : 1.05;
     if (this._spawnTimer > spawnEvery) {
       this._spawnTimer = 0;
       this._spawnWaiter(playerZ);

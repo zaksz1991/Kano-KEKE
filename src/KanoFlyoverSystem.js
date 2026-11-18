@@ -11,7 +11,7 @@ export class KanoFlyoverSystem {
     this.templates = [];
     this.instances = [];
     this.ready = false;
-    this.spacing = 420;
+    this.spacing = 280;
     this._nextZ = 180;
     this.maxVisible = 3;
     this.corridorNames = [
@@ -33,7 +33,7 @@ export class KanoFlyoverSystem {
     const files = [
       {
         path: '/assets/models/kano_urban_flyover.glb',
-        scale: 0.095,
+        scale: 0.14,
         y: 0.2,
         label: 'Urban'
       }
@@ -42,7 +42,7 @@ export class KanoFlyoverSystem {
     if (!isMobile) {
       files.push({
         path: '/assets/models/kai_tak_flyovers.glb',
-        scale: 0.038,
+        scale: 0.055,
         y: 0.15,
         label: 'Multi-level'
       });
@@ -64,9 +64,9 @@ export class KanoFlyoverSystem {
     }
     this.ready = this.templates.length > 0;
     if (this.ready) {
-      this._spawn(120, 0);
-      this._spawn(120 + this.spacing, 1);
-      this._nextZ = 120 + this.spacing * 2;
+      this._spawn(80, 0);
+      this._spawn(80 + this.spacing, 1);
+      this._nextZ = 80 + this.spacing * 2;
     }
   }
 

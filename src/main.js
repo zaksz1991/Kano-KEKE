@@ -570,7 +570,8 @@ async function bootstrap() {
         if (keys['KeyS'] || keys['ArrowDown']) throttle = -1;
         if (keys['KeyA'] || keys['ArrowLeft']) steer = -1;
         if (keys['KeyD'] || keys['ArrowRight']) steer = 1;
-        kekeController.setInput(throttle, steer);
+        if (Math.abs(steer) < 0.08) steer = 0;
+      kekeController.setInput(throttle, steer);
         kekeController.update(delta);
       // Idle curb wait (kano-run)
       try {
@@ -815,22 +816,8 @@ async function bootstrap() {
         const load = (passengerManager.onBoard?.length || 0) / Math.max(1, passengerManager.capacity || 3);
         if (load > 0.5 && throttle > 0) throttle *= 1 - load * 0.18;
       } catch (e) {}
-      // Soft pull-over toward nearest waiting passenger when slow
-      try {
-        if ((kekeController.currentSpeed || 0) < 6 && passengerManager.waiting?.length) {
-          let best = null, bestD = 25;
-          const pz = kekeGroup.position.z, px = kekeGroup.position.x;
-          for (const p of passengerManager.waiting) {
-            if (!p.mesh) continue;
-            const d = Math.hypot(p.mesh.position.x - px, p.mesh.position.z - pz);
-            if (d < bestD) { bestD = d; best = p; }
-          }
-          if (best?.mesh) {
-            const side = Math.sign(best.mesh.position.x - px) || 1;
-            steer = THREE.MathUtils.clamp(steer + side * 0.15, -1, 1);
-          }
-        }
-      } catch (e) {}
+      // auto pull-over removed (was causing right drift)
+      if (Math.abs(steer) < 0.08) steer = 0;
       kekeController.setInput(throttle, steer);
       kekeController.update(delta);
       // Idle curb wait (kano-run)
@@ -1856,22 +1843,8 @@ window.__kanoFullFrame = function fullFrame() {
         const load = (passengerManager.onBoard?.length || 0) / Math.max(1, passengerManager.capacity || 3);
         if (load > 0.5 && throttle > 0) throttle *= 1 - load * 0.18;
       } catch (e) {}
-      // Soft pull-over toward nearest waiting passenger when slow
-      try {
-        if ((kekeController.currentSpeed || 0) < 6 && passengerManager.waiting?.length) {
-          let best = null, bestD = 25;
-          const pz = kekeGroup.position.z, px = kekeGroup.position.x;
-          for (const p of passengerManager.waiting) {
-            if (!p.mesh) continue;
-            const d = Math.hypot(p.mesh.position.x - px, p.mesh.position.z - pz);
-            if (d < bestD) { bestD = d; best = p; }
-          }
-          if (best?.mesh) {
-            const side = Math.sign(best.mesh.position.x - px) || 1;
-            steer = THREE.MathUtils.clamp(steer + side * 0.15, -1, 1);
-          }
-        }
-      } catch (e) {}
+      // auto pull-over removed (was causing right drift)
+      if (Math.abs(steer) < 0.08) steer = 0;
       kekeController.setInput(throttle, steer);
       kekeController.update(delta);
       // Idle curb wait (kano-run)

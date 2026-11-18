@@ -19,7 +19,7 @@ export class DynamicTrafficManager {
   _proxyKeke() {
     const g = new THREE.Group();
     const body = new THREE.Mesh(
-      new THREE.BoxGeometry(1.15, 1.05, 2.1),
+      new THREE.BoxGeometry(1.6, 1.25, 3.2),
       new THREE.MeshStandardMaterial({ color: 0xffcc00, roughness: 0.5, metalness: 0.25 })
     );
     body.position.y = 0.8;
@@ -57,17 +57,17 @@ export class DynamicTrafficManager {
     } catch (e) {}
     const isMobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) || window.innerWidth < 900;
     const list = [
-      { path: '/assets/models/Mitsubishi_L200.glb', kind: 'pickup', scale: 1.0 },
-      { path: '/assets/models/traffic_vehicle.glb', kind: 'car', scale: 1.05 }
+      { path: '/assets/models/Mitsubishi_L200.glb', kind: 'pickup', scale: 2.8 },
+      { path: '/assets/models/traffic_vehicle.glb', kind: 'car', scale: 2.6 }
     ];
     if (!isMobile) {
       list.push(
-        { path: '/assets/models/okada.glb', kind: 'okada', scale: 1.0 },
-        { path: '/assets/models/Car.glb', kind: 'car', scale: 1.05 },
-        { path: '/assets/models/Taxi.glb', kind: 'car', scale: 1.05 },
-        { path: '/assets/models/SUV.glb', kind: 'van', scale: 1.0 },
-        { path: '/assets/models/Police Car.glb', kind: 'car', scale: 1.05 },
-        { path: '/assets/models/Car-2.glb', kind: 'car', scale: 1.05 }
+        { path: '/assets/models/okada.glb', kind: 'okada', scale: 2.2 },
+        { path: '/assets/models/Car.glb', kind: 'car', scale: 2.6 },
+        { path: '/assets/models/Taxi.glb', kind: 'car', scale: 2.6 },
+        { path: '/assets/models/SUV.glb', kind: 'van', scale: 2.5 },
+        { path: '/assets/models/Police Car.glb', kind: 'car', scale: 2.6 },
+        { path: '/assets/models/Car-2.glb', kind: 'car', scale: 2.6 }
       );
     }
     for (const c of list) {

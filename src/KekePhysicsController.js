@@ -62,10 +62,15 @@ export class KekePhysicsController {
     if (Math.abs(this.velocity) < 0.05) this.velocity = 0;
     this.currentSpeed = Math.abs(this.velocity);
 
-    const latMax = 18 / (1 + this.currentSpeed * 0.022);
-    const targetLat = -this.steerInput * latMax;
-    this.lateral += (targetLat - this.lateral) * Math.min(1, 14 * dt);
-    if (Math.abs(this.steerInput) < 0.04) this.lateral *= 0.78;
+    const latMax = 16 / (1 + this.currentSpeed * 0.022);
+    // No phantom drift: only move sideways when player is steering
+    if (Math.abs(this.steerInput) < 0.05) {
+      this.lateral *= 0.55;
+      if (Math.abs(this.lateral) < 0.15) this.lateral = 0;
+    } else {
+      const targetLat = -this.steerInput * latMax;
+      this.lateral += (targetLat - this.lateral) * Math.min(1, 12 * dt);
+    }
 
     this.group.position.x += this.lateral * dt;
     this.group.position.z += this.velocity * dt;
