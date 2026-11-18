@@ -24,13 +24,16 @@ export class PedestrianManager {
         timeoutMs: 15000
       });
       if (this.template) console.log('[Peds] pedestrian.glb ready');
-      try {
-        this.hijab = await this.assets.loadGLB('/assets/models/women_in_hijab.glb', {
-          scale: 1.05,
-          timeoutMs: 18000
-        });
-        if (this.hijab) console.log('[Peds] women_in_hijab.glb ready');
-      } catch (e) { this.hijab = null; }
+      const isMobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) || window.innerWidth < 900;
+      if (!isMobile) {
+        try {
+          this.hijab = await this.assets.loadGLB('/assets/models/women_in_hijab.glb', {
+            scale: 1.05,
+            timeoutMs: 18000
+          });
+          if (this.hijab) console.log('[Peds] women_in_hijab.glb ready');
+        } catch (e) { this.hijab = null; }
+      }
     } catch (e) {
       console.warn('[Peds]', e);
     }

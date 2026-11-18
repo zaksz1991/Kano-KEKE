@@ -55,16 +55,21 @@ export class DynamicTrafficManager {
       const k = await this.assets.loadGLB('/assets/models/keke.glb', { scale: 0.8, timeoutMs: 20000 });
       if (k) this._kekeTpl = k;
     } catch (e) {}
+    const isMobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) || window.innerWidth < 900;
     const list = [
       { path: '/assets/models/Mitsubishi_L200.glb', kind: 'pickup', scale: 1.0 },
-      { path: '/assets/models/traffic_vehicle.glb', kind: 'car', scale: 1.05 },
-      { path: '/assets/models/okada.glb', kind: 'okada', scale: 1.0 },
-      { path: '/assets/models/Car.glb', kind: 'car', scale: 1.05 },
-      { path: '/assets/models/Taxi.glb', kind: 'car', scale: 1.05 },
-      { path: '/assets/models/SUV.glb', kind: 'van', scale: 1.0 },
-      { path: '/assets/models/Police Car.glb', kind: 'car', scale: 1.05 },
-      { path: '/assets/models/Car-2.glb', kind: 'car', scale: 1.05 }
+      { path: '/assets/models/traffic_vehicle.glb', kind: 'car', scale: 1.05 }
     ];
+    if (!isMobile) {
+      list.push(
+        { path: '/assets/models/okada.glb', kind: 'okada', scale: 1.0 },
+        { path: '/assets/models/Car.glb', kind: 'car', scale: 1.05 },
+        { path: '/assets/models/Taxi.glb', kind: 'car', scale: 1.05 },
+        { path: '/assets/models/SUV.glb', kind: 'van', scale: 1.0 },
+        { path: '/assets/models/Police Car.glb', kind: 'car', scale: 1.05 },
+        { path: '/assets/models/Car-2.glb', kind: 'car', scale: 1.05 }
+      );
+    }
     for (const c of list) {
       try {
         const mesh = await this.assets.loadGLB(c.path, { scale: c.scale, timeoutMs: 12000 });

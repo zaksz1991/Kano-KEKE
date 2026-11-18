@@ -29,20 +29,24 @@ export class KanoFlyoverSystem {
   async init() {
     if (!this.assets) return;
     this.assets.enableNetwork?.();
+    const isMobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) || window.innerWidth < 900;
     const files = [
       {
         path: '/assets/models/kano_urban_flyover.glb',
         scale: 0.095,
         y: 0.2,
         label: 'Urban'
-      },
-      {
+      }
+    ];
+    // Heavy multi-level only on desktop
+    if (!isMobile) {
+      files.push({
         path: '/assets/models/kai_tak_flyovers.glb',
         scale: 0.038,
         y: 0.15,
         label: 'Multi-level'
-      }
-    ];
+      });
+    }
     for (const f of files) {
       try {
         const mesh = await this.assets.loadGLB(f.path, {

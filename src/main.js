@@ -620,40 +620,38 @@ async function bootstrap() {
 
     try {
       assetManager.enableNetwork?.();
-      showBanner('Loading 3D models…');
+      const loaded = [];
       const km = await assetManager.loadGLB('/assets/models/keke.glb', { scale: 0.85, timeoutMs: 20000 });
       if (km) {
         while (kekeGroup.children.length) kekeGroup.remove(kekeGroup.children[0]);
         kekeGroup.add(km);
-        showBanner('✅ Keke GLB ready');
-      } else {
-        showBanner('⚠️ keke.glb missing — check /assets/models/');
+        loaded.push('keke');
       }
       await trafficManager.loadRealModels?.();
-      if (trafficManager.templates?.length) {
-        showBanner('✅ Traffic GLBs ×' + trafficManager.templates.length);
-      }
+      if (trafficManager.templates?.length) loaded.push('traffic×' + trafficManager.templates.length);
       try {
         passengerManager.assets = assetManager;
         await passengerManager.initModels?.();
-        if (passengerManager.pedModel) showBanner('✅ Passenger GLB ready');
+        if (passengerManager.pedModel) loaded.push('pax');
       } catch (e) {}
       try {
         pedestrianManager.assets = assetManager;
         pedestrianManager.scene = scene;
         pedestrianManager.keke = kekeController;
         await pedestrianManager.init?.();
-        if (pedestrianManager.template) showBanner('✅ Sidewalk peds GLB');
+        if (pedestrianManager.template) loaded.push('peds');
       } catch (e) {}
       try {
         await window.__kanoKenney?.init?.();
-        if (window.__kanoKenney?.ready) showBanner('✅ Kenney road props');
+        if (window.__kanoKenney?.ready) loaded.push('props');
       } catch (e) {}
       try {
         await window.__kanoFlyovers?.init?.();
-        if (window.__kanoFlyovers?.ready) showBanner('✅ Kano flyovers on route');
+        if (window.__kanoFlyovers?.ready) loaded.push('flyovers');
       } catch (e) {}
       window.__kanoModelsLoading = false;
+      if (loaded.length) showBanner('✅ Assets: ' + loaded.join(', '));
+      else showBanner('⚠️ Using procedural meshes — upload GLBs to /assets/models/');
     } catch (e) {
       console.error('applyModels', e);
       showBanner('Model load error — see console');
@@ -716,8 +714,6 @@ async function bootstrap() {
         if (chip) chip.textContent = (chip.id === 'cash-chip' ? 'CASH ₦' : '') + (passengerManager.dailyEarnings || 0);
       } catch (e) {}
       
-      try { window.__kanoApplyModels?.(); } catch (e) {}
-
       try { window.__kanoApplyModels?.(); } catch (e) {}
       if (!document.getElementById('kano-hearts')) {
         const hearts = document.createElement('div');
@@ -1496,7 +1492,7 @@ async function bootstrap() {
   // Start shift
   window.__kanoStartShift = () => {
     if (window.__kanoStarting) return;
-    if (gameStarted && flow?.state === 'DRIVING') return;
+    if (gameStarted && (flow?.state === 'DRIVING' || flow?.engineStarted)) return;
     window.__kanoStarting = true;
     try { setTimeout(() => window.__kanoApplyModels?.(), 300); } catch (e) {}
     setTimeout(() => { window.__kanoStarting = false; }, 1500);
@@ -2316,8 +2312,12 @@ setTimeout(() => {
 }, 3000);
 
 window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  composer.setSize(window.innerWidth, window.innerHeight);
+  try {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    if (typeof composer !== 'undefined' && composer?.setSize) {
+      composer.setSize(window.innerWidth, window.innerHeight);
+    }
+  } catch (e) {}
 });
