@@ -1015,6 +1015,36 @@ async function bootstrap() {
       showBanner('✅ Run · ₦' + cash + ' · ' + dropCount + ' drops · ' + km + 'km · ' + mins + 'm · ₦' + epm + '/min');
       setTimeout(() => showBanner('High scores updated · Start again when ready'), 1600);
       try {
+        window.__kanoLastRunText =
+          'KANO KEKE · ₦' + cash + ' · ' + (window.__kanoDrops || 0) + ' drops · ' +
+          (typeof km !== 'undefined' ? km : '?') + 'km · play free';
+        if (!document.getElementById('kano-share-btn')) {
+          const sb = document.createElement('button');
+          sb.id = 'kano-share-btn';
+          sb.textContent = 'Share run';
+          sb.style.cssText = 'position:fixed;bottom:70px;left:50%;transform:translateX(-50%);z-index:95;padding:10px 18px;border-radius:20px;border:2px solid #ffcc00;background:rgba(0,0,0,0.85);color:#ffcc00;font-weight:900;cursor:pointer;';
+          sb.onclick = async () => {
+            const text = window.__kanoLastRunText || 'KANO KEKE';
+            try {
+              if (navigator.share) await navigator.share({ title: 'KANO KEKE', text });
+              else {
+                await navigator.clipboard.writeText(text);
+                showBanner('Copied run to clipboard');
+              }
+            } catch (e) {
+              try {
+                await navigator.clipboard.writeText(text);
+                showBanner('Copied run to clipboard');
+              } catch (e2) {
+                showBanner(text);
+              }
+            }
+          };
+          document.body.appendChild(sb);
+          setTimeout(() => { try { sb.remove(); } catch (e) {} }, 20000);
+        }
+      } catch (e) {}
+      try {
         const b = document.getElementById('start-game-btn');
         if (b) { b.textContent = 'Start Next Shift'; b.disabled = false; b.style.opacity = '1'; }
       } catch (e) {}
