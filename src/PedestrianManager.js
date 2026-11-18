@@ -11,7 +11,7 @@ export class PedestrianManager {
     this.pedestrians = [];
     this.template = null;
     this.ready = false;
-    this.maxPeds = /Android|iPhone|Mobile/i.test(navigator.userAgent) ? 6 : 10;
+    this.maxPeds = /Android|iPhone|Mobile/i.test(navigator.userAgent) ? 10 : 16;
     this._timer = 0;
   }
 
@@ -37,7 +37,7 @@ export class PedestrianManager {
     } catch (e) {
       console.warn('[Peds]', e);
     }
-    for (let i = 0; i < 4; i++) this._spawn(true);
+    for (let i = 0; i < 8; i++) this._spawn(true);
   }
 
   async initModels() {
@@ -72,10 +72,11 @@ export class PedestrianManager {
     const mesh = this._makeMesh();
     const playerZ = this.keke?.group?.position.z || 0;
     const side = Math.random() > 0.5 ? 1 : -1;
-    const x = side * (10.5 + Math.random() * 2.5);
-    const z = initial ? playerZ + 20 + Math.random() * 80 : playerZ + 90 + Math.random() * 60;
+    const x = side * (9.2 + Math.random() * 2.0);
+    const z = initial ? playerZ + 8 + Math.random() * 70 : playerZ + 50 + Math.random() * 80;
     mesh.position.set(x, 0, z);
     mesh.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
+    try { mesh.scale.multiplyScalar(1.35); } catch (e) {}
     this.scene.add(mesh);
     this.pedestrians.push({
       mesh,

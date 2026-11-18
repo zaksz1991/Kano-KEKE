@@ -289,6 +289,12 @@ export class PassengerManager {
   }
 
   update(delta, hudCallback) {
+    if (!this._seeded) {
+      this._seeded = true;
+      const z = this.keke?.group?.position.z || 0;
+      for (let i = 0; i < 5; i++) this._spawnWaiter(z + i * 12);
+    }
+
     const dt = Math.min(delta, 0.05);
     const playerZ = this.keke.group.position.z;
     const speed = this.keke.currentSpeed || 0;
@@ -311,7 +317,7 @@ export class PassengerManager {
     const mins = (typeof window !== 'undefined' && window.timeInMinutes) ? window.timeInMinutes : 10 * 60;
     const h = (mins / 60) % 24;
     const rush = (h >= 7 && h <= 9) || (h >= 16 && h <= 19);
-    const spawnEvery = rush ? 0.7 : 1.05;
+    const spawnEvery = rush ? 0.55 : 0.85;
     if (this._spawnTimer > spawnEvery) {
       this._spawnTimer = 0;
       this._spawnWaiter(playerZ);

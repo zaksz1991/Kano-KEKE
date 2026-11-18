@@ -759,7 +759,17 @@ async function bootstrap() {
         else if (h < 16) showBanner('Afternoon shift — watch KAROTA');
         else showBanner('Evening shift — night fares soon');
       } catch (e) {}
-      showBanner('🚗 Drive! Hold ACCEL · ◀ ▶ steer');
+      try {
+        trafficManager.ready = true;
+        if ((trafficManager.vehicles?.length || 0) < 4) {
+          for (let i = 0; i < 5; i++) trafficManager._spawn?.(true);
+        }
+        roadsideLife?.init?.();
+        for (let i = 0; i < 4; i++) pedestrianManager?._spawn?.(true);
+        for (let i = 0; i < 4; i++) passengerManager?._spawnWaiter?.(0);
+        window.__kanoWorldSeed = true;
+      } catch (e) {}
+      showBanner('🚗 Drive! Hold ACCEL · SLOW at green pads');
       window.__kanoStartQueued = false;
       try {
         const b = document.getElementById('start-game-btn');
@@ -1729,7 +1739,17 @@ async function bootstrap() {
         else if (h < 16) showBanner('Afternoon shift — watch KAROTA');
         else showBanner('Evening shift — night fares soon');
       } catch (e) {}
-      showBanner('🚗 Drive! Hold ACCEL · ◀ ▶ steer');
+      try {
+        trafficManager.ready = true;
+        if ((trafficManager.vehicles?.length || 0) < 4) {
+          for (let i = 0; i < 5; i++) trafficManager._spawn?.(true);
+        }
+        roadsideLife?.init?.();
+        for (let i = 0; i < 4; i++) pedestrianManager?._spawn?.(true);
+        for (let i = 0; i < 4; i++) passengerManager?._spawnWaiter?.(0);
+        window.__kanoWorldSeed = true;
+      } catch (e) {}
+      showBanner('🚗 Drive! Hold ACCEL · SLOW at green pads');
     if (!localStorage.getItem('kano_drive_tips')) {
       localStorage.setItem('kano_drive_tips', '1');
       setTimeout(() => showBanner('◀ ▶ steer · ACCEL gas · BRAKE stop/reverse'), 2200);
