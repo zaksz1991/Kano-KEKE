@@ -616,7 +616,19 @@ async function bootstrap() {
   // Preload in background so first Start is faster
   setTimeout(() => { try { window.__kanoApplyModels?.(); } catch (e) {} }, 2500);
   window.__kanoApplyModels = async function applyModels() {
+    if (window.__kanoModelsLoading) return;
     window.__kanoModelsLoading = true;
+    try {
+      let chip = document.getElementById('kano-load-chip');
+      if (!chip) {
+        chip = document.createElement('div');
+        chip.id = 'kano-load-chip';
+        chip.style.cssText = 'position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:90;pointer-events:none;font:700 11px system-ui;color:#ffcc00;background:rgba(0,0,0,0.65);padding:6px 14px;border-radius:20px;';
+        document.body.appendChild(chip);
+      }
+      chip.textContent = 'Loading 3D assets…';
+      chip.style.display = 'block';
+    } catch (e) {}
 
     try {
       assetManager.enableNetwork?.();
@@ -650,12 +662,23 @@ async function bootstrap() {
         if (window.__kanoFlyovers?.ready) loaded.push('flyovers');
       } catch (e) {}
       window.__kanoModelsLoading = false;
+      try {
+        const chip = document.getElementById('kano-load-chip');
+        if (chip) {
+          chip.textContent = loaded.length ? ('Ready · ' + loaded.join(', ')) : 'Procedural mode';
+          setTimeout(() => { try { chip.style.display = 'none'; } catch (e) {} }, 2800);
+        }
+      } catch (e) {}
       if (loaded.length) showBanner('✅ Assets: ' + loaded.join(', '));
       else showBanner('⚠️ Using procedural meshes — upload GLBs to /assets/models/');
     } catch (e) {
       console.error('applyModels', e);
       showBanner('Model load error — see console');
       window.__kanoModelsLoading = false;
+      try {
+        const chip = document.getElementById('kano-load-chip');
+        if (chip) chip.style.display = 'none';
+      } catch (err) {}
     }
   };
 
@@ -737,6 +760,10 @@ async function bootstrap() {
       } catch (e) {}
       showBanner('🚗 Drive! Hold ACCEL · ◀ ▶ steer');
       window.__kanoStartQueued = false;
+      try {
+        const b = document.getElementById('start-game-btn');
+        if (b) { b.disabled = false; b.style.opacity = '1'; b.textContent = 'Start Shift'; }
+      } catch (e) {}
     } catch (err) {
       console.error('earlyStart', err);
       showBanner('Start failed — try again');
