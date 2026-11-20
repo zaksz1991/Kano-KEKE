@@ -1080,6 +1080,35 @@ async function bootstrap() {
   window.__kanoKenney = kenneyProps;
 
   const missionManager = new MissionManager();
+
+  function _updateMissionHud(mm) {
+    try {
+      const goals = mm?.shiftGoals || [];
+      let el = document.getElementById('mission-hud-live');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'mission-hud-live';
+        el.style.cssText = 'position:fixed;top:78px;left:10px;z-index:56;pointer-events:none;font:700 11px/1.35 system-ui;color:#fff;background:rgba(0,0,0,0.55);padding:6px 10px;border-radius:8px;max-width:46vw;';
+        document.body.appendChild(el);
+      }
+      if (!goals.length) {
+        el.textContent = 'No active missions';
+        return;
+      }
+      el.innerHTML = goals
+        .map((g) => (g.done ? '✓ ' : '○ ') + (g.label || g.text || 'Mission'))
+        .join('<br/>');
+      const ml = document.getElementById('kano-mission-line');
+      if (ml) {
+        const next = goals.find((g) => !g.done);
+        ml.textContent = next ? next.label || next.text || '' : 'Missions clear';
+      }
+    } catch (e) {
+      console.warn('missionHud', e);
+    }
+  }
+
+
   missionManager.loadProgress(saved);
   const missionBoard = new MissionBoardUI(missionManager, charSelect);
   try { missionBoard.showPreview(); } catch (e) {}
@@ -1279,7 +1308,7 @@ async function bootstrap() {
     kekeController.maxSpeed = Math.max(kekeController.maxSpeed, 20);
     const modal = document.getElementById('continue-modal');
     if (modal) modal.remove();
-    _updateMissionHud(missionManager);
+    try { _updateMissionHud(missionManager); } catch (e) { console.warn(e); }
     return true;
   };
 
@@ -1598,85 +1627,68 @@ async function bootstrap() {
       }
     } catch (e) { console.warn('road mode', e); }
 
-    // Naija Challenge – Hausa / Yoruba / Igbo
+    // Game modes
     const modeSel = document.getElementById('game-mode-select');
     window.__kanoGameMode = modeSel?.value || 'career';
-    const naijaModes = {
-      naija_hausa: { label: 'Hausa', greeting: 'Sannu! Challenge na Arewa', mult: 2, time: 180 },
-      naija_yoruba: { label: 'Yoruba', greeting: 'E ku aaro! Challenge ti Iwoorun', mult: 2.2, time: 150 },
-      naija_igbo: { label: 'Igbo', greeting: 'Ndewo! Challenge nke Owuwa Anyanwu', mult: 2.5, time: 120 },
-      race: { label: 'Race', greeting: 'KEKE RACE — beat the NAPEP pack!', mult: 3, time: 120, race: true }
-    };
-    const naija = naijaModes[window.__kanoGameMode];
-    if (naija) {
-      trafficManager.maxVehicles = isMobile ? 6 : 10;
-      missionManager.lives = 2;
-      window.__kanoNaijaMult = naija.mult;
-      window.__kanoNaijaTime = naija.time;
+    window.__kanoTimeAttack = 0;
+    window.__kanoMatchDrop = false;
+    window.__kanoPotholeHard = false;
+    window.__kanoFuelChallenge = false;
+    window.__kanoFreeRoam = false;
+    window.__kanoNaijaMult = 1;
+    window.__kanoNaijaActive = false;
+    window.__kanoNaijaLang = null;
+    try { trafficManager.raceMode = false; } catch (e) {}
+
+    const mode = window.__kanoGameMode;
+    if (mode === 'time_attack') {
+      window.__kanoTimeAttack = 180;
+      showBanner('Time Attack 3:00');
+    } else if (mode === 'match_drop') {
+      window.__kanoMatchDrop = true;
+      showBanner('Match Drop — route destinations pay more');
+    } else if (mode === 'potholes') {
+      window.__kanoPotholeHard = true;
+      showBanner('Potholes Challenge');
+    } else if (mode === 'fuel_challenge') {
+      window.__kanoFuelChallenge = true;
+      try { fuelManager.fuel = 35; } catch (e) {}
+      showBanner('Fuel Challenge — start at 35%');
+    } else if (mode === 'free_roam') {
+      window.__kanoFreeRoam = true;
+      showBanner('Free Roam — drive Kano your way');
+    } else if (mode === 'naija_hausa' || mode === 'naija_yoruba' || mode === 'naija_igbo') {
+      const naijaMap = {
+        naija_hausa: { label: 'Hausa', greeting: 'Sannu!', mult: 2, time: 180 },
+        naija_yoruba: { label: 'Yoruba', greeting: 'E ku aaro!', mult: 2.2, time: 150 },
+        naija_igbo: { label: 'Igbo', greeting: 'Ndewo!', mult: 2.5, time: 120 }
+      };
+      const n = naijaMap[mode];
+      window.__kanoNaijaMult = n.mult;
+      window.__kanoNaijaTime = n.time;
       window.__kanoNaijaActive = true;
-      window.__kanoNaijaLang = naija.label;
-      showBanner('🇳🇬 NAIJA · ' + naija.label.toUpperCase() + ' — ' + naija.greeting);
-      setTimeout(() => showBanner(naija.mult + '× score · 2 lives · ' + Math.floor(naija.time / 60) + ' min'), 1800);
-      if (naija.race) {
-        try {
-          trafficManager.maxVehicles = isMobile ? 5 : 7;
-          window.__kanoRaceWon = false;
-          window.__kanoTimeAttack = 0;
-          window.__kanoMatchDrop = false;
-          window.__kanoPotholeHard = false;
-          try {
-            const mode = document.getElementById('game-mode-select')?.value || 'career';
-            window.__kanoGameMode = mode;
-            if (mode === 'time_attack') {
-              window.__kanoTimeAttack = 180;
-              showBanner('Time Attack 3:00');
-            }
-            if (mode === 'match_drop') {
-              window.__kanoMatchDrop = true;
-              showBanner('Match Drop — route destinations pay more');
-            }
-            if (mode === 'potholes') {
-              window.__kanoPotholeHard = true;
-              showBanner('Potholes Challenge');
-            }
-            if (mode === 'fuel_challenge') {
-              window.__kanoFuelChallenge = true;
-              try { fuelManager.fuel = 35; } catch (e) {}
-              showBanner('Fuel Challenge — start at 35%');
-            } else {
-              window.__kanoFuelChallenge = false;
-            }
-            if (mode === 'free_roam') {
-              window.__kanoFreeRoam = true;
-              showBanner('Free Roam — no mission pressure');
-            } else {
-              window.__kanoFreeRoam = false;
-            }
-          } catch (e) {}
-
-          window.__kanoDistBonus = 0;
-      window.__kanoAllMissionsDone = false;
-      window.__kanoDrops = 0;
-          window.__kanoRaceLead = 0;
-          trafficManager.startRace?.(7);
-          try { window.__kanoGameMode = 'race'; } catch (e) {}
-          setTimeout(() => showBanner('🏁 Pass yellow kekes — climb to P1'), 1200);
-          showBanner('🏁 RACE: pass rival kekes — first to distance wins');
-        } catch (e) {}
-      }
-
-    } else {
-      window.__kanoNaijaMult = 1;
-      window.__kanoNaijaActive = false;
-      window.__kanoNaijaLang = null;
+      window.__kanoNaijaLang = n.label;
+      missionManager.lives = 2;
+      showBanner('🇳🇬 NAIJA · ' + n.label + ' — ' + n.greeting);
+    } else if (mode === 'race') {
+      try {
+        trafficManager.maxVehicles = 7;
+        trafficManager.startRace?.(7);
+        window.__kanoRaceWon = false;
+        window.__kanoRaceLead = 0;
+        missionManager.lives = 2;
+        window.__kanoNaijaMult = 3;
+        showBanner('🏁 RACE: pass rival kekes — climb to P1');
+      } catch (e) {}
     }
+
     const earn = document.getElementById('earnings');
     if (earn) earn.innerText = passengerManager.dailyEarnings;
 
     showBanner(`${d.name} · ${k.name}`);
     const goals = missionManager.startShift('Kano');
     showBanner('Mission: ' + goals.map(g => g.label).join(' · '));
-    _updateMissionHud(missionManager);
+    try { _updateMissionHud(missionManager); } catch (e) { console.warn(e); }
     try { missionBoard.hide(); } catch (e) {}
     dashHud.show();
     radar.show();
