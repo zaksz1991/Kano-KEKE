@@ -2137,12 +2137,13 @@ window.__kanoFullFrame = function fullFrame() {
           if (cond < 25 || heat > 80) status = 'CRIT';
           if ((fuelManager?.fuel ?? 100) < 15) status = 'LOW FUEL';
           const combo = passengerManager.combo || 0;
-          let extra = '';
+          const drops = window.__kanoDrops || 0;
+          let extra = drops ? (' · ↓' + drops) : '';
           if (window.__kanoTimeAttack > 0) {
             const s = Math.ceil(window.__kanoTimeAttack);
             const mm = Math.floor(s / 60);
             const ss = String(s % 60).padStart(2, '0');
-            extra = ' · ⏱' + mm + ':' + ss;
+            extra += ' · ⏱' + mm + ':' + ss;
           }
           if (window.__kanoFuelChallenge) {
             extra += ' · F' + Math.round(fuelManager?.fuel ?? 0) + '%';
