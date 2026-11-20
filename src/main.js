@@ -869,6 +869,20 @@ async function bootstrap() {
       try { roadSystem.update?.(kekeGroup.position.z); } catch (e) {}
       try { trafficManager.update?.(delta, false); } catch (e) {}
       try { passengerManager.update?.(delta, showBanner); } catch (e) {}
+      try {
+        if ((kekeController.currentSpeed || 0) > 8 && passengerManager.waiting?.length) {
+          const pz = kekeGroup.position.z, px = kekeGroup.position.x;
+          for (const p of passengerManager.waiting) {
+            if (!p.mesh) continue;
+            const d = Math.hypot(p.mesh.position.x - px, p.mesh.position.z - pz);
+            if (d < 12 && !(window.__kanoBoardTip > performance.now())) {
+              window.__kanoBoardTip = performance.now() + 8000;
+              showBanner('SLOW — green pad to pick up');
+              break;
+            }
+          }
+        }
+      } catch (e) {}
       const kmh2 = Math.round((kekeController.currentSpeed || 0) * 3.6);
       const big2 = document.getElementById('kano-speed-big');
       if (big2) big2.textContent = kmh2 + ' km/h';
