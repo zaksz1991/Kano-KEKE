@@ -641,7 +641,11 @@ async function bootstrap() {
         loaded.push('keke');
       }
       await trafficManager.loadRealModels?.();
-      if (trafficManager.templates?.length) loaded.push('traffic×' + trafficManager.templates.length);
+      const tCount = (trafficManager.templates?.keke?.length || 0) +
+        (trafficManager.templates?.okada?.length || 0) +
+        (trafficManager.templates?.car?.length || 0);
+      if (tCount) loaded.push('traffic×' + tCount);
+      else if (trafficManager.templates?.length) loaded.push('traffic×' + trafficManager.templates.length);
       try {
         passengerManager.assets = assetManager;
         await passengerManager.initModels?.();
