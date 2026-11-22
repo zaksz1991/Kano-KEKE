@@ -1,30 +1,30 @@
 /**
- * All vehicle / character GLBs under public/assets/models/
- * Paths match GitHub: zaksz1991/KanoKEKE-Life/public/assets/models
+ * Paths match GitHub: zaksz1991/Kano-KEKE/public/assets/models
+ * Updated filenames (police_car, car_2, sports_car, traffic_vehicle (2))
  */
 export const ASSET_MANIFEST = {
   player: {
     keke: '/assets/models/keke.glb'
   },
   traffic: [
-    // Core
-    { path: '/assets/models/traffic_vehicle.glb', kind: 'car', scale: 1.1 },
-    { path: '/assets/models/okada.glb', kind: 'okada', scale: 1.0 },
-    // Cars
-    { path: '/assets/models/Car.glb', kind: 'car', scale: 1.05 },
-    { path: '/assets/models/Car-2.glb', kind: 'car', scale: 1.05 },
-    { path: '/assets/models/Taxi.glb', kind: 'car', scale: 1.05 },
-    { path: '/assets/models/SUV.glb', kind: 'van', scale: 1.05 },
-    { path: '/assets/models/Sports%20Car.glb', kind: 'car', scale: 1.0 },
-    { path: '/assets/models/Sports%20Car-1.glb', kind: 'car', scale: 1.0 },
-    // Also try unescaped names (some hosts serve either)
-    { path: '/assets/models/Sports Car.glb', kind: 'car', scale: 1.0 },
-    { path: '/assets/models/Sports Car-1.glb', kind: 'car', scale: 1.0 },
-    { path: '/assets/models/Police%20Car.glb', kind: 'car', scale: 1.05 },
-    { path: '/assets/models/Police Car.glb', kind: 'car', scale: 1.05 }
+    // Priority Kano mix
+    { path: '/assets/models/keke.glb', kind: 'keke', scale: 0.95 },
+    { path: '/assets/models/okada.glb', kind: 'okada', scale: 2.4 },
+    { path: '/assets/models/Mitsubishi_L200.glb', kind: 'car', scale: 2.8 },
+    { path: '/assets/models/Car.glb', kind: 'car', scale: 2.6 },
+    { path: '/assets/models/car_2.glb', kind: 'car', scale: 2.6 },
+    { path: '/assets/models/Taxi.glb', kind: 'car', scale: 2.6 },
+    { path: '/assets/models/SUV.glb', kind: 'car', scale: 2.5 },
+    { path: '/assets/models/police_car.glb', kind: 'car', scale: 2.6 },
+    { path: '/assets/models/sports_car.glb', kind: 'car', scale: 2.4 },
+    { path: '/assets/models/sports_car2.glb', kind: 'car', scale: 2.4 },
+    // Space in filename — encode for fetch
+    { path: '/assets/models/traffic_vehicle%20(2).glb', kind: 'car', scale: 2.6 },
+    { path: '/assets/models/traffic_vehicle.glb', kind: 'car', scale: 2.6 }
   ],
   characters: {
-    pedestrian: '/assets/models/pedestrian.glb'
+    pedestrian: '/assets/models/pedestrian.glb',
+    womenHijab: '/assets/models/women_in_hijab.glb'
   },
   environment: {
     roadTile: '/assets/models/environment/road_tile.glb',
@@ -38,6 +38,6 @@ export const ASSET_MANIFEST = {
   ],
   audio: {
     engine: '/assets/models/audio/engine.mp3',
-    horn: '/assets/models/horn.mp3'
+    horn: '/assets/models/audio/horn.mp3'
   }
 };

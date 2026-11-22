@@ -146,16 +146,19 @@ export class DynamicTrafficManager {
       { path: '/assets/models/keke.glb', kind: 'keke', scale: 0.95 },
       { path: '/assets/models/okada.glb', kind: 'okada', scale: 2.4 },
       { path: '/assets/models/Mitsubishi_L200.glb', kind: 'car', scale: 2.8 },
-      { path: '/assets/models/traffic_vehicle.glb', kind: 'car', scale: 2.6 }
-    ];
-    const desktop = [
       { path: '/assets/models/Car.glb', kind: 'car', scale: 2.6 },
       { path: '/assets/models/Taxi.glb', kind: 'car', scale: 2.6 },
       { path: '/assets/models/SUV.glb', kind: 'car', scale: 2.5 },
-      { path: '/assets/models/Police Car.glb', kind: 'car', scale: 2.6 },
-      { path: '/assets/models/Car-2.glb', kind: 'car', scale: 2.6 }
+      { path: '/assets/models/police_car.glb', kind: 'car', scale: 2.6 },
+      { path: '/assets/models/car_2.glb', kind: 'car', scale: 2.6 },
+      { path: '/assets/models/sports_car.glb', kind: 'car', scale: 2.4 },
+      { path: '/assets/models/sports_car2.glb', kind: 'car', scale: 2.4 },
+      { path: '/assets/models/traffic_vehicle%20(2).glb', kind: 'car', scale: 2.6 },
+      { path: '/assets/models/traffic_vehicle.glb', kind: 'car', scale: 2.6 }
     ];
-    const list = isMobile ? core : core.concat(desktop);
+    // Mobile still loads core mix (keke/okada/cars) — slice only if needed
+    const list = isMobile ? core.slice(0, 6) : core;
+
 
     for (const c of list) {
       try {
