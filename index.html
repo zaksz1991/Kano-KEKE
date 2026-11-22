@@ -22,6 +22,49 @@
     }
     #webgl-canvas { width: 100vw; height: 100vh; display: block; }
 
+    /* ---- START PAGE (9ja Roam inspired) ---- */
+    #intro-flow {
+      position: absolute; inset: 0; z-index: 110;
+      display: flex; flex-direction: column; justify-content: flex-end;
+      padding: 28px 20px 32px;
+      background:
+        radial-gradient(ellipse at 30% 20%, rgba(255,180,0,0.18), transparent 50%),
+        linear-gradient(180deg, rgba(6,8,16,0.35) 0%, rgba(6,8,16,0.95) 70%);
+      color: #fff;
+    }
+    #intro-flow.hidden { display: none; }
+    .intro-kicker {
+      font-size: 11px; letter-spacing: 3px; color: #00e5ff; text-transform: uppercase; margin-bottom: 8px;
+    }
+    .intro-title {
+      font-size: clamp(28px, 8vw, 40px); font-weight: 900; line-height: 1.15; margin: 0 0 10px;
+    }
+    .intro-title em { color: #ffcc00; font-style: normal; }
+    .intro-body {
+      font-size: 14px; line-height: 1.5; color: #cfd8dc; max-width: 420px; margin-bottom: 18px;
+    }
+    .intro-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
+    .intro-tags span {
+      font-size: 10px; letter-spacing: 1px; font-weight: 800;
+      padding: 6px 10px; border-radius: 999px;
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+    }
+    .intro-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .intro-dots { display: flex; gap: 6px; }
+    .intro-dots i {
+      width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.25);
+    }
+    .intro-dots i.on { background: #ffcc00; }
+    #intro-continue {
+      border: none; border-radius: 12px; padding: 14px 22px;
+      background: #ffcc00; color: #111; font-weight: 900; font-size: 14px; cursor: pointer;
+      letter-spacing: 1px;
+    }
+    #intro-skip {
+      background: transparent; border: none; color: #90a4ae; font-size: 12px; cursor: pointer;
+      margin-top: 10px; text-decoration: underline;
+    }
+
     /* ---- START PAGE ---- */
     #main-menu-overlay {
       position: absolute; inset: 0; z-index: 100;
@@ -187,10 +230,27 @@
 <body>
   <canvas id="webgl-canvas"></canvas>
 
-  <div id="main-menu-overlay">
+  
+  <!-- 9ja-style intro carousel -->
+  <div id="intro-flow">
+    <div class="intro-kicker" id="intro-kicker">01 · THE STREET</div>
+    <h2 class="intro-title" id="intro-title">Kano, <em>from the NAPEP seat.</em></h2>
+    <p class="intro-body" id="intro-body">Load passengers, work the dual carriageway, and survive KAROTA — a living keke life sim on Kano roads.</p>
+    <div class="intro-tags" id="intro-tags">
+      <span>3D KEKE</span><span>DAY · NIGHT</span><span>KANO ROUTES</span>
+    </div>
+    <div class="intro-nav">
+      <div class="intro-dots" id="intro-dots"><i class="on"></i><i></i><i></i></div>
+      <button type="button" id="intro-continue">CONTINUE →</button>
+    </div>
+    <button type="button" id="intro-skip">Skip intro</button>
+  </div>
+
+<div id="main-menu-overlay">
     <div class="hero">
       <h1 class="game-title">KANO KEKE</h1>
-      <div class="game-subtitle">3D Keke Driver Life Simulator</div>
+      <div class="game-subtitle">KANO · NAPEP LIFE</div>
+      <p style="margin:10px auto 0;max-width:320px;font-size:13px;line-height:1.45;color:#b0bec5;">Drive. Load. Negotiate. Survive the shift.</p>
       <div id="kano-version-badge" style="margin-top:6px;font:600 10px system-ui;letter-spacing:1px;color:#80cbc4;">v2.1 · FREE</div>
       <div class="dev-pill">
         <div style="margin-top:4px;font-size:11px;color:#aaa;">by <a href="https://twitter.com/iamzaksz" target="_blank" rel="noopener">Hassan Zakariya · @iamzaksz</a></div>
@@ -263,7 +323,7 @@
 
     <div class="menu-buttons">
       <button id="daily-claim-btn" class="btn-menu" type="button">Daily Reward</button>
-      <button id="start-game-btn" class="btn-menu" type="button">Start Shift</button>
+      <button id="start-game-btn" class="btn-menu" type="button">ENTER KANO · START SHIFT</button>
       <div class="footer-meta">
         <div class="pill">VERCEL · v2.1 · GLB ASSETS</div>
       </div>
@@ -294,5 +354,55 @@
   </div>
 
   <script type="module" src="/src/main.js"></script>
+
+  <script>
+    (function () {
+      const slides = [
+        {
+          k: '01 · THE STREET',
+          t: 'Kano, <em>from the NAPEP seat.</em>',
+          b: 'Load passengers, work the dual carriageway, and survive KAROTA — a living keke life sim on Kano roads.',
+          tags: ['3D KEKE', 'DAY · NIGHT', 'KANO ROUTES']
+        },
+        {
+          k: '02 · THE DRIVE',
+          t: 'Every fare. <em>Every risk.</em>',
+          b: 'Steer, accelerate, reverse. Green pad to board, gold pad to drop. Fuel, heat, and condition matter.',
+          tags: ['DRIVE', 'PASSENGERS', 'KAROTA']
+        },
+        {
+          k: '03 · THE HUSTLE',
+          t: 'Build your <em>shift.</em>',
+          b: 'Earn fares, bank cash, clear missions, race other NAPEP, and climb Naija Rank.',
+          tags: ['EARN', 'MISSIONS', 'RANK']
+        }
+      ];
+      let i = 0;
+      const flow = document.getElementById('intro-flow');
+      const menu = document.getElementById('main-menu-overlay');
+      function paint() {
+        const s = slides[i];
+        document.getElementById('intro-kicker').textContent = s.k;
+        document.getElementById('intro-title').innerHTML = s.t;
+        document.getElementById('intro-body').textContent = s.b;
+        document.getElementById('intro-tags').innerHTML = s.tags.map(t => '<span>' + t + '</span>').join('');
+        document.querySelectorAll('#intro-dots i').forEach((d, n) => d.classList.toggle('on', n === i));
+        document.getElementById('intro-continue').textContent = i < slides.length - 1 ? 'CONTINUE →' : 'ENTER SETUP →';
+      }
+      function closeIntro() {
+        try { localStorage.setItem('kano_intro_seen_v1', '1'); } catch (e) {}
+        if (flow) flow.classList.add('hidden');
+      }
+      try {
+        if (localStorage.getItem('kano_intro_seen_v1') === '1') closeIntro();
+      } catch (e) {}
+      document.getElementById('intro-continue')?.addEventListener('click', () => {
+        if (i < slides.length - 1) { i++; paint(); }
+        else closeIntro();
+      });
+      document.getElementById('intro-skip')?.addEventListener('click', closeIntro);
+      paint();
+    })();
+  </script>
 </body>
 </html>
