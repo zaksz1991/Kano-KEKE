@@ -870,6 +870,17 @@ async function bootstrap() {
       try { trafficManager.update?.(delta, false); } catch (e) {}
       try { passengerManager.update?.(delta, showBanner); } catch (e) {}
       try {
+        if (gameStarted && (window.__kanoPaxHunt || 0) < 2) {
+          window.__kanoPaxHuntT = (window.__kanoPaxHuntT || 0) + delta;
+          if (window.__kanoPaxHuntT > 8 && !(passengerManager.waiting?.length)) {
+            window.__kanoPaxHunt = (window.__kanoPaxHunt || 0) + 1;
+            window.__kanoPaxHuntT = 0;
+            for (let i = 0; i < 3; i++) passengerManager._spawnWaiter?.(kekeGroup.position.z + 15 + i * 18);
+            showBanner('Passengers ahead — look for green pads');
+          }
+        }
+      } catch (e) {}
+      try {
         if ((kekeController.currentSpeed || 0) > 8 && passengerManager.waiting?.length) {
           const pz = kekeGroup.position.z, px = kekeGroup.position.x;
           for (const p of passengerManager.waiting) {
