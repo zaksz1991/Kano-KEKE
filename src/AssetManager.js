@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 /**
- * Always loads local GLBs (with timeout). Does not block UI.
+ * Local GLB loader with folder fallbacks (vehicles/, characters/, world/).
  */
 export class AssetManager {
   constructor() {
@@ -16,7 +16,52 @@ export class AssetManager {
     this.allowNetwork = true;
   }
 
+  /** Build alternate paths for GitHub folder layout */
+  _candidates(path) {
+    const list = [path];
+    try {
+      const file = path.split('/').pop();
+      if (!file) return list;
+      // Try subfolders user created
+      list.push('/assets/models/vehicles/' + file);
+      list.push('/assets/models/characters/' + file);
+      list.push('/assets/models/world/' + file);
+      list.push('/assets/models/environment/' + file);
+      // Space / underscore variants
+      if (file.includes('%20')) {
+        const raw = decodeURIComponent(file);
+        list.push('/assets/models/' + raw);
+        list.push('/assets/models/vehicles/' + raw);
+      }
+      if (file.includes(' ')) {
+        list.push('/assets/models/' + encodeURIComponent(file).replace(/%20/g, '%20'));
+      }
+      // Common renames
+      const map = {
+        'Police Car.glb': 'police_car.glb',
+        'Car-2.glb': 'car_2.glb',
+        'Sports Car.glb': 'sports_car.glb',
+        'Sports Car-1.glb': 'sports_car2.glb',
+        'traffic_vehicle.glb': 'traffic_vehicle%20(2).glb'
+      };
+      if (map[file]) {
+        list.push('/assets/models/' + map[file]);
+        list.push('/assets/models/vehicles/' + map[file]);
+      }
+    } catch (e) {}
+    return [...new Set(list)];
+  }
+
   async loadGLB(path, options = {}) {
+    const candidates = this._candidates(path);
+    for (const p of candidates) {
+      const mesh = await this._loadOne(p, options);
+      if (mesh) return mesh;
+    }
+    return null;
+  }
+
+  async _loadOne(path, options = {}) {
     const key = path;
     if (this.cache.has(key)) {
       try {
@@ -38,9 +83,8 @@ export class AssetManager {
     }
 
     const job = new Promise((resolve) => {
-      const ms = options.timeoutMs || 15000;
+      const ms = Math.min(options.timeoutMs || 12000, 14000);
       const timer = setTimeout(() => {
-        console.warn('[GLB] timeout', path);
         resolve(null);
       }, ms);
 
@@ -58,14 +102,12 @@ export class AssetManager {
             this.cache.set(key, root);
             resolve(root);
           } catch (e) {
-            console.warn('[GLB] parse', path, e);
             resolve(null);
           }
         },
         undefined,
-        (err) => {
+        () => {
           clearTimeout(timer);
-          console.warn('[GLB] error', path, err?.message || err);
           resolve(null);
         }
       );
@@ -89,7 +131,8 @@ export class AssetManager {
         ['map', 'emissiveMap', 'roughnessMap', 'metalnessMap', 'normalMap'].forEach((k) => {
           if (m[k]) {
             try {
-              m[k].colorSpace = k === 'map' || k === 'emissiveMap' ? THREE.SRGBColorSpace : m[k].colorSpace;
+              m[k].colorSpace =
+                k === 'map' || k === 'emissiveMap' ? THREE.SRGBColorSpace : m[k].colorSpace;
               m[k].needsUpdate = true;
             } catch (e) {}
           }
