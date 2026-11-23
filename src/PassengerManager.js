@@ -243,14 +243,24 @@ export class PassengerManager {
     // Gold drop-off pad (kano-run style)
     try {
       const pad = new THREE.Mesh(
-        new THREE.CircleGeometry(1.4, 16),
-        new THREE.MeshBasicMaterial({ color: 0xffd54f, transparent: true, opacity: 0.7, depthWrite: false })
+        new THREE.CircleGeometry(1.9, 20),
+        new THREE.MeshBasicMaterial({ color: 0xffd600, transparent: true, opacity: 0.85, depthWrite: false })
       );
       pad.rotation.x = -Math.PI / 2;
       const side = (this.keke.group.position.x >= 0 ? 1 : -1);
-      pad.position.set(side * 8.5, 0.06, p.dropAtZ);
+      pad.position.set(side * 8.5, 0.08, p.dropAtZ);
+      // Outer ring for visibility
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(1.95, 2.35, 24),
+        new THREE.MeshBasicMaterial({ color: 0xff6f00, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false })
+      );
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.copy(pad.position);
+      ring.position.y = 0.09;
       this.scene.add(pad);
+      this.scene.add(ring);
       p.dropPad = pad;
+      p.dropRing = ring;
       this._dropPads.push(pad);
     } catch (e) {}
     this.onBoard.push(p);
@@ -432,6 +442,9 @@ export class PassengerManager {
           if (p.dropPad) {
             this.scene.remove(p.dropPad);
             this._dropPads = this._dropPads.filter((x) => x !== p.dropPad);
+          }
+          if (p.dropRing) {
+            try { this.scene.remove(p.dropRing); } catch (e) {}
           }
         } catch (e) {}
         this.onBoard = this.onBoard.filter((x) => x !== p);

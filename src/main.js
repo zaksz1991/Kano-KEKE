@@ -611,6 +611,7 @@ async function bootstrap() {
   trafficManager.init(); /* proxies only */
 
   const passengerManager = new PassengerManager(scene, kekeController, assetManager);
+  window.__kanoPassengerRef = passengerManager;
   passengerManager.dailyEarnings = saved.cash ?? 1500;
   passengerManager.capacity = kekeDef.capacity || 3;
 
@@ -2159,7 +2160,7 @@ window.__kanoFullFrame = function fullFrame() {
           if (window.__kanoFuelChallenge) {
             extra += ' · F' + Math.round(fuelManager?.fuel ?? 0) + '%';
           }
-          strip.textContent = km + 'km · PAX ' + pax + '/' + cap + ' · x' + combo + ' · ' + status + extra;
+          strip.textContent = km + 'km · PAX ' + pax + '/' + cap + ' · x' + combo + ' · ' + status + ' · H' + heat + extra;
           try {
             const lives = missionManager?.lives ?? 3;
             const h = document.getElementById('kano-hearts');

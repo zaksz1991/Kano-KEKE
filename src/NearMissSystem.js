@@ -43,6 +43,12 @@ export class NearMissSystem {
           35 + Math.min(90, Math.floor(speed * 2.2)) + (this.streak > 1 ? this.streak * 18 : 0) + okadaBonus;
 
         if (this.missions) this.missions.score = (this.missions.score || 0) + bonus;
+        try {
+          // kano-run style: near miss earns a little cash too
+          if (window.__kanoPassengerRef?.dailyEarnings != null) {
+            window.__kanoPassengerRef.dailyEarnings += Math.round(bonus * 0.4);
+          }
+        } catch (e) {}
 
         if (hudCallback && this.cooldown <= 0) {
           this.cooldown = 0.7;
