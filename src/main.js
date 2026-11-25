@@ -2004,7 +2004,8 @@ window.__kanoFullFrame = function fullFrame() {
             try {
               const used = passengerManager.onBoard?.length || 0;
               const max = passengerManager.capacity || 3;
-              showBanner('🪑 Seats ' + used + '/' + max);
+              if (used >= max) showBanner('🪑 FULL LOAD — drive to gold pads');
+              else showBanner('🪑 Seats ' + used + '/' + max);
             } catch (e) {}
           }
           if (ev && ev.type === 'DROPOFF') {
