@@ -192,6 +192,7 @@ export class PassengerManager {
       destination: dest,
       seats,
       baseFare,
+      vip: Math.random() < 0.12,
       offerFare: baseFare,
       agreedFare: null,
       mood,
@@ -234,6 +235,10 @@ export class PassengerManager {
   _acceptNegotiate(p, hudCallback) {
     // Driver bonus applied by caller via capacity; fare bump by mood
     let finalFare = Math.round(p.offerFare * (1 + p.mood * 0.15));
+    if (p.vip) {
+      finalFare = Math.round(finalFare * 1.5);
+      p._vip = true;
+    }
     // Full-load bonus when this boarding fills the keke
     const willFill = (this.onBoard.length + (p.seats || 1)) >= (this.capacity || 3);
     if (willFill) finalFare = Math.round(finalFare * 1.2);
@@ -292,7 +297,7 @@ export class PassengerManager {
     if (hudCallback) {
       hudCallback({
         type: 'BOARD',
-        msg: `${p.title}: "${['Na shiga!', 'Mu tafi!', 'Toh, bari mu tafi!'][Math.floor(Math.random()*3)]}" → ${p.destination} · ₦${finalFare}` + (p._fullLoad ? " · FULL LOAD +" : "") + (p._earlyBird ? " · EARLY +" : "") + (p._routeSynergy ? " · ROUTE +" : "") + (window.__kanoMatchDrop && p._routeSynergy ? " · MATCH" : "") + (Math.random() < 0.25 ? ' · bargain OK' : ''),
+        msg: `${p.title}: "${['Na shiga!', 'Mu tafi!', 'Toh, bari mu tafi!'][Math.floor(Math.random()*3)]}" → ${p.destination} · ₦${finalFare}` + (p._fullLoad ? " · FULL LOAD +" : "") + (p._earlyBird ? " · EARLY +" : "") + (p._routeSynergy ? " · ROUTE +" : "") + (window.__kanoMatchDrop && p._routeSynergy ? " · MATCH" : "") + (p._vip ? ' · VIP +50%' : '') + (Math.random() < 0.25 ? ' · bargain OK' : ''),
         earnings: this.dailyEarnings
       });
     }
