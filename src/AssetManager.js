@@ -123,6 +123,13 @@ export class AssetManager {
   }
 
   _fixTextures(root) {
+    const maxAniso = 4;
+    try {
+      // will be set from renderer if available
+      if (typeof window !== 'undefined' && window.__kanoMaxAniso) {
+        // use later
+      }
+    } catch (e) {}
     root.traverse((n) => {
       if (!n.isMesh || !n.material) return;
       const mats = Array.isArray(n.material) ? n.material : [n.material];
@@ -133,6 +140,10 @@ export class AssetManager {
             try {
               m[k].colorSpace =
                 k === 'map' || k === 'emissiveMap' ? THREE.SRGBColorSpace : m[k].colorSpace;
+              m[k].anisotropy = Math.min(8, maxAniso);
+              m[k].minFilter = THREE.LinearMipmapLinearFilter;
+              m[k].magFilter = THREE.LinearFilter;
+              m[k].generateMipmaps = true;
               m[k].needsUpdate = true;
             } catch (e) {}
           }

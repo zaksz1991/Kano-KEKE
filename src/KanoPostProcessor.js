@@ -11,7 +11,7 @@ export function setupPostProcessing(renderer, scene, camera) {
 
     const bloom = new UnrealBloomPass(
       new THREE.Vector2(window.innerWidth, window.innerHeight),
-      0.22, 0.45, 0.88
+      0.12, 0.4, 0.9
     );
     composer.addPass(bloom);
 
@@ -28,10 +28,10 @@ export function setupPostProcessing(renderer, scene, camera) {
         void main(){
           vec4 c = texture2D(tDiffuse, vUv);
           c.rgb = c.rgb * (1.0 - lift) + lift;
-          c.r += warmth; c.b -= warmth * 0.5;
-          // soft vignette
-          vec2 u = vUv - 0.5; float v = smoothstep(0.9, 0.25, dot(u,u));
-          c.rgb *= mix(0.85, 1.0, v);
+          c.r += warmth * 0.5; c.b -= warmth * 0.25;
+          // lighter vignette (was darkening/softening edges)
+          vec2 u = vUv - 0.5; float v = smoothstep(1.1, 0.35, dot(u,u));
+          c.rgb *= mix(0.94, 1.0, v);
           gl_FragColor = c;
         }`
     };

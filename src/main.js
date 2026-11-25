@@ -77,13 +77,20 @@ const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerH
 const _isMob = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) || window.innerWidth < 900;
 const renderer = new THREE.WebGLRenderer({
   canvas,
-  antialias: !_isMob,
+  // Light AA helps UI/edges; DPR handles most sharpness on phones
+  antialias: true,
   powerPreference: 'high-performance',
-  stencil: false
+  stencil: false,
+  alpha: false
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(_isMob ? 1 : Math.min(window.devicePixelRatio, 1.75));
-renderer.toneMappingExposure = 1.85;
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, _isMob ? 1.5 : 1.75));
+renderer.toneMappingExposure = 1.35;
+try {
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+} catch (e) {}
+
 try { setupKanoAtmosphere(scene, renderer); } catch (e) { console.warn('atmosphere', e); }
 const isMobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) || window.innerWidth < 900;
 let composer = { render: () => renderer.render(scene, camera), setSize: (w,h) => renderer.setSize(w,h) };
@@ -92,7 +99,7 @@ if (!isMobile) {
 }
 if (isMobile) {
   renderer.shadowMap.enabled = false;
-  renderer.setPixelRatio(1);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
   renderer.setSize(window.innerWidth, window.innerHeight, false);
   camera.far = 140;
   camera.updateProjectionMatrix();
@@ -602,7 +609,7 @@ async function bootstrap() {
   const trafficManager = new DynamicTrafficManager(scene, kekeController, assetManager);
   if (isMobile) {
     trafficManager.maxVehicles = 5;
-    renderer.setPixelRatio(1);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
     camera.far = 150;
     camera.updateProjectionMatrix();
   } else {
@@ -1263,12 +1270,12 @@ async function bootstrap() {
     onQuality: () => {
       window.__kanoLowQuality = !window.__kanoLowQuality;
       if (window.__kanoLowQuality) {
-        renderer.setPixelRatio(1);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
         camera.far = 160;
         trafficManager.maxVehicles = 4;
         showBanner('Quality: LOW (faster)');
       } else {
-        renderer.setPixelRatio(Math.min(devicePixelRatio, isMobile ? 1.25 : 2));
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2));
         camera.far = 500;
         trafficManager.maxVehicles = 6;
         showBanner('Quality: HIGH');
