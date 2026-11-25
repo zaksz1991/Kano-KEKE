@@ -239,6 +239,13 @@ export class PassengerManager {
       finalFare = Math.round(finalFare * 1.5);
       p._vip = true;
     }
+    try {
+      const h = ((window.timeInMinutes || 0) / 60) % 24;
+      if (h >= 19 || h < 5.5) {
+        finalFare = Math.round(finalFare * 1.18);
+        p._night = true;
+      }
+    } catch (e) {}
     // Full-load bonus when this boarding fills the keke
     const willFill = (this.onBoard.length + (p.seats || 1)) >= (this.capacity || 3);
     if (willFill) finalFare = Math.round(finalFare * 1.2);
@@ -297,7 +304,7 @@ export class PassengerManager {
     if (hudCallback) {
       hudCallback({
         type: 'BOARD',
-        msg: `${p.title}: "${['Na shiga!', 'Mu tafi!', 'Toh, bari mu tafi!'][Math.floor(Math.random()*3)]}" → ${p.destination} · ₦${finalFare}` + (p._fullLoad ? " · FULL LOAD +" : "") + (p._earlyBird ? " · EARLY +" : "") + (p._routeSynergy ? " · ROUTE +" : "") + (window.__kanoMatchDrop && p._routeSynergy ? " · MATCH" : "") + (p._vip ? ' · VIP +50%' : '') + (Math.random() < 0.25 ? ' · bargain OK' : ''),
+        msg: `${p.title}: "${['Na shiga!', 'Mu tafi!', 'Toh, bari mu tafi!'][Math.floor(Math.random()*3)]}" → ${p.destination} · ₦${finalFare}` + (p._fullLoad ? " · FULL LOAD +" : "") + (p._earlyBird ? " · EARLY +" : "") + (p._routeSynergy ? " · ROUTE +" : "") + (window.__kanoMatchDrop && p._routeSynergy ? " · MATCH" : "") + (p._vip ? ' · VIP +50%' : '') + (p._night ? ' · NIGHT +' : '') + (Math.random() < 0.25 ? ' · bargain OK' : ''),
         earnings: this.dailyEarnings
       });
     }
