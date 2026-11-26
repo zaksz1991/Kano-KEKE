@@ -61,7 +61,8 @@ if (!canvas.id) { canvas.id = 'webgl-canvas'; document.body.prepend(canvas); }
 const scene = new THREE.Scene();
 try {
   const _mobFog = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) || window.innerWidth < 900;
-  scene.fog = new THREE.Fog(0x87b5d9, _mobFog ? 60 : 90, _mobFog ? 160 : 240);
+  // Longer fog range = clearer mid-distance (less muddy wash)
+  scene.fog = new THREE.Fog(0x87b5d9, _mobFog ? 80 : 110, _mobFog ? 220 : 300);
 } catch (e) {}
 
 // Baseline lights so GLBs are never pure black
