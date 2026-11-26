@@ -29,7 +29,15 @@
     }
     .hud-box, #kano-speed-big, #kano-life-strip, #mission-hud-live, .btn-menu {
       -webkit-font-smoothing: antialiased;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.85);
+      text-shadow: 0 1px 3px rgba(0,0,0,0.95), 0 0 1px #000;
+    }
+    #kano-speed-big {
+      font-size: clamp(26px, 7vw, 34px) !important;
+      letter-spacing: 0.5px;
+    }
+    #kano-life-strip {
+      font-size: clamp(11px, 2.8vw, 13px) !important;
+      font-weight: 800 !important;
     }
 
 

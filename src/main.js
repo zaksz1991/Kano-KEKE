@@ -790,7 +790,7 @@ async function bootstrap() {
       if (!document.getElementById('kano-speed-big')) {
         const sp = document.createElement('div');
         sp.id = 'kano-speed-big';
-        sp.style.cssText = 'position:fixed;bottom:130px;left:50%;transform:translateX(-50%);z-index:55;pointer-events:none;font:900 28px/1 system-ui;color:#ffcc00;text-shadow:0 2px 8px #000;text-align:center;';
+        sp.style.cssText = 'position:fixed;bottom:130px;left:50%;transform:translateX(-50%);z-index:55;pointer-events:none;font:900 32px/1 system-ui;color:#ffcc00;text-shadow:0 2px 10px #000,0 0 2px #000;text-align:center;';
         sp.innerHTML = '0 km/h<div id="kano-mission-line" style="font:700 11px system-ui;color:#80cbc4;margin-top:4px;"></div>';
         document.body.appendChild(sp);
       }
@@ -1812,7 +1812,7 @@ async function bootstrap() {
     if (!document.getElementById('kano-speed-big')) {
         const sp = document.createElement('div');
         sp.id = 'kano-speed-big';
-        sp.style.cssText = 'position:fixed;bottom:130px;left:50%;transform:translateX(-50%);z-index:55;pointer-events:none;font:900 28px/1 system-ui;color:#ffcc00;text-shadow:0 2px 8px #000;text-align:center;';
+        sp.style.cssText = 'position:fixed;bottom:130px;left:50%;transform:translateX(-50%);z-index:55;pointer-events:none;font:900 32px/1 system-ui;color:#ffcc00;text-shadow:0 2px 10px #000,0 0 2px #000;text-align:center;';
         sp.innerHTML = '0 km/h<div id="kano-mission-line" style="font:700 11px system-ui;color:#80cbc4;margin-top:4px;"></div>';
         document.body.appendChild(sp);
       }
