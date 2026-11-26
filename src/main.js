@@ -91,6 +91,49 @@ try {
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
 } catch (e) {}
 
+function __kanoApplyGraphics(mode) {
+  try {
+    const mob = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) || window.innerWidth < 900;
+    const dpr = window.devicePixelRatio || 1;
+    let ratio = 1.25;
+    let aa = true;
+    if (mode === 'high') {
+      ratio = Math.min(dpr, mob ? 2 : 2);
+      aa = true;
+      window.__kanoLowQuality = false;
+    } else if (mode === 'fast') {
+      ratio = Math.min(dpr, mob ? 1.1 : 1.25);
+      aa = false;
+      window.__kanoLowQuality = true;
+    } else {
+      // balanced
+      ratio = Math.min(dpr, mob ? 1.5 : 1.75);
+      aa = true;
+      window.__kanoLowQuality = false;
+    }
+    renderer.setPixelRatio(ratio);
+    renderer.setSize(window.innerWidth, window.innerHeight, false);
+    try { localStorage.setItem('kano_graphics_v1', mode); } catch (e) {}
+    window.__kanoGraphics = mode;
+    try {
+      if (typeof showBanner === 'function') {
+        showBanner('Graphics: ' + mode.toUpperCase() + ' · DPR ' + ratio.toFixed(2));
+      }
+    } catch (e) {}
+  } catch (e) {
+    console.warn('graphics', e);
+  }
+}
+window.__kanoApplyGraphics = __kanoApplyGraphics;
+try {
+  const savedG = localStorage.getItem('kano_graphics_v1') || 'balanced';
+  const gsel = document.getElementById('graphics-select');
+  if (gsel) gsel.value = savedG;
+  __kanoApplyGraphics(savedG);
+  gsel?.addEventListener('change', () => __kanoApplyGraphics(gsel.value));
+} catch (e) {}
+
+
 try { setupKanoAtmosphere(scene, renderer); } catch (e) { console.warn('atmosphere', e); }
 const isMobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) || window.innerWidth < 900;
 let composer = { render: () => renderer.render(scene, camera), setSize: (w,h) => renderer.setSize(w,h) };
@@ -1615,6 +1658,10 @@ async function bootstrap() {
     if (gameStarted && (flow?.state === 'DRIVING' || flow?.engineStarted)) return;
     window.__kanoStarting = true;
     try { setTimeout(() => window.__kanoApplyModels?.(), 300); } catch (e) {}
+    try {
+      const g = document.getElementById('graphics-select')?.value || localStorage.getItem('kano_graphics_v1') || 'balanced';
+      window.__kanoApplyGraphics?.(g);
+    } catch (e) {}
     setTimeout(() => { window.__kanoStarting = false; }, 1500);
     // Re-read selection
     const ds = document.getElementById('driver-select');
