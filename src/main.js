@@ -74,7 +74,12 @@ try {
   scene.add(sun);
 } catch (e) {}
 
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 500);
+const camera = new THREE.PerspectiveCamera(
+  (/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) || window.innerWidth < 900) ? 55 : 58,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  500
+);
 const _isMob = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) || window.innerWidth < 900;
 const renderer = new THREE.WebGLRenderer({
   canvas,
