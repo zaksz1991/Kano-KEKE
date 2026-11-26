@@ -1,8 +1,11 @@
 import * as THREE from 'three';
 
 /**
- * Kano traffic mix (real street share):
- *  ~50% Keke NAPEP · ~20% okada/motorcycle · ~30% cars / pickup / truck / bicycle
+ * Kano traffic — dual carriageway rules:
+ *  Player drives +Z on RIGHT side (x > 0), Nigeria right-hand traffic.
+ *  Same-direction: x = +2.6 / +5.2
+ *  Oncoming:     x = -2.6 / -5.2, face -Z, move toward player
+ * Mix: ~50% keke · ~20% okada · ~30% cars
  */
 export class DynamicTrafficManager {
   constructor(scene, kekeController, assetManager) {
@@ -15,6 +18,7 @@ export class DynamicTrafficManager {
     this.raceMode = false;
     this.templates = { keke: [], okada: [], car: [], truck: [], bike: [] };
     this._kekeTpl = null;
+    this.loadedCount = 0;
   }
 
   _proxy(kind) {
@@ -29,19 +33,6 @@ export class DynamicTrafficManager {
       );
       body.position.y = 0.55;
       g.add(body);
-      const wheel = () => {
-        const w = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.28, 0.28, 0.12, 10),
-          new THREE.MeshStandardMaterial({ color: 0x111111 })
-        );
-        w.rotation.z = Math.PI / 2;
-        return w;
-      };
-      const w1 = wheel();
-      w1.position.set(0, 0.28, 0.55);
-      const w2 = wheel();
-      w2.position.set(0, 0.28, -0.55);
-      g.add(w1, w2);
     } else if (kind === 'truck') {
       const cab = new THREE.Mesh(
         new THREE.BoxGeometry(2.0, 1.5, 2.2),
@@ -66,44 +57,56 @@ export class DynamicTrafficManager {
       );
       body.position.y = 0.75;
       g.add(body);
-      const cabin = new THREE.Mesh(
-        new THREE.BoxGeometry(1.7, 0.7, 1.6),
-        new THREE.MeshStandardMaterial({ color: 0x90caf9, transparent: true, opacity: 0.55 })
-      );
-      cabin.position.set(0, 1.45, -0.2);
-      g.add(cabin);
     } else {
-      // keke NAPEP yellow
       const body = new THREE.Mesh(
         new THREE.BoxGeometry(1.35, 1.35, 2.5),
         new THREE.MeshStandardMaterial({ color: 0xffcc00, roughness: 0.45, metalness: 0.2 })
       );
       body.position.y = 0.95;
       g.add(body);
-      const roof = new THREE.Mesh(
-        new THREE.BoxGeometry(1.4, 0.12, 2.55),
-        new THREE.MeshStandardMaterial({ color: 0xf57f17 })
-      );
-      roof.position.y = 1.7;
-      g.add(roof);
     }
+    g.userData.isProxy = true;
     return g;
   }
 
-  /** Weighted pick matching Kano roads */
   _pickKind(preferKeke = false) {
     if (this.raceMode || preferKeke) return 'keke';
     const r = Math.random();
     if (r < 0.5) return 'keke';
     if (r < 0.7) return 'okada';
-    if (r < 0.88) return 'car';
-    if (r < 0.95) return 'truck';
+    if (r < 0.9) return 'car';
+    if (r < 0.97) return 'truck';
     return 'bike';
+  }
+
+  /** Normalize GLB: sit on ground, reasonable size, face +Z */
+  _normalize(mesh, kind) {
+    try {
+      mesh.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(mesh);
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      const center = new THREE.Vector3();
+      box.getCenter(center);
+      // Center XZ, feet on y=0
+      mesh.position.x -= center.x;
+      mesh.position.z -= center.z;
+      mesh.position.y -= box.min.y;
+      // Target length along Z roughly
+      const targetLen =
+        kind === 'okada' || kind === 'bike' ? 2.0 : kind === 'keke' ? 2.6 : kind === 'truck' ? 5.5 : 4.2;
+      const longest = Math.max(size.x, size.y, size.z, 0.01);
+      const s = targetLen / longest;
+      if (s > 0.01 && s < 80) mesh.scale.multiplyScalar(s);
+      mesh.updateMatrixWorld(true);
+      const box2 = new THREE.Box3().setFromObject(mesh);
+      mesh.position.y -= box2.min.y;
+    } catch (e) {}
+    return mesh;
   }
 
   _meshFor(preferKeke = false) {
     const kind = this._pickKind(preferKeke);
-    // Prefer GLB pool for that kind
     const pool =
       kind === 'keke'
         ? this.templates.keke
@@ -119,7 +122,8 @@ export class DynamicTrafficManager {
 
     if (kind === 'keke' && this._kekeTpl) {
       try {
-        return { mesh: this._kekeTpl.clone(true), kind: 'keke' };
+        const m = this._kekeTpl.clone(true);
+        return { mesh: m, kind: 'keke' };
       } catch (e) {}
     }
     if (pool && pool.length) {
@@ -129,6 +133,16 @@ export class DynamicTrafficManager {
       } catch (e) {}
     }
     return { mesh: this._proxy(kind), kind };
+  }
+
+  /** Lane X for dual road — Nigeria drives on the RIGHT */
+  _laneX(opposite) {
+    if (opposite) {
+      // Oncoming carriageway (left of center from player's view)
+      return Math.random() > 0.5 ? -3.2 : -5.4;
+    }
+    // Same direction as player (right side)
+    return Math.random() > 0.5 ? 3.2 : 5.4;
   }
 
   init() {
@@ -141,29 +155,31 @@ export class DynamicTrafficManager {
     this.assets.enableNetwork?.();
     const isMobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) || window.innerWidth < 900;
 
-    // Always try keke + okada (core Kano mix) even on mobile
     const core = [
-      { path: '/assets/models/keke.glb', kind: 'keke', scale: 0.95 },
-      { path: '/assets/models/okada.glb', kind: 'okada', scale: 2.4 },
-      { path: '/assets/models/Mitsubishi_L200.glb', kind: 'car', scale: 2.8 },
-      { path: '/assets/models/Car.glb', kind: 'car', scale: 2.6 },
-      { path: '/assets/models/Taxi.glb', kind: 'car', scale: 2.6 },
-      { path: '/assets/models/SUV.glb', kind: 'car', scale: 2.5 },
-      { path: '/assets/models/police_car.glb', kind: 'car', scale: 2.6 },
-      { path: '/assets/models/car_2.glb', kind: 'car', scale: 2.6 },
-      { path: '/assets/models/sports_car.glb', kind: 'car', scale: 2.4 },
-      { path: '/assets/models/sports_car2.glb', kind: 'car', scale: 2.4 },
-      { path: '/assets/models/traffic_vehicle%20(2).glb', kind: 'car', scale: 2.6 },
-      { path: '/assets/models/traffic_vehicle.glb', kind: 'car', scale: 2.6 }
+      { path: '/assets/models/keke.glb', kind: 'keke', scale: 1 },
+      { path: '/assets/models/okada.glb', kind: 'okada', scale: 1 },
+      { path: '/assets/models/Mitsubishi_L200.glb', kind: 'car', scale: 1 },
+      { path: '/assets/models/Car.glb', kind: 'car', scale: 1 },
+      { path: '/assets/models/Taxi.glb', kind: 'car', scale: 1 },
+      { path: '/assets/models/SUV.glb', kind: 'car', scale: 1 },
+      { path: '/assets/models/police_car.glb', kind: 'car', scale: 1 },
+      { path: '/assets/models/car_2.glb', kind: 'car', scale: 1 },
+      { path: '/assets/models/sports_car.glb', kind: 'car', scale: 1 },
+      { path: '/assets/models/sports_car2.glb', kind: 'car', scale: 1 },
+      { path: '/assets/models/traffic_vehicle%20(2).glb', kind: 'car', scale: 1 },
+      { path: '/assets/models/traffic_vehicle.glb', kind: 'car', scale: 1 }
     ];
-    // Mobile still loads core mix (keke/okada/cars) — slice only if needed
-    const list = isMobile ? core.slice(0, 6) : core;
-
+    const list = isMobile ? core.slice(0, 7) : core;
+    this.loadedCount = 0;
 
     for (const c of list) {
       try {
-        const mesh = await this.assets.loadGLB(c.path, { scale: c.scale, timeoutMs: 14000 });
-        if (!mesh) continue;
+        const mesh = await this.assets.loadGLB(c.path, { scale: 1, timeoutMs: 14000 });
+        if (!mesh) {
+          console.warn('[Traffic] missing', c.path);
+          continue;
+        }
+        this._normalize(mesh, c.kind);
         if (c.kind === 'keke') {
           this._kekeTpl = mesh;
           this.templates.keke.push(mesh);
@@ -172,23 +188,45 @@ export class DynamicTrafficManager {
         } else {
           this.templates.car.push(mesh);
         }
-      } catch (e) {}
+        this.loadedCount++;
+        console.log('[Traffic] OK', c.kind, c.path);
+      } catch (e) {
+        console.warn('[Traffic] fail', c.path, e);
+      }
     }
 
-    // Replace proxy fleet with real models
+    // Replace all proxies with real meshes + fix lanes
     this.vehicles.forEach((v) => {
       try {
-        const next = this._meshFor(v.rival);
-        const pos = v.mesh.position.clone();
-        const rotY = v.mesh.rotation.y;
         this.scene.remove(v.mesh);
-        v.mesh = next.mesh;
-        v.kind = next.kind;
-        v.mesh.position.copy(pos);
-        v.mesh.rotation.y = rotY;
-        this.scene.add(v.mesh);
       } catch (e) {}
+      const next = this._meshFor(v.rival);
+      v.mesh = next.mesh;
+      v.kind = next.kind;
+      v.opposite = this.raceMode ? false : Math.random() < 0.12;
+      v.laneX = this._laneX(v.opposite);
+      const playerZ = this.player?.group?.position.z || 0;
+      v.mesh.position.set(v.laneX, 0, playerZ + 40 + Math.random() * 80);
+      // Face direction of travel: +Z same-dir, -Z oncoming
+      v.mesh.rotation.set(0, v.opposite ? Math.PI : 0, 0);
+      const b =
+        v.kind === 'okada' || v.kind === 'bike'
+          ? 14
+          : v.kind === 'keke'
+            ? 11
+            : v.kind === 'truck'
+              ? 7
+              : 9;
+      v.speed = v.opposite ? -(b + Math.random() * 5) : b + Math.random() * 7;
+      this.scene.add(v.mesh);
     });
+
+    // Guarantee some visible traffic ahead
+    while (this.vehicles.length < Math.min(6, this.maxVehicles)) {
+      this._spawn(true);
+    }
+
+    return this.loadedCount;
   }
 
   startRace(count = 7) {
@@ -204,22 +242,15 @@ export class DynamicTrafficManager {
   }
 
   _spawn(initial) {
-    const prefer = this.raceMode || false;
+    const prefer = this.raceMode;
     const { mesh, kind } = this._meshFor(prefer);
-    const opposite = this.raceMode ? false : Math.random() < 0.08;
-    let lane = opposite
-      ? Math.random() > 0.5
-        ? -5.2
-        : -3.0
-      : Math.random() > 0.5
-        ? 3.0
-        : 5.4;
+    // Oncoming only ~12% (not race)
+    const opposite = this.raceMode ? false : Math.random() < 0.12;
+    const lane = this._laneX(opposite);
     const playerZ = this.player?.group?.position.z || 0;
-    const px = this.player?.group?.position.x || 0;
-    if (Math.abs(lane - px) < 2.0) lane = px >= 0 ? px + 2.8 : px - 2.8;
-    const z = initial ? playerZ + 25 + Math.random() * 80 : playerZ + 90 + Math.random() * 60;
+    const z = initial ? playerZ + 30 + Math.random() * 90 : playerZ + 90 + Math.random() * 70;
     mesh.position.set(lane, 0, z);
-    mesh.rotation.y = opposite ? Math.PI : 0;
+    mesh.rotation.set(0, opposite ? Math.PI : 0, 0);
     this.scene.add(mesh);
     const base =
       kind === 'okada' || kind === 'bike'
@@ -247,23 +278,26 @@ export class DynamicTrafficManager {
     const playerZ = this.player.group.position.z;
     const pSpeed = this.player.currentSpeed || 0;
     const dt = Math.min(delta, 0.05);
+
     this.vehicles.forEach((v) => {
       if (v.rival && this.raceMode) {
-        const target = 10 + Math.min(12, pSpeed * 0.42) + (Math.random() - 0.5);
+        const target = 10 + Math.min(12, pSpeed * 0.42);
         v.speed += (target - v.speed) * 0.03;
       }
       v.mesh.position.z += v.speed * dt;
-      const pz = this.player.group.position.z;
-      const px = this.player.group.position.x;
-      if (pSpeed < 1.2 && Math.abs(v.mesh.position.z - pz) < 14 && Math.abs(v.mesh.position.x - px) < 3) {
-        v.laneX = px + Math.sign(v.mesh.position.x - px || 1) * 2.5;
-      }
+
+      // Keep locked to correct carriageway (prevent drift into wrong lane)
+      v.mesh.position.x = THREE.MathUtils.lerp(v.mesh.position.x, v.laneX, 0.08);
       if (horn && Math.abs(v.mesh.position.z - playerZ) < 35) {
-        v.mesh.position.x = THREE.MathUtils.lerp(v.mesh.position.x, v.laneX + 1.4, 0.1);
-      } else {
-        v.mesh.position.x = THREE.MathUtils.lerp(v.mesh.position.x, v.laneX, 0.06);
+        const away = Math.sign(v.laneX) || 1;
+        v.mesh.position.x = THREE.MathUtils.lerp(v.mesh.position.x, v.laneX + away * 0.6, 0.1);
       }
-      v.mesh.visible = Math.abs(v.mesh.position.z - playerZ) < 160;
+
+      // Enforce facing
+      v.mesh.rotation.y = v.opposite ? Math.PI : 0;
+
+      v.mesh.visible = Math.abs(v.mesh.position.z - playerZ) < 180;
+
       if (v.mesh.position.z < playerZ - 55 || v.mesh.position.z > playerZ + 280) {
         try {
           this.scene.remove(v.mesh);
@@ -271,14 +305,8 @@ export class DynamicTrafficManager {
         const next = this._meshFor(this.raceMode);
         v.mesh = next.mesh;
         v.kind = next.kind;
-        v.opposite = this.raceMode ? false : Math.random() < 0.08;
-        v.laneX = v.opposite
-          ? Math.random() > 0.5
-            ? -5.2
-            : -3.0
-          : Math.random() > 0.5
-            ? 3.0
-            : 5.4;
+        v.opposite = this.raceMode ? false : Math.random() < 0.12;
+        v.laneX = this._laneX(v.opposite);
         const b =
           v.kind === 'okada' || v.kind === 'bike'
             ? 14
@@ -289,7 +317,7 @@ export class DynamicTrafficManager {
                 : 9;
         v.speed = v.opposite ? -(b + Math.random() * 5) : b + Math.random() * 7;
         v.mesh.position.set(v.laneX, 0, playerZ + 100 + Math.random() * 50);
-        v.mesh.rotation.y = v.opposite ? Math.PI : 0;
+        v.mesh.rotation.set(0, v.opposite ? Math.PI : 0, 0);
         this.scene.add(v.mesh);
       }
     });

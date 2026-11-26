@@ -697,12 +697,13 @@ async function bootstrap() {
         kekeGroup.add(km);
         loaded.push('keke');
       }
-      await trafficManager.loadRealModels?.();
-      const tCount = (trafficManager.templates?.keke?.length || 0) +
-        (trafficManager.templates?.okada?.length || 0) +
-        (trafficManager.templates?.car?.length || 0);
-      if (tCount) loaded.push('traffic×' + tCount);
-      else if (trafficManager.templates?.length) loaded.push('traffic×' + trafficManager.templates.length);
+      const n = await trafficManager.loadRealModels?.();
+      const tCount = (trafficManager.loadedCount || n || 0);
+      const k = trafficManager.templates?.keke?.length || 0;
+      const o = trafficManager.templates?.okada?.length || 0;
+      const cars = trafficManager.templates?.car?.length || 0;
+      if (tCount) loaded.push('traffic ' + tCount + ' (k' + k + '/o' + o + '/c' + cars + ')');
+      else loaded.push('traffic proxies only');
       try {
         passengerManager.assets = assetManager;
         await passengerManager.initModels?.();
