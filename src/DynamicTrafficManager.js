@@ -80,28 +80,41 @@ export class DynamicTrafficManager {
 
   _meshFor(preferKeke = false) {
     const kind = this._pickKind(preferKeke);
-    const pool =
-      kind === 'keke'
-        ? this.templates.keke
-        : kind === 'okada' || kind === 'bike'
-          ? this.templates.okada.length
-            ? this.templates.okada
-            : this.templates.bike
-          : kind === 'truck'
-            ? this.templates.truck.length
-              ? this.templates.truck
-              : this.templates.car
-            : this.templates.car;
+    // Prefer any loaded GLB over box proxies
+    const hasAny =
+      this.templates.keke.length + this.templates.okada.length + this.templates.car.length > 0;
 
     if (kind === 'keke' && this._kekeTpl) {
       try {
         return { mesh: this._kekeTpl.clone(true), kind: 'keke' };
       } catch (e) {}
     }
-    if (pool && pool.length) {
+    if (kind === 'keke' && this.templates.keke.length) {
       try {
-        const pick = pool[Math.floor(Math.random() * pool.length)];
-        return { mesh: pick.clone(true), kind };
+        return { mesh: this.templates.keke[Math.floor(Math.random() * this.templates.keke.length)].clone(true), kind: 'keke' };
+      } catch (e) {}
+    }
+    if ((kind === 'okada' || kind === 'bike') && this.templates.okada.length) {
+      try {
+        return { mesh: this.templates.okada[Math.floor(Math.random() * this.templates.okada.length)].clone(true), kind: 'okada' };
+      } catch (e) {}
+    }
+    if (this.templates.car.length && (kind === 'car' || kind === 'truck' || (hasAny && kind !== 'keke'))) {
+      try {
+        return { mesh: this.templates.car[Math.floor(Math.random() * this.templates.car.length)].clone(true), kind: kind === 'truck' ? 'truck' : 'car' };
+      } catch (e) {}
+    }
+    // Last resort: only if no GLBs at all
+    if (!hasAny) return { mesh: this._proxy(kind), kind };
+    // Have GLBs but not this kind — use a car/keke GLB instead of box
+    if (this.templates.keke.length) {
+      try {
+        return { mesh: this.templates.keke[0].clone(true), kind: 'keke' };
+      } catch (e) {}
+    }
+    if (this.templates.car.length) {
+      try {
+        return { mesh: this.templates.car[0].clone(true), kind: 'car' };
       } catch (e) {}
     }
     return { mesh: this._proxy(kind), kind };
