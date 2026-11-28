@@ -691,19 +691,28 @@ async function bootstrap() {
     try {
       assetManager.enableNetwork?.();
       const loaded = [];
+      const _kekeT0 = performance.now();
       const km = await assetManager.loadGLB('/assets/models/keke.glb', { scale: 0.85, timeoutMs: 20000 });
+      const _kekeMs = Math.round(performance.now() - _kekeT0);
+      console.log('[Keke] load', _kekeMs, 'ms', !!km);
+
       if (km) {
         while (kekeGroup.children.length) kekeGroup.remove(kekeGroup.children[0]);
         kekeGroup.add(km);
-        loaded.push('keke');
+        loaded.push('keke ' + _kekeMs + 'ms');
       }
       const n = await trafficManager.loadRealModels?.();
       const tCount = (trafficManager.loadedCount || n || 0);
       const k = trafficManager.templates?.keke?.length || 0;
       const o = trafficManager.templates?.okada?.length || 0;
       const cars = trafficManager.templates?.car?.length || 0;
-      if (tCount) loaded.push('traffic ' + tCount + ' (k' + k + '/o' + o + '/c' + cars + ')');
-      else loaded.push('traffic proxies only');
+      const ms = trafficManager.lastLoadMs || 0;
+      if (tCount) loaded.push('traffic ' + tCount + ' (k' + k + '/o' + o + '/c' + cars + ') ' + ms + 'ms');
+      else loaded.push('traffic proxies only · ' + ms + 'ms');
+      try {
+        const slow = (trafficManager.loadLog || []).filter((x) => x.ok && x.ms > 4000);
+        if (slow.length) showBanner('Slow GLB: ' + slow.map((x) => x.path.split('/').pop() + ' ' + x.ms + 'ms').slice(0, 2).join(', '));
+      } catch (e) {}
       try {
         passengerManager.assets = assetManager;
         await passengerManager.initModels?.();
