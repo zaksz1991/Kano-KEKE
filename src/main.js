@@ -2128,9 +2128,13 @@ window.__kanoFullFrame = function fullFrame() {
         });
       } catch (e) {}
       try {
-        collisionSystem.update?.(delta, (msg) => {
-          showBanner(msg);
+        collisionSystem.update?.(delta, (ev) => {
+          const msg = typeof ev === 'string' ? ev : (ev?.msg || '');
+          if (msg) showBanner(msg);
           try {
+            if (ev && typeof ev === 'object' && ev.shake) {
+              cameraRig.setShake?.(Math.min(0.25, ev.shake));
+            }
             if (navigator.vibrate && String(msg).toLowerCase().includes('crash')) {
               navigator.vibrate([40, 30, 40]);
             }
@@ -2309,7 +2313,7 @@ window.__kanoFullFrame = function fullFrame() {
         const chance = window.__kanoPotholeHard ? 0.35 : 0.18;
         if (Math.random() < chance) {
           try {
-            cameraRig.setShake?.(0.35);
+            cameraRig.setShake?.(0.2);
             if (typeof maintenance !== 'undefined' && maintenance) {
               maintenance.tyreHealth = Math.max(20, (maintenance.tyreHealth || 100) - 8);
               maintenance.engineTemp = Math.min(120, (maintenance.engineTemp || 80) + 4);

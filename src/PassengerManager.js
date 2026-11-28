@@ -31,14 +31,28 @@ export class PassengerManager {
     this.assets = assetManager;
     this.pedModel = null;
     this.waiting = [];
+    this._dropPads = [];
     this.onBoard = [];
     this.capacity = 3;
     this.dailyEarnings = 1500;
     this.combo = 0;
+    this._shiftBoards = 0;
     this.score = 0;
     this.maxWaiting = 8;
     this._spawnTimer = 0;
     this.nearestPrompt = null;
+    // Horn attract (optional external flag)
+    if (window.__kanoHornPulse && this.waiting.length) {
+      window.__kanoHornPulse = false;
+      const pz = this.keke.group.position.z;
+      this.waiting.forEach((p) => {
+        if (!p.mesh) return;
+        if (Math.abs(p.mesh.position.z - pz) < 35) {
+          p.flagPhase = (p.flagPhase || 0) + 2;
+        }
+      });
+    }
+
     this.negotiating = null;
     this._negTimer = 0;
   }
@@ -96,10 +110,12 @@ export class PassengerManager {
 
   _makePerson() {
     const g = new THREE.Group();
-    if (this.pedModel) {
-      const mesh = this.pedModel.clone(true);
+    const useHijab = this.hijabModel && Math.random() < 0.45;
+    const src = useHijab ? this.hijabModel : this.pedModel;
+    if (src) {
+      const mesh = src.clone(true);
       mesh.userData.isGlb = true;
-      mesh.scale.setScalar(1.3 + Math.random() * 0.25);
+      mesh.scale.setScalar(useHijab ? 1.05 + Math.random() * 0.15 : 1.3 + Math.random() * 0.25);
       g.add(mesh);
     } else {
       const body = new THREE.Mesh(
@@ -152,19 +168,31 @@ export class PassengerManager {
     const dest = DESTINATIONS[Math.floor(Math.random() * DESTINATIONS.length)];
     const seats = Math.random() > 0.85 ? 2 : 1;
     let baseFare = 180 + Math.floor(Math.random() * 420) + (seats > 1 ? 150 : 0);
+    const vip = Math.random() < 0.12;
+    if (vip) baseFare = Math.round(baseFare * 1.5);
     try {
       const h = ((window.timeInMinutes || 600) / 60) % 24;
       if (h >= 19 || h < 6) baseFare = Math.round(baseFare * 1.15); // night fare
+      if (window.__kanoMarketDay) baseFare = Math.round(baseFare * 1.15);
+    } catch (e) {}
+    try {
+      const routeTxt = (document.getElementById('route-select')?.selectedOptions?.[0]?.text || '').toLowerCase();
+      if (routeTxt && dest && routeTxt.includes(String(dest).toLowerCase().split(' ')[0])) {
+        baseFare = Math.round(baseFare * 1.12);
+        // mark later via destination string match on accept
+      }
     } catch (e) {}
 
     // Mood affects negotiation
     const mood = Math.random(); // 0 stubborn … 1 generous
     return {
-      title,
+      title: vip ? ('VIP ' + title) : title,
       gender: female ? 'female' : 'male',
+      vip,
       destination: dest,
       seats,
       baseFare,
+      vip: Math.random() < 0.12,
       offerFare: baseFare,
       agreedFare: null,
       mood,
@@ -182,7 +210,7 @@ export class PassengerManager {
     const mesh = this._makePerson();
     const px = this.keke.group.position.x;
     const side = px >= 0 ? (Math.random() > 0.3 ? 1 : -1) : Math.random() > 0.3 ? -1 : 1;
-    mesh.position.set(side * (8.8 + Math.random() * 1.2), 0, playerZ + 18 + Math.random() * 55);
+    mesh.position.set(side * (8.2 + Math.random() * 1.0), 0, playerZ + 12 + Math.random() * 40);
     mesh.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
     this.scene.add(mesh);
     p.mesh = mesh;
@@ -207,14 +235,64 @@ export class PassengerManager {
   _acceptNegotiate(p, hudCallback) {
     // Driver bonus applied by caller via capacity; fare bump by mood
     let finalFare = Math.round(p.offerFare * (1 + p.mood * 0.15));
+    if (p.vip) {
+      finalFare = Math.round(finalFare * 1.5);
+      p._vip = true;
+    }
+    try {
+      const h = ((window.timeInMinutes || 0) / 60) % 24;
+      if (h >= 19 || h < 5.5) {
+        finalFare = Math.round(finalFare * 1.18);
+        p._night = true;
+      }
+    } catch (e) {}
     // Full-load bonus when this boarding fills the keke
     const willFill = (this.onBoard.length + (p.seats || 1)) >= (this.capacity || 3);
     if (willFill) finalFare = Math.round(finalFare * 1.2);
     p.agreedFare = finalFare;
     p.state = 'boarded';
     p.dropAtZ = this.keke.group.position.z + p.tripDist;
+    // Gold drop-off pad (kano-run style)
+    try {
+      const pad = new THREE.Mesh(
+        new THREE.CircleGeometry(1.9, 20),
+        new THREE.MeshBasicMaterial({ color: 0xffd600, transparent: true, opacity: 0.85, depthWrite: false })
+      );
+      pad.rotation.x = -Math.PI / 2;
+      const side = (this.keke.group.position.x >= 0 ? 1 : -1);
+      pad.position.set(side * 8.5, 0.08, p.dropAtZ);
+      // Outer ring for visibility
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(1.95, 2.35, 24),
+        new THREE.MeshBasicMaterial({ color: 0xff6f00, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false })
+      );
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.copy(pad.position);
+      ring.position.y = 0.09;
+      this.scene.add(pad);
+      this.scene.add(ring);
+      p.dropPad = pad;
+      p.dropRing = ring;
+      this._dropPads.push(pad);
+    } catch (e) {}
     this.onBoard.push(p);
     p._fullLoad = willFill;
+    this._shiftBoards = (this._shiftBoards || 0) + 1;
+    if (this._shiftBoards <= 3) {
+      finalFare = Math.round(finalFare * 1.1);
+      p.agreedFare = finalFare;
+      p._earlyBird = true;
+    }
+    try {
+      const routeTxt = (document.getElementById('route-select')?.selectedOptions?.[0]?.text || '').toLowerCase();
+      const d = String(p.destination || '').toLowerCase();
+      if (routeTxt && d && routeTxt.includes(d.split(' ')[0])) {
+        finalFare = Math.round(finalFare * (window.__kanoMatchDrop ? 1.28 : 1.12));
+        p.agreedFare = finalFare;
+        p._routeSynergy = true;
+      }
+    } catch (e) {}
+
     this.waiting = this.waiting.filter((w) => w !== p);
     this.negotiating = null;
     if (p.mesh) {
@@ -226,24 +304,42 @@ export class PassengerManager {
     if (hudCallback) {
       hudCallback({
         type: 'BOARD',
-        msg: `${p.title}: "Na shiga!" → ${p.destination} · ₦${finalFare}` + (p._fullLoad ? " · FULL LOAD +" : ""),
+        msg: `${p.title}: "${['Na shiga!', 'Mu tafi!', 'Toh, bari mu tafi!'][Math.floor(Math.random()*3)]}" → ${p.destination} · ₦${finalFare}` + (p._fullLoad ? " · FULL LOAD +" : "") + (p._earlyBird ? " · EARLY +" : "") + (p._routeSynergy ? " · ROUTE +" : "") + (window.__kanoMatchDrop && p._routeSynergy ? " · MATCH" : "") + (p._vip ? ' · VIP +50%' : '') + (p._night ? ' · NIGHT +' : '') + (Math.random() < 0.25 ? ' · bargain OK' : ''),
         earnings: this.dailyEarnings
       });
     }
   }
 
   update(delta, hudCallback) {
+    if (!this._seeded) {
+      this._seeded = true;
+      const z = this.keke?.group?.position.z || 0;
+      for (let i = 0; i < 5; i++) this._spawnWaiter(z + i * 12);
+    }
+
     const dt = Math.min(delta, 0.05);
     const playerZ = this.keke.group.position.z;
     const speed = this.keke.currentSpeed || 0;
     this.nearestPrompt = null;
+    // Horn attract (optional external flag)
+    if (window.__kanoHornPulse && this.waiting.length) {
+      window.__kanoHornPulse = false;
+      const pz = this.keke.group.position.z;
+      this.waiting.forEach((p) => {
+        if (!p.mesh) return;
+        if (Math.abs(p.mesh.position.z - pz) < 35) {
+          p.flagPhase = (p.flagPhase || 0) + 2;
+        }
+      });
+    }
+
 
     this._spawnTimer += dt;
     // Rush hours denser (life-sim): morning + evening
     const mins = (typeof window !== 'undefined' && window.timeInMinutes) ? window.timeInMinutes : 10 * 60;
     const h = (mins / 60) % 24;
     const rush = (h >= 7 && h <= 9) || (h >= 16 && h <= 19);
-    const spawnEvery = rush ? 0.85 : 1.35;
+    const spawnEvery = rush ? 0.55 : 0.85;
     if (this._spawnTimer > spawnEvery) {
       this._spawnTimer = 0;
       this._spawnWaiter(playerZ);
@@ -322,12 +418,19 @@ export class PassengerManager {
     for (const p of [...this.onBoard]) {
       if (p.dropAtZ == null) continue;
       const dz = p.dropAtZ - playerZ;
+      if (dz < 55 && dz > 40 && !p._nearCall) {
+        p._nearCall = true;
+        if (hudCallback) hudCallback({ msg: '📍 Approaching ' + p.destination });
+      }
       if (dz < 40 && dz > 0) {
         if (hudCallback) {
           hudCallback({
             type: 'AKWAI',
             msg: `🛑 Akwai! ${p.title}: "Ina so in sauka a ${p.destination}!" · SLOW`
           });
+        }
+        if (speed > 14 && this.combo >= 2 && hudCallback && dz < 25) {
+          hudCallback({ msg: '⚠️ Combo at risk — SLOW for Akwai!' });
         }
       }
       if (playerZ >= p.dropAtZ - 8 && speed < 8) {
@@ -337,21 +440,39 @@ export class PassengerManager {
           tip = 50 + Math.floor(Math.random() * 150);
           pay += tip;
         }
+        // Smooth drop bonus if nearly stopped
+        if (speed < 3) {
+          const smooth = 30 + Math.floor(Math.random() * 40);
+          pay += smooth;
+          tip += smooth;
+          p._smooth = true;
+        }
         this.dailyEarnings += pay;
         this.combo += 1;
         this.score += pay + this.combo * 12;
+        try {
+          if (p.dropPad) {
+            this.scene.remove(p.dropPad);
+            this._dropPads = this._dropPads.filter((x) => x !== p.dropPad);
+          }
+          if (p.dropRing) {
+            try { this.scene.remove(p.dropRing); } catch (e) {}
+          }
+        } catch (e) {}
         this.onBoard = this.onBoard.filter((x) => x !== p);
         if (hudCallback) {
           const tipMsg = tip ? ` · tip +₦${tip}` : '';
+          const smoothMsg = p._smooth ? ' · SMOOTH' : '';
           hudCallback({
             type: 'DROPOFF',
             earnings: this.dailyEarnings,
-            msg: `${p.title}: "Na gode!" · ${p.destination} · +₦${pay}${tipMsg} · Combo x${this.combo}`
+            msg: `${p.title}: "${['Na gode!', 'Sai anjima!', 'Allah ya sakawa!'][Math.floor(Math.random()*3)]}" · ${p.destination} · +₦${pay}${tipMsg}${smoothMsg} · Combo x${this.combo}`
           });
         }
       } else if (playerZ > p.dropAtZ + 50) {
         // Missed drop — partial pay, reset combo
         this.combo = 0;
+    this._shiftBoards = 0;
         this.onBoard = this.onBoard.filter((x) => x !== p);
         if (hudCallback) {
           hudCallback({
