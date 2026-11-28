@@ -715,15 +715,21 @@ async function bootstrap() {
       } catch (e) {}
       try {
         passengerManager.assets = assetManager;
+        const _paxT0 = performance.now();
         await passengerManager.initModels?.();
-        if (passengerManager.pedModel) loaded.push('pax');
+        const _paxMs = Math.round(performance.now() - _paxT0);
+        if (passengerManager.pedModel) loaded.push('pax ' + _paxMs + 'ms');
+        else loaded.push('pax fail ' + _paxMs + 'ms');
       } catch (e) {}
       try {
         pedestrianManager.assets = assetManager;
         pedestrianManager.scene = scene;
         pedestrianManager.keke = kekeController;
+        const _pedT0 = performance.now();
         await pedestrianManager.init?.();
-        if (pedestrianManager.template) loaded.push('peds');
+        const _pedMs = Math.round(performance.now() - _pedT0);
+        if (pedestrianManager.template) loaded.push('peds ' + _pedMs + 'ms');
+        else loaded.push('peds fail ' + _pedMs + 'ms');
       } catch (e) {}
       try {
         await window.__kanoKenney?.init?.();
